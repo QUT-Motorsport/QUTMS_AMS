@@ -61,7 +61,5 @@ scripts/__pycache__/
 #
 Software/.mxproject
 Software/.settings
-Software/.cproject
-Software/.project
 
 # End of https://www.gitignore.io/api/atmelstudio
