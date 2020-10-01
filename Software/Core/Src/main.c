@@ -67,12 +67,11 @@ uint32_t TxMailbox;
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-  /* USER CODE BEGIN 1 */
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+	/* USER CODE BEGIN 1 */
 	/* Set Msg size */
 	TxHeader1.ExtId = 0x01;
 	TxHeader1.IDE = CAN_ID_EXT;
@@ -85,7 +84,16 @@ int main(void)
 	TxHeader2.RTR = CAN_RTR_DATA;
 	TxHeader2.DLC = 2;
 	TxHeader2.TransmitGlobalTime = DISABLE;
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
 
 	/* Configure the system clock */
 	SystemClock_Config();
@@ -96,6 +104,9 @@ int main(void)
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
+	MX_CAN1_Init();
+	MX_CAN2_Init();
+	MX_USART3_UART_Init();
 	/* USER CODE BEGIN 2 */
 
 	// Initial Positions of all PROFET Pins
@@ -119,7 +130,7 @@ int main(void)
 
 	// DELAY 300ms (and then pray the boards don't fry)
 	HAL_Delay(500); // who knows if this will work - need to check this
-	                // (I put 500 cause I don't know how accurate this is)
+					// (I put 500 cause I don't know how accurate this is)
 
 	// PROFET Positions AFTER Delay
 	// HIGH - HVA+, HVA-, HVB+, HVB-
@@ -138,26 +149,7 @@ int main(void)
 	while (1) {
 		/* USER CODE END WHILE */
 
-		// AMS Packet Example
-		AMS_CellVoltageShutdown_t x = Compose_AMS_CellVoltageShutdown(0, 0, 2);
-
-		TxHeader1.ExtId = x.id;
-		TxHeader1.DLC = sizeof(x.data);
-
-		if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader1, x.data, &TxMailbox) != HAL_OK)
-		{
-			Error_Handler();
-		}
-
-		// BMS Packet Example
-		BMS_BadCellVoltage_t pack = Compose_BMS_BadCellVoltage(0, 0, 2);
-		TxHeader1.ExtId = pack.id;
-		TxHeader1.DLC = sizeof(pack.data);
-
-		if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader1, pack.data, &TxMailbox) != HAL_OK)
-		{
-			Error_Handler();
-		}
+		/* USER CODE BEGIN 3 */
 	}
 	/* USER CODE END 3 */
 }
@@ -198,40 +190,36 @@ void SystemClock_Config(void) {
 	__HAL_RCC_PLLI2S_ENABLE();
 }
 
-
 /* USER CODE BEGIN 4 */
-void BMS_ALARM_ISR(void)
-{
+void BMS_ALARM_ISR(void) {
 	return;
 }
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t *file, uint32_t line) {
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
-     tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
