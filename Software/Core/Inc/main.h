@@ -54,7 +54,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void BMS_ALARM_ISR(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -70,10 +70,11 @@ void Error_Handler(void);
 #define FAN_GPIO_Port GPIOA
 #define PRECHG_Pin GPIO_PIN_1
 #define PRECHG_GPIO_Port GPIOB
-#define ALM_CTRL_Pin GPIO_PIN_2
-#define ALM_CTRL_GPIO_Port GPIOB
-#define IDC_ALARM_Pin GPIO_PIN_5
-#define IDC_ALARM_GPIO_Port GPIOB
+#define ALARM_CTRL_Pin GPIO_PIN_2
+#define ALARM_CTRL_GPIO_Port GPIOB
+#define BMS_ALARM_Pin GPIO_PIN_5
+#define BMS_ALARM_GPIO_Port GPIOB
+#define BMS_ALARM_EXTI_IRQn EXTI9_5_IRQn
 #define BMS_CTRL_Pin GPIO_PIN_6
 #define BMS_CTRL_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_7
