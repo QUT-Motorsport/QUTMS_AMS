@@ -43,4 +43,9 @@ void state_driving_update(fsm_t *fsm);
 void state_driving_exit(fsm_t *fsm);
 state_t drivingState;
 
+void state_error_enter(fsm_t *fsm);
+void state_error_update(fsm_t *fsm);
+void state_error_exit(fsm_t *fsm);
+state_t errorState;
+
 #endif /* INC_AMS_FSM_STATES_H_ */

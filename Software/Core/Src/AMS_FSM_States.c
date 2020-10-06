@@ -103,6 +103,16 @@ state_t drivingState = {&state_driving_enter, &state_driving_update, &state_driv
 void state_driving_enter(fsm_t *fsm)
 {
 	//TODO, Close Connectors, Heartbeat, RTD Health(?)
+
+	// PROFET Positions AFTER Precharge
+	// HIGH - HVA+, HVA-, HVB+, HVB-
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_SET);
+
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 }
 
 void state_driving_update(fsm_t *fsm)
@@ -113,4 +123,24 @@ void state_driving_update(fsm_t *fsm)
 void state_driving_exit(fsm_t *fsm)
 {
 	//TODO, Open connectors, broadcast state
+}
+
+// Error State, we cannot exit this state.
+state_t errorState = {&state_error_enter, &state_error_update, &state_error_exit, "Error_s"};
+
+void state_error_enter(fsm_t *fsm)
+{
+	//TODO, broadcast error over CAN, break alarm line(?)
+}
+
+void state_error_update(fsm_t *fsm)
+{
+	do{
+		//TODO, broadcast error over CAN
+	} while(1);
+}
+
+void state_error_exit(fsm_t *fsm)
+{
+	return; // We should never get here.
 }
