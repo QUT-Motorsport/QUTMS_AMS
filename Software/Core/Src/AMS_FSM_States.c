@@ -5,17 +5,17 @@
  *      Author: Thomas Fraser
  */
 
-#include "AMS_FSM_States.h"
+#include <AMS_fsm_States.h>
 
 // Dead State, IE nothing
-state_t deadState = {&state_dead_enter, &state_dead_update, &state_dead_exit, "Dead_s"};
+state_t deadState = {&state_dead_enter, &state_dead_iterate, &state_dead_exit, "Dead_s"};
 
 void state_dead_enter(fsm_t *fsm)
 {
 	return;
 }
 
-void state_dead_update(fsm_t *fsm)
+void state_dead_iterate(fsm_t *fsm)
 {
 	Error_Handler();
 	return;
@@ -27,7 +27,7 @@ void state_dead_exit(fsm_t *fsm)
 }
 
 // Idle State, HeartBeat + waiting for RTD CAN
-state_t idleState = {&state_idle_enter, &state_idle_update, &state_idle_exit, "Idle_s"};
+state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "Idle_s"};
 
 void state_idle_enter(fsm_t *fsm)
 {
@@ -54,7 +54,7 @@ void state_idle_enter(fsm_t *fsm)
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 }
 
-void state_idle_update(fsm_t *fsm)
+void state_idle_iterate(fsm_t *fsm)
 {
 	//TODO, check for RTD, send Heartbeat, query BMSs
 
@@ -68,7 +68,7 @@ void state_idle_exit(fsm_t *fsm)
 }
 
 // Precharge State
-state_t prechargeState = {&state_precharge_enter, &state_precharge_update, &state_precharge_exit, "Precharge_s"};
+state_t prechargeState = {&state_precharge_enter, &state_precharge_iterate, &state_precharge_exit, "Precharge_s"};
 
 void state_precharge_enter(fsm_t *fsm)
 {
@@ -80,7 +80,7 @@ void state_precharge_enter(fsm_t *fsm)
 	}
 }
 
-void state_precharge_update(fsm_t *fsm)
+void state_precharge_iterate(fsm_t *fsm)
 {
 	return; // In precharge state, wait for timer cb.
 }
@@ -101,7 +101,7 @@ void prechargeTimer_cb(void *fsm)
 }
 
 // Driving State, Heartbeat + checking BMS + SoC + Check 4 soft shutdown
-state_t drivingState = {&state_driving_enter, &state_driving_update, &state_driving_exit, "Driving_s"};
+state_t drivingState = {&state_driving_enter, &state_driving_iterate, &state_driving_exit, "Driving_s"};
 
 void state_driving_enter(fsm_t *fsm)
 {
@@ -118,7 +118,7 @@ void state_driving_enter(fsm_t *fsm)
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 }
 
-void state_driving_update(fsm_t *fsm)
+void state_driving_iterate(fsm_t *fsm)
 {
 	//TODO, Heartbeat, RTD Health(?), query BMSs
 }
@@ -129,14 +129,14 @@ void state_driving_exit(fsm_t *fsm)
 }
 
 // Error State, we cannot exit this state.
-state_t errorState = {&state_error_enter, &state_error_update, &state_error_exit, "Error_s"};
+state_t errorState = {&state_error_enter, &state_error_iterate, &state_error_exit, "Error_s"};
 
 void state_error_enter(fsm_t *fsm)
 {
 	//TODO, broadcast error over CAN, break alarm line(?)
 }
 
-void state_error_update(fsm_t *fsm)
+void state_error_iterate(fsm_t *fsm)
 {
 	do{
 		//TODO, broadcast error over CAN

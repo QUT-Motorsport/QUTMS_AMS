@@ -18,6 +18,8 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <AMS_fsm_States.h>
+#include <fsm.h>
 #include "main.h"
 #include "cmsis_os.h"
 #include "can.h"
@@ -31,8 +33,6 @@
 #include <stdlib.h>
 #include "AMS_CAN_Messages.h"
 #include "BMS_CAN_Messages.h"
-#include "AMS_FSM_States.h"
-#include "FSM.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -119,8 +119,11 @@ int main(void)
 	MX_USART3_UART_Init();
 	/* USER CODE BEGIN 2 */
 
+	//Create FSM instance
+	fsm_t *fsm = fsm_new(&idleState);
+
 	// Create a new thread, where our FSM will run.
-	osThreadNew(FSM_thread_mainLoop, NULL, &fsmThreadAttr);
+	osThreadNew(fsm_thread_mainLoop, fsm, &fsmThreadAttr);
 	/* USER CODE END 2 */
 
 	/* Init scheduler */
@@ -134,7 +137,7 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1) {
 		/* USER CODE END WHILE */
-		Error_Handler(); // We should never get here
+
 		/* USER CODE BEGIN 3 */
 	}
 	/* USER CODE END 3 */
@@ -184,12 +187,15 @@ void BMS_ALARM_ISR(void) {
 	return;
 }
 
-__NO_RETURN void FSM_thread_mainLoop(void *arg)
+__NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
+	// Reset our FSM in idleState, as we are just starting
+	fsm_reset(fsm, &idleState);
 	for(;;)
 	{
 		//TODO
 		// This is our main loop now.
+		fsm_iterate(fsm);
 	}
 }
 /* USER CODE END 4 */

@@ -5,7 +5,7 @@
  *      Author: Thomas Fraser
  */
 
-#include <FSM.h>
+#include <fsm.h>
 
 fsm_t *fsm_new(state_t *beginState)
 {
@@ -21,7 +21,7 @@ fsm_t *fsm_new(state_t *beginState)
 	return fsm;
 }
 
-void fsm_update(fsm_t *fsm)
+void fsm_iterate(fsm_t *fsm)
 {
 	if(osSemaphoreAcquire(fsm->updating, SEM_ACQUIRE_TIMEOUT * MStoTICKS) == osOK) {
 		fsm->currentState->iter(fsm);

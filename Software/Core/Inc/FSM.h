@@ -36,8 +36,8 @@ extern fsm_t *stateMachine;
 // Create new FSM
 fsm_t *fsm_new(state_t *beginState);
 
-//Update FSM
-void fsm_update(fsm_t *fsm);
+//Iterate FSM
+void fsm_iterate(fsm_t *fsm);
 
 //Change FSM state
 void fsm_changeState(fsm_t *fsm, state_t *newState);

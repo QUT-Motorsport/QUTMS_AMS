@@ -56,7 +56,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void BMS_ALARM_ISR(void);
-__NO_RETURN void FSM_thread_mainLoop(void* arg);
+__NO_RETURN void fsm_thread_mainLoop(void* arg);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
