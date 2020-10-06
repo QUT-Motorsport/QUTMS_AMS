@@ -57,6 +57,9 @@ void state_idle_enter(fsm_t *fsm)
 void state_idle_update(fsm_t *fsm)
 {
 	//TODO, check for RTD, send Heartbeat, query BMSs
+
+	// On RTD, change state
+	fsm_changeState(fsm, &prechargeState);
 }
 
 void state_idle_exit(fsm_t *fsm)
@@ -137,10 +140,11 @@ void state_error_update(fsm_t *fsm)
 {
 	do{
 		//TODO, broadcast error over CAN
-	} while(1);
+	} while(0);
 }
 
 void state_error_exit(fsm_t *fsm)
 {
+	Error_Handler();
 	return; // We should never get here.
 }
