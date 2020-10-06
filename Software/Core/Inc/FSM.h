@@ -13,8 +13,6 @@
 #include <memory.h>
 #include "cmsis_os.h"
 
-#define SEM_ACQUIRE_TIMEOUT 32 //Kernel Ticks
-
 typedef struct state state_t;
 typedef struct fsm fsm_t;
 

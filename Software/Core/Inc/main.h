@@ -42,12 +42,13 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+#define PRECHARGE_DELAY 300 // Milliseconds
+#define SEM_ACQUIRE_TIMEOUT 32 //Milliseconds
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define MStoTICKS (osKernelGetTickFreq()/1000.0)
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

@@ -34,7 +34,9 @@ state_t idleState;
 void state_precharge_enter(fsm_t *fsm);
 void state_precharge_update(fsm_t *fsm);
 void state_precharge_exit(fsm_t *fsm);
+void prechargeTimer_cb(void *fsm);
 state_t prechargeState;
+osTimerId_t prechargeTimer;
 
 void state_driving_enter(fsm_t *fsm);
 void state_driving_update(fsm_t *fsm);

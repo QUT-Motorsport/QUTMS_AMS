@@ -23,7 +23,7 @@ fsm_t *fsm_new(state_t *beginState)
 
 void fsm_update(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(fsm->updating, SEM_ACQUIRE_TIMEOUT) == osOK) {
+	if(osSemaphoreAcquire(fsm->updating, SEM_ACQUIRE_TIMEOUT * MStoTICKS) == osOK) {
 		fsm->currentState->iter(fsm);
 		osSemaphoreRelease(fsm->updating);
 	} else
@@ -38,7 +38,7 @@ void fsm_changeState(fsm_t *fsm, state_t *newState)
 	{
 		return;
 	}
-	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT * MStoTICKS) == osOK)
 	{
 		fsm->currentState->exit(fsm);
 
@@ -54,7 +54,7 @@ void fsm_changeState(fsm_t *fsm, state_t *newState)
 
 state_t *fsm_getState_t(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT * MStoTICKS) == osOK)
 	{
 		state_t *s = fsm->currentState;
 		osSemaphoreRelease(fsm->sem);
@@ -68,7 +68,7 @@ state_t *fsm_getState_t(fsm_t *fsm)
 
 char* fsm_getState(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT * MStoTICKS) == osOK)
 	{
 		char *n = fsm->currentState->stateName;
 		osSemaphoreRelease(fsm->sem);
