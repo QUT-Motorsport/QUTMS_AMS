@@ -32,8 +32,14 @@ state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "
 void state_idle_enter(fsm_t *fsm)
 {
 	//TODO, first time startup
-	AMS_GlobalState_t *AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
+	AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
 	memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
+
+	AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
+	if(osTimerStart(AMS_GlobalState->heartbeatTimer, MStoTICKS(AMS_HEARTBEAT_PERIOD)) != osOK)
+	{
+		Error_Handler();
+	}
 
 	//Set Initial PROFET Pin Positions
 	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_SET);
@@ -67,6 +73,12 @@ void state_idle_exit(fsm_t *fsm)
 	//TODO, send RTD heath check
 }
 
+void heartbeatTimer_cb(void *fsm)
+{
+	// Send an AMS heartbeat
+	return;
+}
+
 // Precharge State
 state_t prechargeState = {&state_precharge_enter, &state_precharge_iterate, &state_precharge_exit, "Precharge_s"};
 
@@ -74,7 +86,7 @@ void state_precharge_enter(fsm_t *fsm)
 {
 	//TODO, setup timer for precharge, perform precharge
 	prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerOnce, fsm, NULL);
-	if(osTimerStart(prechargeTimer, PRECHARGE_DELAY * MStoTICKS) != osOK)
+	if(osTimerStart(prechargeTimer, MStoTICKS(PRECHARGE_DELAY)) != osOK)
 	{
 		Error_Handler();
 	}

@@ -17,9 +17,12 @@ typedef struct
 {
 	//TODO, what's in the AMS global state?
 	// Sounds like an Alistair & Calvin Problem to me
+	osTimerId_t heartbeatTimer;
 } AMS_GlobalState_t;
 
-extern AMS_GlobalState_t *AMS_GlobalState;
+AMS_GlobalState_t *AMS_GlobalState;
+
+void heartbeatTimer_cb(void *fsm);
 
 void state_dead_enter(fsm_t *fsm);
 void state_dead_iterate(fsm_t *fsm);

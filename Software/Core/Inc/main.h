@@ -44,18 +44,18 @@ extern "C" {
 /* USER CODE BEGIN EC */
 #define PRECHARGE_DELAY 300 // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32 //Milliseconds
+#define AMS_HEARTBEAT_PERIOD 75 //Milliseconds
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define MStoTICKS (osKernelGetTickFreq()/1000.0)
+#define MStoTICKS(MILLISECONDS) (MILLISECONDS * osKernelGetTickFreq()/1000.0)
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void BMS_ALARM_ISR(void);
 __NO_RETURN void fsm_thread_mainLoop(void* arg);
 /* USER CODE END EFP */
 
@@ -74,9 +74,6 @@ __NO_RETURN void fsm_thread_mainLoop(void* arg);
 #define PRECHG_GPIO_Port GPIOB
 #define ALARM_CTRL_Pin GPIO_PIN_2
 #define ALARM_CTRL_GPIO_Port GPIOB
-#define BMS_ALARM_Pin GPIO_PIN_5
-#define BMS_ALARM_GPIO_Port GPIOB
-#define BMS_ALARM_EXTI_IRQn EXTI9_5_IRQn
 #define BMS_CTRL_Pin GPIO_PIN_6
 #define BMS_CTRL_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_7
