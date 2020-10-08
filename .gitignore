@@ -65,4 +65,7 @@ Software/.settings
 # Dont commit built Docs
 Software/Documentation/Docs/
 
+# MacOS things
+**/.DS_Store
+
 # End of https://www.gitignore.io/api/atmelstudio
