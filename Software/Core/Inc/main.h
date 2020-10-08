@@ -1,22 +1,22 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.h
+ * @brief          : Header for main.c file.
+ *                   This file contains the common defines of the application.
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -42,19 +42,23 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+#define PRECHARGE_DELAY 300 // Milliseconds
+#define SEM_ACQUIRE_TIMEOUT 32 //Milliseconds
+#define AMS_HEARTBEAT_PERIOD 75 //Milliseconds
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define MStoTICKS(MILLISECONDS) (MILLISECONDS * osKernelGetTickFreq()/1000.0)
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void BMS_ALARM_ISR(void);
+void ASM_LogErr(char* TAG, char* subsystem, char* error);
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
+__NO_RETURN void fsm_thread_mainLoop(void* arg);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -72,9 +76,6 @@ void BMS_ALARM_ISR(void);
 #define PRECHG_GPIO_Port GPIOB
 #define ALARM_CTRL_Pin GPIO_PIN_2
 #define ALARM_CTRL_GPIO_Port GPIOB
-#define BMS_ALARM_Pin GPIO_PIN_5
-#define BMS_ALARM_GPIO_Port GPIOB
-#define BMS_ALARM_EXTI_IRQn EXTI9_5_IRQn
 #define BMS_CTRL_Pin GPIO_PIN_6
 #define BMS_CTRL_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_7

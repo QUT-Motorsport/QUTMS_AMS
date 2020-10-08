@@ -1,13 +1,12 @@
-/*
- * BMS_CAN_Messages.c
- *
- *  Created on: Oct 1, 2020
- *      Author: Thomas Fraser
+/**
+ ******************************************************************************
+ * @file BMS_CAN_Messages.c
+ * @brief BMS CAN Messages
+ ******************************************************************************
  */
 
 #include "BMS_CAN_Messages.h"
 
-/* Bad Cell Voltage */
 BMS_BadCellVoltage_t Compose_BMS_BadCellVoltage(uint8_t BMSId, uint8_t cellNumber, uint8_t voltage)
 {
 	BMS_BadCellVoltage_t packet;
@@ -24,7 +23,7 @@ void Parse_BMS_BadCellVoltage(BMS_BadCellVoltage_t packet, uint8_t* BMSId, uint8
 	*cellNumber = (packet.data[0] >> 4) & 0xF;
 	*voltage = packet.data[1];
 }
-/* Bad Cell Temperature */
+
 BMS_BadCellTemperature_t Compose_BMS_BadCellTemperature(uint8_t BMSId, uint8_t cellNumber, uint8_t temperature)
 {
 	BMS_BadCellTemperature_t packet;
@@ -42,7 +41,6 @@ void Parse_BMS_BadCellTemperature(BMS_BadCellTemperature_t packet, uint8_t* BMSI
 	*temperature = packet.data[1];
 }
 
-/* Transmit Voltage */
 BMS_TransmitVoltage_t Compose_BMS_TransmitVoltage(uint8_t BMSId, uint8_t vMsgId, uint16_t voltages[4])
 {
 	BMS_TransmitVoltage_t packet;
@@ -61,6 +59,7 @@ BMS_TransmitVoltage_t Compose_BMS_TransmitVoltage(uint8_t BMSId, uint8_t vMsgId,
 
 	return packet;
 }
+
 void Parse_BMS_TransmitVoltage(BMS_TransmitVoltage_t packet, uint8_t* BMSId, uint8_t* vMsgId, uint16_t* voltages[4])
 {
 	Parse_CANId(packet.id, NULL, NULL, NULL, NULL, NULL, BMSId); // We dont care about any packet info except the BMSId.
@@ -138,6 +137,7 @@ BMS_SetBMSId_t Compose_BMS_SetBMSId(uint8_t BMSId, uint32_t uid)
 
 	return packet;
 }
+
 void Parse_BMS_SetBMSId(BMS_SetBMSId_t packet, uint8_t* BMSId, uint32_t* uid)
 {
 	Parse_CANId(packet.id, NULL, NULL, NULL, NULL, NULL, BMSId); // BMSId from CANId will be 0x0 as we haven't assigned one yet.

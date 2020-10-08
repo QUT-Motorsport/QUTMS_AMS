@@ -1,0 +1,164 @@
+/**
+ ******************************************************************************
+ * @file AMS_FSM_States.h
+ * @brief AMS FSM States
+ ******************************************************************************
+ */
+
+#ifndef INC_AMS_FSM_STATES_H_
+#define INC_AMS_FSM_STATES_H_
+
+#include <fsm.h>
+#include "main.h"
+#include "cmsis_os.h"
+#include <memory.h>
+
+/**
+ * @brief AMS Global State
+ * @note AMS Global State is shared across threads, so use the semaphore to gain control
+ */
+typedef struct
+{
+	//TODO, what's in the AMS global state?
+	// Sounds like an Alistair & Calvin Problem to me
+	osTimerId_t heartbeatTimer;
+	osSemaphoreId_t sem;
+} AMS_GlobalState_t;
+
+AMS_GlobalState_t *AMS_GlobalState;
+
+/**
+ * @brief Callback for the heartbeat timer, which will be called every 75 milliseconds to send a heartbeat.
+ * @param fsm A pointer to the FSM object
+ */
+void heartbeatTimer_cb(void *fsm);
+
+/**
+ * @brief Dead state enter function
+ * @note No implementation as the dead state serves no purpose other than being an initial FSM state
+ * @param fsm A pointer to the FSM object
+ */
+void state_dead_enter(fsm_t *fsm);
+
+/**
+ * @brief Dead state iterate function
+ * @note No implementation as the dead state serves no purpose other than being an initial FSM state
+ * @param fsm A pointer to the FSM object
+ */
+void state_dead_iterate(fsm_t *fsm);
+
+/**
+ * @brief Dead state exit function
+ * @note No implementation as the dead state serves no purpose other than being an initial FSM state
+ * @param fsm A pointer to the FSM object
+ */
+void state_dead_exit(fsm_t *fsm);
+
+/**
+ * @brief deadState ie. startup state for the fsm
+ */
+state_t deadState;
+
+/**
+ * @brief Idle state enter function. Initialises the AMS_GlobalState, starts sending hearbeats
+ * @param fsm A pointer to the FSM object
+ */
+void state_idle_enter(fsm_t *fsm);
+
+/**
+ * @brief Idle state iterate function. Waits for RTD, if RTD is pressed, change the FSM state to precharge
+ * @param fsm A pointer to the FSM object
+ */
+void state_idle_iterate(fsm_t *fsm);
+
+/**
+ * @brief Idle state exit function. Cleans up any timers or semaphores not being used
+ * @param fsm A pointer to the FSM object
+ */
+void state_idle_exit(fsm_t *fsm);
+
+/**
+ * @brief idleState ie. idle state before RTD request is recieved
+ */
+state_t idleState;
+
+/**
+ * Precharge state enter function. Creates a new precharge timer so we wait long enough for precharge to occur
+ * @param fsm A pointer to the FSM object
+ */
+void state_precharge_enter(fsm_t *fsm);
+
+/**
+ * Precharge state iterate function. Waits for the precharge timer callback to occur
+ * @param fsm A pointer to the FSM object
+ */
+void state_precharge_iterate(fsm_t *fsm);
+
+/**
+ * Precharge state exit function. Clean up the timer
+ * @param fsm A pointer to the FSM object
+ */
+void state_precharge_exit(fsm_t *fsm);
+
+/**
+ * Precharge timer callback. calls a state change after precharge has occured
+ * @param fsm A pointer to the FSM object
+ */
+void prechargeTimer_cb(void *fsm);
+
+/**
+ * @brief prechargeState ie. idle state after RTD is recieved
+ */
+state_t prechargeState;
+/**
+ * @brief prechargeTimer object
+ */
+osTimerId_t prechargeTimer;
+
+/**
+ * Driving state enter function. Open the precharge contactor, close the HV contactors.
+ * @param fsm A pointer to the FSM object
+ */
+void state_driving_enter(fsm_t *fsm);
+
+/**
+ * Driving state iterate function. Sends heartbeats, queries BMSs.
+ * @param fsm A pointer to the FSM object
+ */
+void state_driving_iterate(fsm_t *fsm);
+
+/**
+ * Driving state exit function. Close HV contactors, broadcast state
+ * @param fsm A pointer to the FSM object
+ */
+void state_driving_exit(fsm_t *fsm);
+
+/**
+ * @brief drivingState ie. idle state after precharge has occured. Moving state.
+ */
+state_t drivingState;
+
+/**
+ * Error state enter function. Broadcast error over CAN, break the alarm line
+ * @param fsm A pointer to the FSM object
+ */
+void state_error_enter(fsm_t *fsm);
+
+/**
+ * Error state iterate function. Recursively broadcast error over CAN.
+ * @param fsm A pointer to the FSM object
+ */
+void state_error_iterate(fsm_t *fsm);
+
+/**
+ * Error state exit function. We should never get here
+ * @param fsm A pointer to the FSM object
+ */
+void state_error_exit(fsm_t *fsm);
+
+/**
+ * @brief drivingState ie. an inescapable state without power cycle
+ */
+state_t errorState;
+
+#endif /* INC_AMS_FSM_STATES_H_ */

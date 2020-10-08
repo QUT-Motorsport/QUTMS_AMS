@@ -1,14 +1,13 @@
-/*
- * AMS_CAN_Messages.c
- *
- *  Created on: 30 Sep 2020
- *      Author: Tom
+/**
+ ******************************************************************************
+ * @file AMS_CAN_Messages.c
+ * @brief AMS CAN Messages
+ ******************************************************************************
  */
 
 
 #include "AMS_CAN_Messages.h"
 
-/* Cell Voltage Shutdown */
 AMS_CellVoltageShutdown_t Compose_AMS_CellVoltageShutdown(uint8_t cellNum, uint8_t bmsID, uint8_t voltage)
 {
 	AMS_CellVoltageShutdown_t p;
@@ -26,7 +25,6 @@ void Parse_AMS_CellVoltageShutdown(AMS_CellVoltageShutdown_t packet, uint8_t* ce
 	*voltage = (uint8_t)(packet.data[1] & 0xFF);
 }
 
-/* Cell Temperature Shutdown */
 AMS_CellTemperatureShutdown_t Compose_AMS_CellTemperatureShutdown(uint8_t cellNum, uint8_t bmsID, uint8_t temperature)
 {
 	AMS_CellTemperatureShutdown_t p;
@@ -68,7 +66,6 @@ AMS_HeartbeatRequest_t Compose_AMS_HeartbeatRequest()
 	return p;
 }
 
-/* Heartbeat Response */
 AMS_HeartbeatResponse_t Compose_AMS_HeartbeatResponse(bool HVAn, bool HVBn, bool precharge, bool HVAp, bool HVBp, uint8_t averageVoltage, uint16_t runtime)
 {
 	AMS_HeartbeatResponse_t p;
@@ -95,7 +92,6 @@ void Parse_AMS_HeartbeatResponse(AMS_HeartbeatResponse_t packet, bool* HVAn, boo
 	*runtime = (uint16_t)(packet.data[3] << 8 | packet.data[2]);
 }
 
-/* Start Up */
 AMS_StartUp_t Compose_AMS_StartUp()
 {
 	AMS_StartUp_t p;
@@ -104,7 +100,6 @@ AMS_StartUp_t Compose_AMS_StartUp()
 	return p;
 }
 
-/* Reset Tractive */
 AMS_ResetTractive_t Compose_AMS_ResetTractive()
 {
 	AMS_ResetTractive_t p;
@@ -113,7 +108,6 @@ AMS_ResetTractive_t Compose_AMS_ResetTractive()
 	return p;
 }
 
-/* Shutdown */
 AMS_Shutdown_t Compose_AMS_Shutdown()
 {
 	AMS_Shutdown_t p;
@@ -122,7 +116,6 @@ AMS_Shutdown_t Compose_AMS_Shutdown()
 	return p;
 }
 
-/* Request Temperature */
 AMS_RequestTemperature_t Compose_AMS_RequestTemperature()
 {
 	AMS_RequestTemperature_t p;
@@ -131,7 +124,6 @@ AMS_RequestTemperature_t Compose_AMS_RequestTemperature()
 	return p;
 }
 
-/* Transmit Temperature */
 AMS_TransmitTemperature_t Compose_AMS_TransmitTemperature(uint8_t temperature)
 {
 	AMS_TransmitTemperature_t p;
@@ -146,7 +138,6 @@ void Parse_AMS_TransmitTemperature(AMS_TransmitTemperature_t packet, uint8_t* te
 	*temperature = packet.data[0];
 }
 
-/* Request Charge State */
 AMS_RequestChargeState_t Compose_AMS_RequestChargeState()
 {
 	AMS_RequestChargeState_t p;
@@ -155,7 +146,6 @@ AMS_RequestChargeState_t Compose_AMS_RequestChargeState()
 	return p;
 }
 
-/* Transmit Charge State */
 AMS_TransmitChargeState_t Compose_AMS_TransmitChargeState(uint16_t chargeState)
 {
 	AMS_TransmitChargeState_t p;
@@ -171,8 +161,7 @@ void Parse_AMS_TransmitChargeState(AMS_TransmitChargeState_t packet, uint16_t* c
 	*chargeState = (packet.data[0] << 8 | packet.data[1]);
 }
 
-/* Ready */
-AMS_Ready_t AMS_Construct_Ready()
+AMS_Ready_t Compose_AMS_Ready()
 {
 	AMS_Ready_t p;
 	p.id = Compose_CANId(0x0, 0x10, 0x0, 0x3, 0x0, 0x0);
