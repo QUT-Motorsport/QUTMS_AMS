@@ -1,15 +1,15 @@
-/*
- * fsm.cpp
- *
- *  Created on: Oct 5, 2020
- *      Author: Thomas Fraser
+/**
+ ******************************************************************************
+ * @file FSM.c
+ * @brief FSM
+ ******************************************************************************
  */
 
-#include <fsm.h>
+#include <FSM.h>
 
 fsm_t *fsm_new(state_t *beginState)
 {
-	// Malloc, 0 memory then set state
+	// malloc, 0 memory then set state
 	fsm_t *fsm = malloc(sizeof(fsm_t));
 	memset(fsm, 0, sizeof(fsm_t));
 	fsm->currentState = beginState;

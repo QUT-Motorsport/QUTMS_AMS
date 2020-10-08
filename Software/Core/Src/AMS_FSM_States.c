@@ -1,33 +1,19 @@
-/*
- * AMS_FSM_States.c
- *
- *  Created on: Oct 5, 2020
- *      Author: Thomas Fraser
- */
-
-#include <AMS_fsm_States.h>
-
-
 /**
- * @brief deadState ie. startup state for the fsm
+ ******************************************************************************
+ * @file AMS_FSM_States.c
+ * @brief AMS FSM States
+ ******************************************************************************
  */
+
+#include <AMS_FSM_States.h>
+
 state_t deadState = {&state_dead_enter, &state_dead_iterate, &state_dead_exit, "Dead_s"};
 
-/**
- * @brief Dead state enter function
- * @note No implementation as the dead state serves no purpose other than being an initial FSM state
- * @param fsm A pointer to the FSM object
- */
 void state_dead_enter(fsm_t *fsm)
 {
 	return;
 }
 
-/**
- * @brief Dead state iterate function
- * @note No implementation as the dead state serves no purpose other than being an initial FSM state
- * @param fsm A pointer to the FSM object
- */
 void state_dead_iterate(fsm_t *fsm)
 {
 	Error_Handler();
@@ -39,7 +25,6 @@ void state_dead_exit(fsm_t *fsm)
 	return;
 }
 
-// Idle State, HeartBeat + waiting for RTD CAN
 state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "Idle_s"};
 
 void state_idle_enter(fsm_t *fsm)
@@ -98,7 +83,6 @@ void heartbeatTimer_cb(void *fsm)
 	return;
 }
 
-// Precharge State
 state_t prechargeState = {&state_precharge_enter, &state_precharge_iterate, &state_precharge_exit, "Precharge_s"};
 
 void state_precharge_enter(fsm_t *fsm)
@@ -125,13 +109,11 @@ void state_precharge_exit(fsm_t *fsm)
 	}
 }
 
-// Callback to change the state of the FSM to driving once the timer has completed
 void prechargeTimer_cb(void *fsm)
 {
 	fsm_changeState((fsm_t *)fsm, &drivingState);
 }
 
-// Driving State, Heartbeat + checking BMS + SoC + Check 4 soft shutdown
 state_t drivingState = {&state_driving_enter, &state_driving_iterate, &state_driving_exit, "Driving_s"};
 
 void state_driving_enter(fsm_t *fsm)
@@ -159,7 +141,6 @@ void state_driving_exit(fsm_t *fsm)
 	//TODO, Open connectors, broadcast state
 }
 
-// Error State, we cannot exit this state.
 state_t errorState = {&state_error_enter, &state_error_iterate, &state_error_exit, "Error_s"};
 
 void state_error_enter(fsm_t *fsm)
