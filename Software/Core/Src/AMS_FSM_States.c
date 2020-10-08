@@ -7,14 +7,27 @@
 
 #include <AMS_fsm_States.h>
 
-// Dead State, IE nothing
+
+/**
+ * @brief deadState ie. startup state for the fsm
+ */
 state_t deadState = {&state_dead_enter, &state_dead_iterate, &state_dead_exit, "Dead_s"};
 
+/**
+ * @brief Dead state enter function
+ * @note No implementation as the dead state serves no purpose other than being an initial FSM state
+ * @param fsm A pointer to the FSM object
+ */
 void state_dead_enter(fsm_t *fsm)
 {
 	return;
 }
 
+/**
+ * @brief Dead state iterate function
+ * @note No implementation as the dead state serves no purpose other than being an initial FSM state
+ * @param fsm A pointer to the FSM object
+ */
 void state_dead_iterate(fsm_t *fsm)
 {
 	Error_Handler();

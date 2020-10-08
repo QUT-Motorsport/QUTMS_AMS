@@ -187,7 +187,11 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-// CAN Interrupt Callback
+/**
+ * @brief CAN Callback function
+ * @param hcan the can instance responsible for the callback
+ * @retval None
+ */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	CAN_RxHeaderTypeDef RxMessage;
@@ -197,7 +201,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	// From here we can parse the message
 }
 
-// Main FSM Thread Loop
+
+/**
+ * @brief FSM thread main loop task for RTOS
+ * @param fsm the FSM object passed to the loop
+ * @retval None
+ */
 __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
 	// Reset our FSM in idleState, as we are just starting
@@ -210,7 +219,14 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	}
 }
 
-// Log an error to uart
+/**
+ * @brief Creates and logs an error string to huart3
+ * @note The form of the log message is as so: "TAG_subsystem: error"
+ * @param TAG Primary System eg. "AMS"
+ * @param subsystem Subsystem of error eg. "CAN SEND"
+ * @param error Full error string
+ * @retval None
+ */
 void ASM_LogErr(char* TAG, char* subsystem, char* error)
 {
 	char *errorMsg = malloc(sizeof(TAG)+sizeof(subsystem)+sizeof(error)+5+11);

@@ -62,4 +62,7 @@ scripts/__pycache__/
 Software/.mxproject
 Software/.settings
 
+# Dont commit built Docs
+Software/Documentation/Docs/
+
 # End of https://www.gitignore.io/api/atmelstudio
