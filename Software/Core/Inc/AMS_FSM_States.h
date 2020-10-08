@@ -18,6 +18,7 @@ typedef struct
 	//TODO, what's in the AMS global state?
 	// Sounds like an Alistair & Calvin Problem to me
 	osTimerId_t heartbeatTimer;
+	osSemaphoreId_t sem;
 } AMS_GlobalState_t;
 
 AMS_GlobalState_t *AMS_GlobalState;

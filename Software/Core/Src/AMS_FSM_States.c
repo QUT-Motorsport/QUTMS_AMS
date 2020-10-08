@@ -35,10 +35,16 @@ void state_idle_enter(fsm_t *fsm)
 	AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
 	memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
 
-	AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
-	if(osTimerStart(AMS_GlobalState->heartbeatTimer, MStoTICKS(AMS_HEARTBEAT_PERIOD)) != osOK)
+	// As AMS_GlobalState is accessable across threads, we need to use a semaphore to access it
+	AMS_GlobalState->sem = osSemaphoreNew(3U, 3U, NULL);
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
 	{
-		Error_Handler();
+		AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
+		if(osTimerStart(AMS_GlobalState->heartbeatTimer, MStoTICKS(AMS_HEARTBEAT_PERIOD)) != osOK)
+		{
+			Error_Handler();
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
 
 	//Set Initial PROFET Pin Positions
