@@ -40,7 +40,7 @@ struct state {
 };
 
 /**
- * @brief FSM
+ * @brief FSM structure
  */
 struct fsm {
 	state_t *currentState; /**< Current FSM State */

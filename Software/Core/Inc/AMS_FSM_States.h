@@ -10,6 +10,7 @@
 
 #include <fsm.h>
 #include "main.h"
+#include "tim.h"
 #include "cmsis_os.h"
 #include <memory.h>
 
@@ -160,5 +161,12 @@ void state_error_exit(fsm_t *fsm);
  * @brief drivingState ie. an inescapable state without power cycle
  */
 state_t errorState;
+
+void state_buzzer_enter(fsm_t *fsm);
+void state_buzzer_iterate(fsm_t *fsm);
+void state_buzzer_exit(fsm_t *fsm);
+void buzzerTimer_cb(void *fsm);
+state_t buzzerState;
+osTimerId_t buzzerTimer;
 
 #endif /* INC_AMS_FSM_STATES_H_ */
