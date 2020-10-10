@@ -104,7 +104,8 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -121,11 +122,10 @@ int main(void)
   MX_USART3_UART_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-
-  	  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-  	  HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-
 	// Activate CAN Interrupt
+	AMS_LogInfo("------------------------------------\r\n", sizeof("------------------------------------\r\n"));
+	AMS_LogInfo("Setup Complete\r\n", sizeof("Setup Complete\r\n"));
+	HAL_Delay(500U);
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 
@@ -215,6 +215,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
  */
 __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
+	AMS_LogInfo("Entering FSM Thread\r\n", sizeof("Entering FSM Thread\r\n"));
 	// Reset our FSM in idleState, as we are just starting
 	fsm_reset(fsm, &idleState);
 	fsm_changeState(fsm, &buzzerState);
@@ -234,18 +235,15 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
  * @param error Full error string
  * @retval None
  */
-void ASM_LogErr(char* TAG, char* subsystem, char* error)
+void AMS_LogInfo(char* error, size_t length)
 {
-	char *errorMsg = malloc(sizeof(TAG)+sizeof(subsystem)+sizeof(error)+5+11);
-	sprintf(errorMsg, "%s_%s: %s\n", TAG, subsystem, error);
- 	HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, sizeof(errorMsg), HAL_MAX_DELAY);
-	free(errorMsg);
+	HAL_UART_Transmit(&huart3, (uint8_t *)error, length, HAL_MAX_DELAY);
 }
 /* USER CODE END 4 */
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
+  * @note   This function is called  when TIM6 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -256,7 +254,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
+  if (htim->Instance == TIM6) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

@@ -165,8 +165,8 @@ state_t errorState;
 void state_buzzer_enter(fsm_t *fsm);
 void state_buzzer_iterate(fsm_t *fsm);
 void state_buzzer_exit(fsm_t *fsm);
-void buzzerTimer_cb(void *fsm);
 state_t buzzerState;
-osTimerId_t buzzerTimer;
+osTimerId_t buzzer;
+void buzzer_cb(void* argument);
 
 #endif /* INC_AMS_FSM_STATES_H_ */

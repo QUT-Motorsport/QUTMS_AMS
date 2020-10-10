@@ -10,6 +10,7 @@
 fsm_t *fsm_new(state_t *beginState)
 {
 	// malloc, 0 memory then set state
+	AMS_LogInfo("Creating New FSM\r\n", sizeof("Creating New FSM\r\n"));
 	fsm_t *fsm = malloc(sizeof(fsm_t));
 	memset(fsm, 0, sizeof(fsm_t));
 	fsm->currentState = beginState;
@@ -40,6 +41,9 @@ void fsm_changeState(fsm_t *fsm, state_t *newState)
 	}
 	if(osSemaphoreAcquire(fsm->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
 	{
+		char x[80];
+		int len = sprintf(x, "Changing FSM State: %s->%s\r\n", fsm->currentState->stateName, newState->stateName);
+		AMS_LogInfo(x, len);
 		fsm->currentState->exit(fsm);
 
 		fsm->currentState = newState;
@@ -82,6 +86,9 @@ char* fsm_getState(fsm_t *fsm)
 
 void fsm_reset(fsm_t *fsm, state_t *resetState)
 {
+	char x[80];
+	int len = sprintf(x, "Resetting FSM to: %s\r\n", resetState->stateName);
+	AMS_LogInfo(x, len);
 	memset(fsm, 0, sizeof(fsm_t));
 	fsm->currentState = resetState;
 

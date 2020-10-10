@@ -11,6 +11,7 @@
 #include "main.h"
 #include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
 #include "cmsis_os.h"
 
 /**

@@ -165,11 +165,9 @@ state_t buzzerState = {&state_buzzer_enter, &state_buzzer_iterate, &state_buzzer
 
 void state_buzzer_enter(fsm_t *fsm)
 {
-	buzzerTimer = osTimerNew(&buzzerTimer_cb, osTimerOnce, fsm, NULL);
-	if(osTimerStart(buzzerTimer, MStoTICKS(1000)) != osOK)
-	{
-		Error_Handler();
-	}
+	buzzer = osTimerNew(buzzer_cb, osTimerOnce, (void *)fsm, NULL);
+
+	osTimerStart(buzzer, MStoTICKS(1500));
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 	HAL_TIMEx_PWMN_Start(&htim4, TIM_CHANNEL_2);
 }
@@ -184,14 +182,14 @@ void state_buzzer_iterate(fsm_t *fsm)
 
 void state_buzzer_exit(fsm_t *fsm)
 {
+	osTimerDelete(buzzer);
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
 	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
 	HAL_TIMEx_PWMN_Stop(&htim4, TIM_CHANNEL_2);
-	osTimerDelete(buzzerTimer);
 }
 
-void buzzerTimer_cb(void *fsm)
+void buzzer_cb(void* argument)
 {
-	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-	fsm_changeState(fsm, &idleState);
+	AMS_LogInfo("Go to buzzer cb\r\n", sizeof("Go to buzzer cb\r\n"));
+	fsm_changeState(argument, &idleState);
 }
