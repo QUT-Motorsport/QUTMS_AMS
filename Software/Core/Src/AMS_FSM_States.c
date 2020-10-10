@@ -30,19 +30,22 @@ state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "
 void state_idle_enter(fsm_t *fsm)
 {
 	//TODO, first time startup
-	AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
-	memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
-
-	// As AMS_GlobalState is accessable across threads, we need to use a semaphore to access it
-	AMS_GlobalState->sem = osSemaphoreNew(3U, 3U, NULL);
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
+	if(AMS_GlobalState == NULL)
 	{
-		AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
-		if(osTimerStart(AMS_GlobalState->heartbeatTimer, MStoTICKS(AMS_HEARTBEAT_PERIOD)) != osOK)
+		AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
+		memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
+
+		// As AMS_GlobalState is accessable across threads, we need to use a semaphore to access it
+		AMS_GlobalState->sem = osSemaphoreNew(3U, 3U, NULL);
+		if(osSemaphoreAcquire(AMS_GlobalState->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
 		{
-			Error_Handler();
+			AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->heartbeatTimer, MStoTICKS(AMS_HEARTBEAT_PERIOD)) != osOK)
+			{
+				Error_Handler();
+			}
+			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
-		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
 
 	//Set Initial PROFET Pin Positions
@@ -159,37 +162,4 @@ void state_error_exit(fsm_t *fsm)
 {
 	Error_Handler();
 	return; // We should never get here.
-}
-
-state_t buzzerState = {&state_buzzer_enter, &state_buzzer_iterate, &state_buzzer_exit, "Buzzer_s"};
-
-void state_buzzer_enter(fsm_t *fsm)
-{
-	buzzer = osTimerNew(buzzer_cb, osTimerOnce, (void *)fsm, NULL);
-
-	osTimerStart(buzzer, MStoTICKS(1500));
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Start(&htim4, TIM_CHANNEL_2);
-}
-
-void state_buzzer_iterate(fsm_t *fsm)
-{
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 200);
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Start(&htim4, TIM_CHANNEL_2);
-
-}
-
-void state_buzzer_exit(fsm_t *fsm)
-{
-	osTimerDelete(buzzer);
-	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
-	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
-	HAL_TIMEx_PWMN_Stop(&htim4, TIM_CHANNEL_2);
-}
-
-void buzzer_cb(void* argument)
-{
-	AMS_LogInfo("Go to buzzer cb\r\n", sizeof("Go to buzzer cb\r\n"));
-	fsm_changeState(argument, &idleState);
 }

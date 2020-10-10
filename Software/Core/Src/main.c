@@ -218,7 +218,6 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	AMS_LogInfo("Entering FSM Thread\r\n", sizeof("Entering FSM Thread\r\n"));
 	// Reset our FSM in idleState, as we are just starting
 	fsm_reset(fsm, &idleState);
-	fsm_changeState(fsm, &buzzerState);
 	for(;;)
 	{
 		//TODO

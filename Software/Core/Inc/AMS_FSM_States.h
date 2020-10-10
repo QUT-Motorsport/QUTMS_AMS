@@ -57,6 +57,8 @@ void state_dead_exit(fsm_t *fsm);
 
 /**
  * @brief deadState ie. startup state for the fsm
+ * @note Initial FSM state, has no functionality
+ * @details Next: idleState (Instantly)
  */
 state_t deadState;
 
@@ -80,6 +82,8 @@ void state_idle_exit(fsm_t *fsm);
 
 /**
  * @brief idleState ie. idle state before RTD request is recieved
+ * @note Idle FSM state, waiting for RTD or charging CAN messages. Publishing heartbeats. Waking up, Monitoring BMSs
+ * @details Next: prechargeState (CAN RTD Recieved), chargingState (CAN Charge Start Recieved), errorState (Error)
  */
 state_t idleState;
 
@@ -109,6 +113,8 @@ void prechargeTimer_cb(void *fsm);
 
 /**
  * @brief prechargeState ie. idle state after RTD is recieved
+ * @note Precharge FSM state, performing precharge by connecting precharge resistor. Publishing heartbeats / BMSs
+ * @details Next: drivingState (precharge timer done (>300ms), errorState(Error)
  */
 state_t prechargeState;
 /**
@@ -136,6 +142,8 @@ void state_driving_exit(fsm_t *fsm);
 
 /**
  * @brief drivingState ie. idle state after precharge has occured. Moving state.
+ * @note Driving FSM state, Publishing heartbeats / BMSs
+ * @details Next: errorState (Error), resetState (CAN reset)
  */
 state_t drivingState;
 
@@ -162,11 +170,16 @@ void state_error_exit(fsm_t *fsm);
  */
 state_t errorState;
 
-void state_buzzer_enter(fsm_t *fsm);
-void state_buzzer_iterate(fsm_t *fsm);
-void state_buzzer_exit(fsm_t *fsm);
-state_t buzzerState;
-osTimerId_t buzzer;
-void buzzer_cb(void* argument);
+void state_reset_enter(fsm_t *fsm);
+void state_reset_iterate(fsm_t *fsm);
+void state_reset_exit(fsm_t *fsm);
+
+state_t resetState;
+
+void state_charging_enter(fsm_t *fsm);
+void state_charging_iterate(fsm_t *fsm);
+void state_charging_exit(fsm_t *fsm);
+
+state_t chargingState;
 
 #endif /* INC_AMS_FSM_STATES_H_ */
