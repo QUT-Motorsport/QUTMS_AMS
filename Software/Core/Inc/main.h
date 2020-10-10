@@ -42,21 +42,24 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#define PRECHARGE_DELAY 300 // Milliseconds
-#define SEM_ACQUIRE_TIMEOUT 32 //Milliseconds
-#define AMS_HEARTBEAT_PERIOD 75 //Milliseconds
+#define PRECHARGE_DELAY 300U // Milliseconds
+#define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
+#define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
+#define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
+
+#define BMS_COUNT 12
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define MStoTICKS(MILLISECONDS) (MILLISECONDS * osKernelGetTickFreq()/1000.0)
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void AMS_LogInfo(char* error, size_t length);
+void AMS_LogInfo(char* msg, size_t length);
+void AMS_LogErr(char* error, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 __NO_RETURN void fsm_thread_mainLoop(void* arg);
 /* USER CODE END EFP */
@@ -76,6 +79,14 @@ __NO_RETURN void fsm_thread_mainLoop(void* arg);
 #define PRECHG_GPIO_Port GPIOB
 #define ALARM_CTRL_Pin GPIO_PIN_2
 #define ALARM_CTRL_GPIO_Port GPIOB
+#define CAN4_RX_Pin GPIO_PIN_12
+#define CAN4_RX_GPIO_Port GPIOB
+#define CAN4_TX_Pin GPIO_PIN_13
+#define CAN4_TX_GPIO_Port GPIOB
+#define CAN2_RX_Pin GPIO_PIN_11
+#define CAN2_RX_GPIO_Port GPIOA
+#define CAN2_TX_Pin GPIO_PIN_12
+#define CAN2_TX_GPIO_Port GPIOA
 #define BMS_CTRL_Pin GPIO_PIN_6
 #define BMS_CTRL_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_7

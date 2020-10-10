@@ -66,11 +66,6 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-char msg[80];
-CAN_TxHeaderTypeDef TxHeader1;
-CAN_TxHeaderTypeDef TxHeader2;
-uint8_t TxData[8];
-uint32_t TxMailbox;
 osThreadId_t fsmThread;
 const osThreadAttr_t fsmThreadAttr = {
 		.stack_size = 1024
@@ -84,18 +79,6 @@ const osThreadAttr_t fsmThreadAttr = {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	/* Set Msg size */
-	TxHeader1.ExtId = 0x01;
-	TxHeader1.IDE = CAN_ID_EXT;
-	TxHeader1.RTR = CAN_RTR_DATA;
-	TxHeader1.DLC = 2;
-	TxHeader1.TransmitGlobalTime = DISABLE;
-
-	TxHeader2.ExtId = 0x02;
-	TxHeader2.IDE = CAN_ID_EXT;
-	TxHeader2.RTR = CAN_RTR_DATA;
-	TxHeader2.DLC = 2;
-	TxHeader2.TransmitGlobalTime = DISABLE;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -123,9 +106,12 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
-	AMS_LogInfo("------------------------------------\r\n", sizeof("------------------------------------\r\n"));
-	AMS_LogInfo("Setup Complete\r\n", sizeof("Setup Complete\r\n"));
+  	char *msg = "------------------------------------\r\n";
+	AMS_LogInfo(msg, strlen(msg));
+	AMS_LogInfo("Setup Complete\r\n", strlen("Setup Complete\r\n"));
+
 	HAL_Delay(500U);
+
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 
@@ -204,9 +190,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	uint8_t RxData[8];
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxMessage, RxData);
+
 	// From here we can parse the message
 }
-
 
 /**
  * @brief FSM thread main loop task for RTOS
@@ -215,7 +201,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
  */
 __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
-	AMS_LogInfo("Entering FSM Thread\r\n", sizeof("Entering FSM Thread\r\n"));
+	AMS_LogInfo("Entering FSM Thread\r\n", strlen("Entering FSM Thread\r\n"));
 	// Reset our FSM in idleState, as we are just starting
 	fsm_reset(fsm, &idleState);
 	for(;;)
@@ -234,9 +220,23 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
  * @param error Full error string
  * @retval None
  */
-void AMS_LogInfo(char* error, size_t length)
+void AMS_LogInfo(char* msg, size_t length)
 {
-	HAL_UART_Transmit(&huart3, (uint8_t *)error, length, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart3, (uint8_t *)msg, length, HAL_MAX_DELAY);
+}
+
+void AMS_LogErr(char* error, size_t length)
+{
+	char* errorMsg = malloc(length + 9);
+	int len = sprintf(errorMsg, "ERROR: %s\r\n", error);
+	if(len == length + 9)
+	{
+		HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
+	} else
+	{
+		Error_Handler();
+	}
+	free(errorMsg);
 }
 /* USER CODE END 4 */
 

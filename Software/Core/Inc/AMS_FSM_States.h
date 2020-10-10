@@ -13,6 +13,10 @@
 #include "tim.h"
 #include "cmsis_os.h"
 #include <memory.h>
+#include <stdbool.h>
+#include "AMS_CAN_Messages.h"
+#include "BMS_CAN_Messages.h"
+#include "can.h"
 
 /**
  * @brief AMS Global State
@@ -22,6 +26,17 @@ typedef struct
 {
 	//TODO, what's in the AMS global state?
 	// Sounds like an Alistair & Calvin Problem to me
+	//CAN
+	uint32_t CAN2_TxMailbox;
+	uint32_t CAN2_RxMailbox;
+	uint32_t CAN4_TxMailbox;
+	uint32_t CAN4_RxMailbox;
+
+	uint32_t startupTicks; /**< The Tick count at the initial startup time */
+
+	uint8_t BMS_VoltageAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
+	uint8_t BMSTemperatureAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
+
 	osTimerId_t heartbeatTimer;
 	osSemaphoreId_t sem;
 } AMS_GlobalState_t;

@@ -34,7 +34,10 @@ extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
 /* USER CODE BEGIN Private defines */
-
+/**
+ * For when you forget
+ * @brief CAN2 = Chassis = hcan1, CAN4 = BMS = hcan2
+ */
 /* USER CODE END Private defines */
 
 void MX_CAN1_Init(void);

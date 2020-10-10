@@ -67,7 +67,7 @@ AMS_CellTemperatureShutdown_t Compose_AMS_CellTemperatureShutdown(uint8_t cellNu
 void Parse_AMS_CellTemperatureShutdown(AMS_CellTemperatureShutdown_t packet, uint8_t* cellNum, uint8_t* bmsID, uint8_t* temperature);
 
 /**
- * @brief AMS Missing BMS Temperature Message
+ * @brief AMS Missing BMS Message
  */
 typedef struct
 {

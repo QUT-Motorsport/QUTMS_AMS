@@ -25,12 +25,17 @@
 /* CANId */
 uint32_t Compose_CANId(uint8_t priority, uint16_t sourceId, uint8_t autonomous, uint8_t type, uint16_t extra, uint8_t BMSId)
 {
-	//TODO aLgOrItHm
-	return (uint32_t)0;
+	uint32_t id = (priority & 0x3) | (sourceId & 0x1FF) << 14 | (autonomous & 0x1) << 17 | (type & 0x7) << 18 | (BMSId & 0xF) << 23 | (extra & 0x3FF) << 27;
+	return id;
 }
 void Parse_CANId(uint32_t CANId, uint8_t* priority, uint16_t* sourceId, uint8_t* autonomous, uint8_t* type, uint16_t* extra, uint8_t* BMSId)
 {
-	//TODO rEvErSe
+	*priority = (CANId & 0x3);
+	*sourceId = (CANId >> 14) & 0x1FF;
+	*autonomous = (CANId >> 17) & 0x1;
+	*type = (CANId >> 18) & 0x7;
+	*BMSId = (CANId >> 23) & 0xF;
+	*extra = (CANId >> 27) & 0x3FF;
 	return;
 }
 
@@ -106,15 +111,15 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     PA11     ------> CAN1_RX
     PA12     ------> CAN1_TX
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_11;
+    GPIO_InitStruct.Pin = CAN2_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(CAN2_RX_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_12;
+    GPIO_InitStruct.Pin = CAN2_TX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(CAN2_TX_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN CAN1_MspInit 1 */
 
@@ -137,15 +142,15 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     PB12     ------> CAN2_RX
     PB13     ------> CAN2_TX
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_12;
+    GPIO_InitStruct.Pin = CAN4_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    HAL_GPIO_Init(CAN4_RX_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_13;
+    GPIO_InitStruct.Pin = CAN4_TX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    HAL_GPIO_Init(CAN4_TX_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN CAN2_MspInit 1 */
 
@@ -171,7 +176,7 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
     PA11     ------> CAN1_RX
     PA12     ------> CAN1_TX
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
+    HAL_GPIO_DeInit(GPIOA, CAN2_RX_Pin|CAN2_TX_Pin);
 
   /* USER CODE BEGIN CAN1_MspDeInit 1 */
 
@@ -193,7 +198,7 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
     PB12     ------> CAN2_RX
     PB13     ------> CAN2_TX
     */
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
+    HAL_GPIO_DeInit(GPIOB, CAN4_RX_Pin|CAN4_TX_Pin);
 
   /* USER CODE BEGIN CAN2_MspDeInit 1 */
 

@@ -10,7 +10,7 @@
 fsm_t *fsm_new(state_t *beginState)
 {
 	// malloc, 0 memory then set state
-	AMS_LogInfo("Creating New FSM\r\n", sizeof("Creating New FSM\r\n"));
+	AMS_LogInfo("Creating New FSM\r\n", strlen("Creating New FSM\r\n"));
 	fsm_t *fsm = malloc(sizeof(fsm_t));
 	memset(fsm, 0, sizeof(fsm_t));
 	fsm->currentState = beginState;
@@ -24,7 +24,7 @@ fsm_t *fsm_new(state_t *beginState)
 
 void fsm_iterate(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(fsm->updating, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK) {
+	if(osSemaphoreAcquire(fsm->updating, SEM_ACQUIRE_TIMEOUT) == osOK) {
 		fsm->currentState->iter(fsm);
 		osSemaphoreRelease(fsm->updating);
 	} else
@@ -39,7 +39,7 @@ void fsm_changeState(fsm_t *fsm, state_t *newState)
 	{
 		return;
 	}
-	if(osSemaphoreAcquire(fsm->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		char x[80];
 		int len = sprintf(x, "Changing FSM State: %s->%s\r\n", fsm->currentState->stateName, newState->stateName);
@@ -58,7 +58,7 @@ void fsm_changeState(fsm_t *fsm, state_t *newState)
 
 state_t *fsm_getState_t(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(fsm->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		state_t *s = fsm->currentState;
 		osSemaphoreRelease(fsm->sem);
@@ -72,7 +72,7 @@ state_t *fsm_getState_t(fsm_t *fsm)
 
 char* fsm_getState(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(fsm->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		char *n = fsm->currentState->stateName;
 		osSemaphoreRelease(fsm->sem);

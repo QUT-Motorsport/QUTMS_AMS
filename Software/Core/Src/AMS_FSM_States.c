@@ -35,15 +35,16 @@ void state_idle_enter(fsm_t *fsm)
 		AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
 		memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
 
-		// As AMS_GlobalState is accessable across threads, we need to use a semaphore to access it
+		// As AMS_GlobalState is accessible across threads, we need to use a semaphore to access it
 		AMS_GlobalState->sem = osSemaphoreNew(3U, 3U, NULL);
-		if(osSemaphoreAcquire(AMS_GlobalState->sem, MStoTICKS(SEM_ACQUIRE_TIMEOUT)) == osOK)
+		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 		{
 			AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
-			if(osTimerStart(AMS_GlobalState->heartbeatTimer, MStoTICKS(AMS_HEARTBEAT_PERIOD)) != osOK)
+			if(osTimerStart(AMS_GlobalState->heartbeatTimer, AMS_HEARTBEAT_PERIOD) != osOK)
 			{
 				Error_Handler();
 			}
+			AMS_GlobalState->startupTicks = HAL_GetTick();
 			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
 	}
@@ -82,8 +83,41 @@ void state_idle_exit(fsm_t *fsm)
 
 void heartbeatTimer_cb(void *fsm)
 {
-	// Send an AMS heartbeat
-	return;
+	// Take the GlobalState sem, find our values then fire off the packet
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		// Get GPIO States
+		bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
+		bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
+		bool precharge_state = HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin);
+		bool HVAp_state = HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin);
+		bool HVBp_state = HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin);
+
+		uint8_t averageVoltage = 0;
+		for(int i = 0; i < BMS_COUNT; i++)
+		{
+			averageVoltage += AMS_GlobalState->BMS_VoltageAverages[i];
+		}
+		averageVoltage /= BMS_COUNT;
+
+		uint16_t runtime = (HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000;
+
+		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(HVAn_state, HVBn_state, precharge_state, HVAp_state, HVBp_state, averageVoltage, runtime);
+		CAN_TxHeaderTypeDef header =
+		{
+			.ExtId = canPacket.id,
+			.IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA,
+			.DLC = sizeof(canPacket.data),
+			.TransmitGlobalTime = DISABLE,
+		};
+
+		HAL_CAN_AddTxMessage(&hcan1, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	} else
+	{
+		Error_Handler();
+	}
 }
 
 state_t prechargeState = {&state_precharge_enter, &state_precharge_iterate, &state_precharge_exit, "Precharge_s"};
@@ -92,7 +126,7 @@ void state_precharge_enter(fsm_t *fsm)
 {
 	//TODO, setup timer for precharge, perform precharge
 	prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerOnce, fsm, NULL);
-	if(osTimerStart(prechargeTimer, MStoTICKS(PRECHARGE_DELAY)) != osOK)
+	if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
 	{
 		Error_Handler();
 	}
@@ -105,7 +139,6 @@ void state_precharge_iterate(fsm_t *fsm)
 
 void state_precharge_exit(fsm_t *fsm)
 {
-	//TODO, delete timer.
 	if(osTimerDelete(prechargeTimer) != osOK)
 	{
 		Error_Handler();
@@ -149,6 +182,8 @@ state_t errorState = {&state_error_enter, &state_error_iterate, &state_error_exi
 void state_error_enter(fsm_t *fsm)
 {
 	//TODO, broadcast error over CAN, break alarm line(?)
+	// Unrecoverable, so log AMS_GlobalState then free it
+	free(AMS_GlobalState);
 }
 
 void state_error_iterate(fsm_t *fsm)
