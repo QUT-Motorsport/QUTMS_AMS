@@ -112,6 +112,16 @@ int main(void)
 
 	HAL_Delay(500U);
 
+	if (HAL_CAN_Start(&hcan1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	if (HAL_CAN_Start(&hcan2) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 
@@ -179,6 +189,54 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void IDC_Alarm_cb(void* fsm)
+{
+	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == GPIO_PIN_RESET)
+	{
+		fsm_changeState(fsm, &errorState);
+	}
+}
+
+void heartbeatTimer_cb(void *fsm)
+{
+	// Take the GlobalState sem, find our values then fire off the packet
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		// Get GPIO States
+		bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
+		bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
+		bool precharge_state = HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin);
+		bool HVAp_state = HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin);
+		bool HVBp_state = HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin);
+
+		uint8_t averageVoltage = 0;
+		for(int i = 0; i < BMS_COUNT; i++)
+		{
+			averageVoltage += AMS_GlobalState->BMS_VoltageAverages[i];
+		}
+		averageVoltage /= BMS_COUNT;
+
+		uint16_t runtime = (HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000;
+
+		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(HVAn_state, HVBn_state, precharge_state, HVAp_state, HVBp_state, averageVoltage, runtime);
+		CAN_TxHeaderTypeDef header =
+		{
+			.ExtId = canPacket.id,
+			.IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA,
+			.DLC = sizeof(canPacket.data),
+			.TransmitGlobalTime = DISABLE,
+		};
+
+		HAL_CAN_AddTxMessage(&hcan2, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	} else
+	{
+		Error_Handler();
+	}
+}
+
 /**
  * @brief CAN Callback function
  * @param hcan the can instance responsible for the callback
@@ -190,8 +248,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	uint8_t RxData[8];
 
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxMessage, RxData);
-
-	// From here we can parse the message
+	// From here we can put generic messages into a queue to handle inside state iterate functions
 }
 
 /**

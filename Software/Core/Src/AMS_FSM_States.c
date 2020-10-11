@@ -29,7 +29,6 @@ state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "
 
 void state_idle_enter(fsm_t *fsm)
 {
-	//TODO, first time startup
 	if(AMS_GlobalState == NULL)
 	{
 		AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
@@ -44,87 +43,58 @@ void state_idle_enter(fsm_t *fsm)
 			{
 				Error_Handler();
 			}
+			AMS_GlobalState->IDC_AlarmTimer = osTimerNew(&IDC_Alarm_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->IDC_AlarmTimer, AMS_IDC_PERIOD) != osOK)
+			{
+				Error_Handler();
+			}
 			AMS_GlobalState->startupTicks = HAL_GetTick();
 			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
 	}
 
-	//Set Initial PROFET Pin Positions
-	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
-
-	// LOW - HVA+, HVB+
-	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
-
-	// FAN
-	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
+	/* Set initial pin states */
+	// ALARM Line - HIGH
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 
-	// ALARM Line - HIGH
-	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
+	//Set Initial PROFET Pin Positions (All Off)
+	// Contactors
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+	// Precharge
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// FAN On
+	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 }
 
 void state_idle_iterate(fsm_t *fsm)
 {
-	//TODO, check for RTD, send Heartbeat, query BMSs
-
-	// On RTD, change state
-	fsm_changeState(fsm, &prechargeState);
+	return;
 }
 
 void state_idle_exit(fsm_t *fsm)
 {
-	//TODO, send RTD heath check
-}
-
-void heartbeatTimer_cb(void *fsm)
-{
-	// Take the GlobalState sem, find our values then fire off the packet
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-	{
-		// Get GPIO States
-		bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
-		bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
-		bool precharge_state = HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin);
-		bool HVAp_state = HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin);
-		bool HVBp_state = HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin);
-
-		uint8_t averageVoltage = 0;
-		for(int i = 0; i < BMS_COUNT; i++)
-		{
-			averageVoltage += AMS_GlobalState->BMS_VoltageAverages[i];
-		}
-		averageVoltage /= BMS_COUNT;
-
-		uint16_t runtime = (HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000;
-
-		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(HVAn_state, HVBn_state, precharge_state, HVAp_state, HVBp_state, averageVoltage, runtime);
-		CAN_TxHeaderTypeDef header =
-		{
-			.ExtId = canPacket.id,
-			.IDE = CAN_ID_EXT,
-			.RTR = CAN_RTR_DATA,
-			.DLC = sizeof(canPacket.data),
-			.TransmitGlobalTime = DISABLE,
-		};
-
-		HAL_CAN_AddTxMessage(&hcan1, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
-		osSemaphoreRelease(AMS_GlobalState->sem);
-	} else
-	{
-		Error_Handler();
-	}
+	return;
 }
 
 state_t prechargeState = {&state_precharge_enter, &state_precharge_iterate, &state_precharge_exit, "Precharge_s"};
 
 void state_precharge_enter(fsm_t *fsm)
 {
-	//TODO, setup timer for precharge, perform precharge
+	// Set Contractors to precharge mode
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
+
 	prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerOnce, fsm, NULL);
 	if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
 	{
@@ -154,7 +124,10 @@ state_t drivingState = {&state_driving_enter, &state_driving_iterate, &state_dri
 
 void state_driving_enter(fsm_t *fsm)
 {
-	//TODO, Close Connectors, Heartbeat, RTD Health(?)
+	// Close Connectors
+
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
 	// PROFET Positions AFTER Precharge
 	// HIGH - HVA+, HVA-, HVB+, HVB-
@@ -163,38 +136,91 @@ void state_driving_enter(fsm_t *fsm)
 	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_SET);
 
-	// LOW - PRECHG
-	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 }
 
 void state_driving_iterate(fsm_t *fsm)
 {
-	//TODO, Heartbeat, RTD Health(?), query BMSs
+	return;
 }
 
 void state_driving_exit(fsm_t *fsm)
 {
-	//TODO, Open connectors, broadcast state
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// LOW - HVA+, HVA-, HVB+, HVB-
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
 }
 
 state_t errorState = {&state_error_enter, &state_error_iterate, &state_error_exit, "Error_s"};
 
 void state_error_enter(fsm_t *fsm)
 {
-	//TODO, broadcast error over CAN, break alarm line(?)
-	// Unrecoverable, so log AMS_GlobalState then free it
-	free(AMS_GlobalState);
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// LOW - HVA+, HVA-, HVB+, HVB-
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+
+	// Trip Shutdown Alarm Line
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
+
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		if(osTimerDelete(AMS_GlobalState->IDC_AlarmTimer) != osOK)
+		{
+			Error_Handler();
+		}
+		if(osTimerDelete(AMS_GlobalState->heartbeatTimer) != osOK)
+		{
+			Error_Handler();
+		}
+
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	}
 }
 
 void state_error_iterate(fsm_t *fsm)
 {
 	do{
-		//TODO, broadcast error over CAN
-	} while(0);
+		// Broadcast CAN Error
+
+		// Probs deal with BMSs here
+	} while(1);
 }
 
 void state_error_exit(fsm_t *fsm)
 {
 	Error_Handler();
 	return; // We should never get here.
+}
+
+state_t resetState = {&state_reset_enter, &state_reset_iterate, &state_reset_exit, "Reset_s"};
+
+void state_reset_enter(fsm_t *fsm)
+{
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// LOW - HVA+, HVA-, HVB+, HVB-
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+}
+
+void state_reset_iterate(fsm_t *fsm)
+{
+	fsm_changeState(fsm, &idleState);
+}
+
+void state_reset_exit(fsm_t *fsm)
+{
+	return;
 }

@@ -38,16 +38,11 @@ typedef struct
 	uint8_t BMSTemperatureAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
 
 	osTimerId_t heartbeatTimer;
+	osTimerId_t IDC_AlarmTimer;
 	osSemaphoreId_t sem;
 } AMS_GlobalState_t;
 
 AMS_GlobalState_t *AMS_GlobalState;
-
-/**
- * @brief Callback for the heartbeat timer, which will be called every 75 milliseconds to send a heartbeat.
- * @param fsm A pointer to the FSM object
- */
-void heartbeatTimer_cb(void *fsm);
 
 /**
  * @brief Dead state enter function
@@ -181,7 +176,9 @@ void state_error_iterate(fsm_t *fsm);
 void state_error_exit(fsm_t *fsm);
 
 /**
- * @brief drivingState ie. an inescapable state without power cycle
+ * @brief errorState ie. an inescapable state without power cycle
+ * @note Error state, Publishing CAN Error, driving Alarm Line LOW
+ * @details Next: None (Power Cycle)
  */
 state_t errorState;
 
@@ -189,12 +186,22 @@ void state_reset_enter(fsm_t *fsm);
 void state_reset_iterate(fsm_t *fsm);
 void state_reset_exit(fsm_t *fsm);
 
+/**
+ * @brief resetState ie. Return to idle state without power cycle
+ * @note Reset state, Open contactors, publish heartbeats
+ * @details Next: idleState (instantly), errorState (On error)
+ */
 state_t resetState;
 
 void state_charging_enter(fsm_t *fsm);
 void state_charging_iterate(fsm_t *fsm);
 void state_charging_exit(fsm_t *fsm);
 
+/**
+ * @brief chargingState ie. Gets charge request from CAN
+ * @note Charging state, close contactors, monitor BMSs
+ * @details Next: errorState (On error), resetState (CAN), idleState (Stop charging)
+ */
 state_t chargingState;
 
 #endif /* INC_AMS_FSM_STATES_H_ */

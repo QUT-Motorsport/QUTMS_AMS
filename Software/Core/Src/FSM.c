@@ -19,6 +19,13 @@ fsm_t *fsm_new(state_t *beginState)
 	fsm->sem = osSemaphoreNew(3U, 3U, NULL);
 	fsm->updating = osSemaphoreNew(3U, 3U, NULL);
 
+	// Enter state
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		fsm->currentState->enter(fsm);
+		osSemaphoreRelease(fsm->sem);
+	}
+
 	return fsm;
 }
 
@@ -95,6 +102,13 @@ void fsm_reset(fsm_t *fsm, state_t *resetState)
 	// Set semaphores
 	fsm->sem = osSemaphoreNew(3U, 3U, NULL);
 	fsm->updating = osSemaphoreNew(3U, 3U, NULL);
+
+	// Enter state
+	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		fsm->currentState->enter(fsm);
+		osSemaphoreRelease(fsm->sem);
+	}
 }
 
 void fsm_log(fsm_t *fsm)

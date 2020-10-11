@@ -42,10 +42,11 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#define PRECHARGE_DELAY 300U // Milliseconds
+#define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
 #define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
+#define AMS_IDC_PERIOD 250U // Milliseconds
 
 #define BMS_COUNT 12
 /* USER CODE END EC */
@@ -58,6 +59,16 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+/**
+ * @brief Callback for the IDC ALARM timer, which will be called every 250 milliseconds.
+ * @param fsm A pointer to the FSM object
+ */
+void IDC_Alarm_cb(void* fsm);
+/**
+ * @brief Callback for the heartbeat timer, which will be called every 75 milliseconds to send a heartbeat.
+ * @param fsm A pointer to the FSM object
+ */
+void heartbeatTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
 void AMS_LogErr(char* error, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
@@ -87,6 +98,8 @@ __NO_RETURN void fsm_thread_mainLoop(void* arg);
 #define CAN2_RX_GPIO_Port GPIOA
 #define CAN2_TX_Pin GPIO_PIN_12
 #define CAN2_TX_GPIO_Port GPIOA
+#define IDC_ALARM_Pin GPIO_PIN_5
+#define IDC_ALARM_GPIO_Port GPIOB
 #define BMS_CTRL_Pin GPIO_PIN_6
 #define BMS_CTRL_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_7
