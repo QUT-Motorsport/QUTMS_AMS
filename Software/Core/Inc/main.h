@@ -52,6 +52,9 @@ extern "C" {
 #define BMS_COUNT 12
 #define BMS_VOLTAGE_COUNT 10
 #define BMS_TEMPERATURE_COUNT 12
+
+// Bit Masks
+#define BMS_ID_MASK 0x1FFFFFF0
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

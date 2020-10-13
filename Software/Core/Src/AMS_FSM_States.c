@@ -94,7 +94,7 @@ void state_idle_iterate(fsm_t *fsm)
 			 */
 
 			/** BMS_TransmitVoltages With BMSID masked off */
-			if((msg.header.ExtId & 0x1FFFFFF0) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
+			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId;
 				uint8_t vMsgId;
@@ -119,7 +119,7 @@ void state_idle_iterate(fsm_t *fsm)
 			}
 
 			/** BMS_TransmitTemperatures With BMSID masked off */
-			if((msg.header.ExtId & 0x1FFFFFF0) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
+			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
 			{
 				uint8_t BMSId;
 				uint8_t tMsgId;
@@ -141,6 +141,56 @@ void state_idle_iterate(fsm_t *fsm)
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
 				free(temperatures);
+			}
+
+			/** BMS_BadCellVoltage With BMSID masked off */
+			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
+			{
+				uint8_t BMSId;
+				uint8_t cellNum;
+				uint8_t voltage;
+				Parse_BMS_BadCellVoltage(*((BMS_BadCellVoltage_t *)(&msg.data)), &BMSId, &cellNum, &voltage);
+
+				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
+				CAN_TxHeaderTypeDef header =
+				{
+						.ExtId = cVS.id,
+						.IDE = CAN_ID_EXT,
+						.RTR = CAN_RTR_DATA,
+						.DLC = sizeof(cVS.data),
+						.TransmitGlobalTime = DISABLE,
+				};
+
+				// Notify Chassis we have a bad cell voltage.
+				HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
+
+				// Bad BMS cell voltage found, we need to change to errorState.
+				fsm_changeState(fsm, &errorState);
+			}
+
+			/** BMS_BadCellTemperature With BMSID masked off */
+			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
+			{
+				uint8_t BMSId;
+				uint8_t cellNum;
+				uint8_t temperature;
+				Parse_BMS_BadCellTemperature(*((BMS_BadCellTemperature_t *)(&msg.data)), &BMSId, &cellNum, &temperature);
+
+				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
+				CAN_TxHeaderTypeDef header =
+				{
+						.ExtId = cTS.id,
+						.IDE = CAN_ID_EXT,
+						.RTR = CAN_RTR_DATA,
+						.DLC = sizeof(cTS.data),
+						.TransmitGlobalTime = DISABLE,
+				};
+
+				// Notify Chassis we have a bad cell temperature.
+				HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
+
+				// Bad BMS cell temperature found, we need to change to errorState
+				fsm_changeState(fsm, &errorState);
 			}
 		}
 	}
