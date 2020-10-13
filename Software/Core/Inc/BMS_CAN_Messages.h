@@ -90,7 +90,7 @@ BMS_TransmitVoltage_t Compose_BMS_TransmitVoltage(uint8_t BMSId, uint8_t vMsgId,
  * @param vMsgId The voltage message ID (0 or 1) as we send 2 packets with all voltages
  * @param voltages The voltages parsed from the packet
  */
-void Parse_BMS_TransmitVoltage(BMS_TransmitVoltage_t packet, uint8_t* BMSId, uint8_t* vMsgId, uint16_t* voltages[4]);
+void Parse_BMS_TransmitVoltage(BMS_TransmitVoltage_t packet, uint8_t* BMSId, uint8_t* vMsgId, uint16_t* voltages);
 
 /**
  * @brief BMS Transmit Temperature Message
@@ -117,7 +117,7 @@ BMS_TransmitTemperature_t Compose_BMS_TransmitTemperature(uint8_t BMSId, uint8_t
  * @param tMsgId The temperature message ID (0 or 1) as we send 2 packets with all temperatures
  * @param temperatures The temperatures parsed from the packet
  */
-void Parse_BMS_TransmitTemperature(BMS_TransmitTemperature_t packet, uint8_t* BMSId, uint8_t* tMsgId, uint8_t* temperatures[6]);
+void Parse_BMS_TransmitTemperature(BMS_TransmitTemperature_t packet, uint8_t* BMSId, uint8_t* tMsgId, uint8_t* temperatures);
 
 /**
  * @brief BMS Charge Enabled Message

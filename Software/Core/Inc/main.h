@@ -50,6 +50,8 @@ extern "C" {
 #define AMS_CAN_QUEUESIZE 255
 
 #define BMS_COUNT 12
+#define BMS_VOLTAGE_COUNT 10
+#define BMS_TEMPERATURE_COUNT 12
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

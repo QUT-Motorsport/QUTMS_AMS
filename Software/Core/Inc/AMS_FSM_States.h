@@ -34,8 +34,8 @@ typedef struct
 
 	uint32_t startupTicks; /**< The Tick count at the initial startup time */
 
-	uint8_t BMS_VoltageAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
-	uint8_t BMSTemperatureAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
+	uint16_t BMSVoltages[BMS_COUNT][BMS_VOLTAGE_COUNT]; /**< Globally stores the 10 Voltages for each BMS*/
+	uint8_t BMSTemperatues[BMS_COUNT][BMS_TEMPERATURE_COUNT]; /**< Globally stores the 12 Temperatures for each BMS*/
 
 	osMessageQueueId_t CANQueue;
 	osTimerId_t heartbeatTimer;

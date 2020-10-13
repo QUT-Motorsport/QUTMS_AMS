@@ -69,8 +69,9 @@ void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN 0 */
 osThreadId_t fsmThread;
 const osThreadAttr_t fsmThreadAttr = {
-		.stack_size = 1024
+		.stack_size = 2048
 };
+bbspi_t *SPI;
 /* USER CODE END 0 */
 
 /**
@@ -90,7 +91,9 @@ int main(void)
   /* USER CODE BEGIN Init */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-
+	GPIO_TypeDef ports[4] = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port};
+	uint16_t pins[4] = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin};
+	SPI = new_bbspi(ports, pins);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -215,9 +218,13 @@ void heartbeatTimer_cb(void *fsm)
 		uint8_t averageVoltage = 0;
 		for(int i = 0; i < BMS_COUNT; i++)
 		{
-			averageVoltage += AMS_GlobalState->BMS_VoltageAverages[i];
+			for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
+			{
+				averageVoltage += AMS_GlobalState->BMSVoltages[i][j]; // Our voltages are already stored here as a 12 bit integer.
+			}
 		}
-		averageVoltage /= BMS_COUNT;
+
+		averageVoltage /= (BMS_COUNT * BMS_VOLTAGE_COUNT); /**< Good to send as already multiplied by 1000 */
 
 		uint16_t runtime = (HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000;
 
@@ -301,14 +308,10 @@ void AMS_LogErr(char* error, size_t length)
 
 void AMS_LogToSD(char* msg, size_t length)
 {
-	bbspi_t SDCARD = {
-			.Ports = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port},
-			.Pins = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin}
-	};
-
 	for(int i = 0; i < length; i++)
 	{
-		bbspi_transferByte(&SDCARD, *(msg + i));
+		// Transfer each byte of our message
+		bbspi_transferByte(SPI, *(msg + i));
 	}
 }
 /* USER CODE END 4 */

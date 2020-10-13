@@ -86,11 +86,62 @@ void state_idle_iterate(fsm_t *fsm)
 		AMS_CAN_Generic_t msg;
 		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U) == osOK)
 		{
-			// Handle The packet
+			/** Handle the packet */
 			/**
 			 * @brief Packets idle is looking for
-			 * CHASSIS_RTD, AMS_ResetTractive, AMS_Shutdown, BMS_BadCellVoltage, BMS_BadCellTemperature, AMS2_ChargEnabled
+			 * CHASSIS_RTD, AMS_ResetTractive, AMS_Shutdown, BMS_BadCellVoltage, BMS_BadCellTemperature, AMS2_ChargEnabled,
+			 * BMS_TransmitVoltages, BMS_TransmitTemperatures
 			 */
+
+			/** BMS_TransmitVoltages With BMSID masked off */
+			if((msg.header.ExtId & 0x1FFFFFF0) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
+			{
+				uint8_t BMSId;
+				uint8_t vMsgId;
+				uint16_t *voltages = malloc(sizeof(uint16_t) * 4);
+				Parse_BMS_TransmitVoltage(*((BMS_TransmitVoltage_t*)&(msg.data)), &BMSId, &vMsgId, voltages);
+
+				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
+				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				{
+					for(int i = 0; i < 4; i++)
+					{
+						AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+					}
+					/** If last message, log all voltages to SD*/
+					if(vMsgId == 2)
+					{
+						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT);
+					}
+					osSemaphoreRelease(AMS_GlobalState->sem);
+				}
+				free(voltages);
+			}
+
+			/** BMS_TransmitTemperatures With BMSID masked off */
+			if((msg.header.ExtId & 0x1FFFFFF0) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
+			{
+				uint8_t BMSId;
+				uint8_t tMsgId;
+				uint8_t *temperatures = malloc(sizeof(uint16_t) * 6); // vMsgId : start | 0:0->5, 0:6->11
+				Parse_BMS_TransmitTemperature(*((BMS_TransmitTemperature_t*)&(msg.data)), &BMSId, &tMsgId, temperatures);
+
+				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
+				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				{
+					for(int i = 0; i < 6; i++)
+					{
+						AMS_GlobalState->BMSTemperatues[BMSId][temperatureIndexStart + i] = temperatures[i];
+					}
+					/** If last message, log all temperatures to SD*/
+					if(tMsgId == 1)
+					{
+						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
+					}
+					osSemaphoreRelease(AMS_GlobalState->sem);
+				}
+				free(temperatures);
+			}
 		}
 	}
 }

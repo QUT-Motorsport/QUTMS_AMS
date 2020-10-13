@@ -60,14 +60,14 @@ BMS_TransmitVoltage_t Compose_BMS_TransmitVoltage(uint8_t BMSId, uint8_t vMsgId,
 	return packet;
 }
 
-void Parse_BMS_TransmitVoltage(BMS_TransmitVoltage_t packet, uint8_t* BMSId, uint8_t* vMsgId, uint16_t* voltages[4])
+void Parse_BMS_TransmitVoltage(BMS_TransmitVoltage_t packet, uint8_t* BMSId, uint8_t* vMsgId, uint16_t* voltages)
 {
 	Parse_CANId(packet.id, NULL, NULL, NULL, NULL, NULL, BMSId); // We dont care about any packet info except the BMSId.
 	*vMsgId = packet.data[0] >> 6 & 0x3;
-	*voltages[0] = packet.data[1] << 6 | (packet.data[0] & 0x3F);
-	*voltages[1] = packet.data[3] << 6 | (packet.data[2] & 0x3F);
-	*voltages[2] = packet.data[5] << 6 | (packet.data[4] & 0x3F);
-	*voltages[3] = packet.data[7] << 6 | (packet.data[6] & 0x3F);
+	*(voltages) = packet.data[1] << 6 | (packet.data[0] & 0x3F);
+	*(voltages+1) = packet.data[3] << 6 | (packet.data[2] & 0x3F);
+	*(voltages+2) = packet.data[5] << 6 | (packet.data[4] & 0x3F);
+	*(voltages+3) = packet.data[7] << 6 | (packet.data[6] & 0x3F);
 }
 
 BMS_TransmitTemperature_t Compose_BMS_TransmitTemperature(uint8_t BMSId, uint8_t tMsgId, uint8_t temperatures[6])
@@ -83,13 +83,13 @@ BMS_TransmitTemperature_t Compose_BMS_TransmitTemperature(uint8_t BMSId, uint8_t
 	return packet;
 }
 
-void Parse_BMS_TransmitTemperature(BMS_TransmitTemperature_t packet, uint8_t* BMSId, uint8_t* tMsgId, uint8_t* temperatures[6])
+void Parse_BMS_TransmitTemperature(BMS_TransmitTemperature_t packet, uint8_t* BMSId, uint8_t* tMsgId, uint8_t* temperatures)
 {
 	Parse_CANId(packet.id, NULL, NULL, NULL, NULL, NULL, BMSId);
 	*tMsgId = packet.data[0];
 	for(int i = 1; i < 7; i++)
 	{
-		*temperatures[i-1] = packet.data[i];
+		*(temperatures+i-1) = packet.data[i];
 	}
 }
 
