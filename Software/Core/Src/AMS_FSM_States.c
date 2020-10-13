@@ -48,6 +48,12 @@ void state_idle_enter(fsm_t *fsm)
 			{
 				Error_Handler();
 			}
+
+			AMS_GlobalState->CANQueue = osMessageQueueNew(AMS_CAN_QUEUESIZE, sizeof(AMS_CAN_Generic_t), NULL);
+			if(AMS_GlobalState->CANQueue == NULL)
+			{
+				Error_Handler();
+			}
 			AMS_GlobalState->startupTicks = HAL_GetTick();
 			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
@@ -75,7 +81,18 @@ void state_idle_enter(fsm_t *fsm)
 
 void state_idle_iterate(fsm_t *fsm)
 {
-	return;
+	while(osMessageQueueGetCount(AMS_GlobalState->sem) >= 1)
+	{
+		AMS_CAN_Generic_t msg;
+		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U) == osOK)
+		{
+			// Handle The packet
+			/**
+			 * @brief Packets idle is looking for
+			 * CHASSIS_RTD, AMS_ResetTractive, AMS_Shutdown, BMS_BadCellVoltage, BMS_BadCellTemperature, AMS2_ChargEnabled
+			 */
+		}
+	}
 }
 
 void state_idle_exit(fsm_t *fsm)

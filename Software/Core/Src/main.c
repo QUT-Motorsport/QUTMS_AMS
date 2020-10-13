@@ -35,6 +35,7 @@
 #include "BMS_CAN_Messages.h"
 #include "FSM.h"
 #include "AMS_FSM_States.h"
+#include "BitBangedSD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,6 +90,7 @@ int main(void)
   /* USER CODE BEGIN Init */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -244,11 +246,12 @@ void heartbeatTimer_cb(void *fsm)
  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	CAN_RxHeaderTypeDef RxMessage;
-	uint8_t RxData[8];
+	AMS_CAN_Generic_t *msg = calloc(1, sizeof(AMS_CAN_Generic_t));
 
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxMessage, RxData);
-	// From here we can put generic messages into a queue to handle inside state iterate functions
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(msg->header), msg->data);
+
+	/**< Should we lock the GlobalState Semaphore? */
+	osMessageQueuePut(AMS_GlobalState->CANQueue, msg, 0U, 0U);
 }
 
 /**
@@ -294,6 +297,19 @@ void AMS_LogErr(char* error, size_t length)
 		Error_Handler();
 	}
 	free(errorMsg);
+}
+
+void AMS_LogToSD(char* msg, size_t length)
+{
+	bbspi_t SDCARD = {
+			.Ports = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port},
+			.Pins = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin}
+	};
+
+	for(int i = 0; i < length; i++)
+	{
+		bbspi_transferByte(&SDCARD, *(msg + i));
+	}
 }
 /* USER CODE END 4 */
 

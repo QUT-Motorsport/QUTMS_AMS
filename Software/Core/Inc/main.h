@@ -47,6 +47,7 @@ extern "C" {
 #define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
+#define AMS_CAN_QUEUESIZE 255
 
 #define BMS_COUNT 12
 /* USER CODE END EC */
@@ -71,6 +72,7 @@ void IDC_Alarm_cb(void* fsm);
 void heartbeatTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
 void AMS_LogErr(char* error, size_t length);
+void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 __NO_RETURN void fsm_thread_mainLoop(void* arg);
 /* USER CODE END EFP */
@@ -94,10 +96,18 @@ __NO_RETURN void fsm_thread_mainLoop(void* arg);
 #define CAN4_RX_GPIO_Port GPIOB
 #define CAN4_TX_Pin GPIO_PIN_13
 #define CAN4_TX_GPIO_Port GPIOB
+#define SD_DI_Pin GPIO_PIN_9
+#define SD_DI_GPIO_Port GPIOC
 #define CAN2_RX_Pin GPIO_PIN_11
 #define CAN2_RX_GPIO_Port GPIOA
 #define CAN2_TX_Pin GPIO_PIN_12
 #define CAN2_TX_GPIO_Port GPIOA
+#define SD_CLK_Pin GPIO_PIN_10
+#define SD_CLK_GPIO_Port GPIOC
+#define SD_DO_Pin GPIO_PIN_11
+#define SD_DO_GPIO_Port GPIOC
+#define SD_CS_Pin GPIO_PIN_12
+#define SD_CS_GPIO_Port GPIOC
 #define IDC_ALARM_Pin GPIO_PIN_5
 #define IDC_ALARM_GPIO_Port GPIOB
 #define BMS_CTRL_Pin GPIO_PIN_6

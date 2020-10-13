@@ -37,6 +37,7 @@ typedef struct
 	uint8_t BMS_VoltageAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
 	uint8_t BMSTemperatureAverages[BMS_COUNT]; /**< Globally stores the average Temperature for each BMS*/
 
+	osMessageQueueId_t CANQueue;
 	osTimerId_t heartbeatTimer;
 	osTimerId_t IDC_AlarmTimer;
 	osSemaphoreId_t sem;
