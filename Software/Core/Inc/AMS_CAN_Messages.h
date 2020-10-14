@@ -11,6 +11,7 @@
 #include "stdbool.h"
 #include "main.h"
 #include "can.h"
+#include <stdlib.h>
 
 /**
  * @brief AMS Cell Voltage Shutdown Message

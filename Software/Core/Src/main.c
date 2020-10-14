@@ -207,7 +207,7 @@ void IDC_Alarm_cb(void* fsm)
 
 void heartbeatTimer_cb(void *fsm)
 {
-	// Take the GlobalState sem, find our values then fire off the packet
+//	// Take the GlobalState sem, find our values then fire off the packet
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		// Get GPIO States
@@ -217,7 +217,7 @@ void heartbeatTimer_cb(void *fsm)
 		bool HVAp_state = HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin);
 		bool HVBp_state = HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin);
 
-		uint8_t averageVoltage = 0;
+		uint16_t averageVoltage = 0;
 		for(int i = 0; i < BMS_COUNT; i++)
 		{
 			for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
@@ -227,6 +227,7 @@ void heartbeatTimer_cb(void *fsm)
 		}
 
 		averageVoltage /= (BMS_COUNT * BMS_VOLTAGE_COUNT); /**< Good to send as already multiplied by 1000 */
+		averageVoltage = 4090;
 
 		uint16_t runtime = (HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000;
 
@@ -246,6 +247,18 @@ void heartbeatTimer_cb(void *fsm)
 	{
 		Error_Handler();
 	}
+//	CAN_TxHeaderTypeDef header =
+//	{
+//			.ExtId = 1,
+//			.IDE = CAN_ID_EXT,
+//			.RTR = CAN_RTR_DATA,
+//			.DLC = 2,
+//			.TransmitGlobalTime = DISABLE,
+//	};
+//	uint8_t *data = malloc(sizeof(uint16_t));
+//	*data = (3969 >> 8);
+//	*(data+1) = (3969 & 0xFF);
+//	HAL_CAN_AddTxMessage(&hcan2, &header, data, &AMS_GlobalState->CAN2_TxMailbox);
 }
 
 /**
