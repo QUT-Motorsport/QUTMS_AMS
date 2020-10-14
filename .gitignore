@@ -68,4 +68,7 @@ Software/Documentation/Docs/
 # MacOS things
 **/.DS_Store
 
+# VSCode
+**/.vscode
+
 # End of https://www.gitignore.io/api/atmelstudio

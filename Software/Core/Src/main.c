@@ -113,6 +113,7 @@ int main(void)
 	// Activate CAN Interrupt
   	char *msg = "------------------------------------\r\n";
 	AMS_LogInfo(msg, strlen(msg));
+	AMS_LogInfo(msg, strlen(msg));
 	AMS_LogInfo("Setup Complete\r\n", strlen("Setup Complete\r\n"));
 
 	HAL_Delay(500U);
@@ -199,7 +200,8 @@ void IDC_Alarm_cb(void* fsm)
 {
 	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == GPIO_PIN_RESET)
 	{
-		fsm_changeState(fsm, &errorState);
+		//TODO
+		fsm_changeState(fsm, &errorState, "BMS Alarm Triggered");
 	}
 }
 

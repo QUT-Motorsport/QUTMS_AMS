@@ -67,7 +67,7 @@ void fsm_iterate(fsm_t *fsm);
  * @param fsm A pointer to the FSM object
  * @param newState A pointer to the new state to change to
  */
-void fsm_changeState(fsm_t *fsm, state_t *newState);
+void fsm_changeState(fsm_t *fsm, state_t *newState, char* changeReason);
 
 /**
  * @brief Gets a pointer to the current state of the FSM

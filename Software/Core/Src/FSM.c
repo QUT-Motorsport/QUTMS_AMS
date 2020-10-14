@@ -40,7 +40,7 @@ void fsm_iterate(fsm_t *fsm)
 	}
 }
 
-void fsm_changeState(fsm_t *fsm, state_t *newState)
+void fsm_changeState(fsm_t *fsm, state_t *newState, char* changeReason)
 {
 	if(fsm->currentState == newState)
 	{
@@ -49,7 +49,7 @@ void fsm_changeState(fsm_t *fsm, state_t *newState)
 	if(osSemaphoreAcquire(fsm->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		char x[80];
-		int len = sprintf(x, "Changing FSM State: %s->%s\r\n", fsm->currentState->stateName, newState->stateName);
+		int len = sprintf(x, "Changing FSM State: %s->%s (%s)\r\n", fsm->currentState->stateName, newState->stateName, changeReason);
 		AMS_LogInfo(x, len);
 		fsm->currentState->exit(fsm);
 
