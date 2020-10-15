@@ -55,6 +55,11 @@ extern "C" {
 
 // Bit Masks
 #define BMS_ID_MASK 0x1FFFFFF0
+
+// Current Sensor CAN Information
+#define CURRENT_SENSOR_CAN_EXTID 0xA100201
+#define CURRENT_SENSOR_CAN_RESPONSE_EXTID 0xA100200
+#define CURRENT_SENSOR_REQ_SIZE 1
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

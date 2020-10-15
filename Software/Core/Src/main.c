@@ -286,11 +286,16 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	AMS_LogInfo("Entering FSM Thread\r\n", strlen("Entering FSM Thread\r\n"));
 	// Reset our FSM in idleState, as we are just starting
 	fsm_reset(fsm, &idleState);
+//	fsm_changeState(fsm, &prechargeState, "Testing Precharge & Driving contactor states in HeartBeat");
 	for(;;)
 	{
 		//TODO
 		// This is our main loop now.
 		fsm_iterate(fsm);
+		if(fsm_getState_t(fsm) == &idleState)
+		{
+			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
+		}
 	}
 }
 
