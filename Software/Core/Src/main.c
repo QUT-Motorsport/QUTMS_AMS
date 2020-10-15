@@ -247,18 +247,6 @@ void heartbeatTimer_cb(void *fsm)
 	{
 		Error_Handler();
 	}
-//	CAN_TxHeaderTypeDef header =
-//	{
-//			.ExtId = 1,
-//			.IDE = CAN_ID_EXT,
-//			.RTR = CAN_RTR_DATA,
-//			.DLC = 2,
-//			.TransmitGlobalTime = DISABLE,
-//	};
-//	uint8_t *data = malloc(sizeof(uint16_t));
-//	*data = (3969 >> 8);
-//	*(data+1) = (3969 & 0xFF);
-//	HAL_CAN_AddTxMessage(&hcan2, &header, data, &AMS_GlobalState->CAN2_TxMailbox);
 }
 
 /**
@@ -292,10 +280,10 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 		//TODO
 		// This is our main loop now.
 		fsm_iterate(fsm);
-		if(fsm_getState_t(fsm) == &idleState)
-		{
-			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
-		}
+//		if(fsm_getState_t(fsm) == &idleState)
+//		{
+//			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
+//		}
 	}
 }
 
