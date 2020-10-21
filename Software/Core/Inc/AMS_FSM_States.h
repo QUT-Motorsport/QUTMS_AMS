@@ -8,7 +8,7 @@
 #ifndef INC_AMS_FSM_STATES_H_
 #define INC_AMS_FSM_STATES_H_
 
-#include <fsm.h>
+#include "FSM.h"
 #include "main.h"
 #include "tim.h"
 #include "cmsis_os.h"
