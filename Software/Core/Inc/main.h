@@ -102,10 +102,6 @@ __NO_RETURN void fsm_thread_mainLoop(void* arg);
 #define PRECHG_GPIO_Port GPIOB
 #define ALARM_CTRL_Pin GPIO_PIN_2
 #define ALARM_CTRL_GPIO_Port GPIOB
-#define CAN4_RX_Pin GPIO_PIN_12
-#define CAN4_RX_GPIO_Port GPIOB
-#define CAN4_TX_Pin GPIO_PIN_13
-#define CAN4_TX_GPIO_Port GPIOB
 #define SD_DI_Pin GPIO_PIN_9
 #define SD_DI_GPIO_Port GPIOC
 #define CAN2_RX_Pin GPIO_PIN_11

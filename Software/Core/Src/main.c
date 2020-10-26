@@ -106,9 +106,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN1_Init();
-  MX_CAN2_Init();
   MX_USART3_UART_Init();
   MX_TIM4_Init();
+  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
   	char *msg = "------------------------------------\r\n";
@@ -129,7 +129,8 @@ int main(void)
 	}
 
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
-	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
+	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING);
+//	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 
 	//Create FSM instance
 	fsm_t *fsm = fsm_new(&idleState);
@@ -258,6 +259,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	AMS_CAN_Generic_t *msg = calloc(1, sizeof(AMS_CAN_Generic_t));
 
+	AMS_LogInfo("Callback\r\n", strlen("Callback\r\n"));
+
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(msg->header), msg->data);
 
 	/**< Should we lock the GlobalState Semaphore? */
@@ -275,15 +278,47 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	// Reset our FSM in idleState, as we are just starting
 	fsm_setLogFunction(fsm, &AMS_LogInfo);
 	fsm_reset(fsm, &idleState);
+
+	CAN_TxHeaderTypeDef header =
+	{
+		.ExtId = 0xA100201,
+		.IDE = CAN_ID_EXT,
+		.RTR = CAN_RTR_DATA,
+		.DLC = 1,
+		.TransmitGlobalTime = DISABLE,
+	};
+
+	uint8_t data = 0x40;
+	uint32_t localMailbox;
+
 	for(;;)
 	{
 		//TODO
 		// This is our main loop now.
-		fsm_iterate(fsm);
-		if(fsm_getState_t(fsm) == &idleState)
-		{
-			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
-		}
+//		fsm_iterate(fsm);
+//		if(fsm_getState_t(fsm) == &idleState)
+//		{
+//			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
+//		}
+		HAL_CAN_AddTxMessage(&hcan1, &header, &data, &localMailbox);
+//		while(localMailbox != 0);
+
+		uint8_t in[8] = {0};
+		CAN_RxHeaderTypeDef h;
+//		int rx0 = HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0);
+//		int rx1 = HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO1);
+//		if(rx0 + rx1 >= 1)
+//		{
+//			HAL_StatusTypeDef canRxResponse = HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &h, in);
+//			if(canRxResponse != HAL_OK)
+//			{
+//				char d[80];
+//				int len = sprintf(d, "%li\r\n", hcan1.ErrorCode);
+//				AMS_LogInfo(d, len);
+//			}
+//		}
+
+		HAL_Delay(10);
 	}
 }
 
