@@ -61,10 +61,14 @@ extern "C" {
 #define CURRENT_SENSOR_CAN_EXTID 0xA100201
 #define CURRENT_SENSOR_CAN_RESPONSE_EXTID 0xA100200
 #define CURRENT_SENSOR_REQ_SIZE 1
+
+// General
+#define VERBOSE
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -83,10 +87,14 @@ void IDC_Alarm_cb(void* fsm);
 void heartbeatTimer_cb(void *fsm);
 void osTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
+void AMS_VerboseLog(char *msg);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 __NO_RETURN void fsm_thread_mainLoop(void* arg);
+
+/** Temp Function */
+float vToSoC(float voltage);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

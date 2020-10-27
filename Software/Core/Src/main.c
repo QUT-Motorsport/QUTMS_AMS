@@ -75,43 +75,43 @@ bbspi_t *SPI;
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-  /* USER CODE END 1 */
+	/* USER CODE BEGIN 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
 	GPIO_TypeDef ports[4] = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port};
 	uint16_t pins[4] = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin};
 	SPI = new_bbspi(ports, pins);
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_CAN1_Init();
-  MX_USART3_UART_Init();
-  MX_TIM4_Init();
-  MX_CAN2_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_CAN1_Init();
+	MX_USART3_UART_Init();
+	MX_TIM4_Init();
+	MX_CAN2_Init();
+	/* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
-  	char *msg = "------------------------------------\r\n";
+	char *msg = "------------------------------------\r\n";
 	AMS_LogInfo(msg, strlen(msg));
 	AMS_LogInfo(msg, strlen(msg));
 	AMS_LogInfo("Setup Complete\r\n", strlen("Setup Complete\r\n"));
@@ -157,14 +157,14 @@ int main(void)
 
 	if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK)
 	{
-	  /* Filter configuration Error */
-	  Error_Handler();
+		/* Filter configuration Error */
+		Error_Handler();
 	}
 
 	if (HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig) != HAL_OK)
 	{
-	  /* Filter configuration Error */
-	  Error_Handler();
+		/* Filter configuration Error */
+		Error_Handler();
 	}
 
 	//Create FSM instance
@@ -172,62 +172,62 @@ int main(void)
 
 	// Create a new thread, where our FSM will run.
 	osThreadNew(fsm_thread_mainLoop, fsm, &fsmThreadAttr);
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Init scheduler */
-  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
-  MX_FREERTOS_Init();
-  /* Start scheduler */
-  osKernelStart();
+	/* Init scheduler */
+	osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+	MX_FREERTOS_Init();
+	/* Start scheduler */
+	osKernelStart();
 
-  /* We should never get here as control is now taken by the scheduler */
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* We should never get here as control is now taken by the scheduler */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1) {
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+	RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the Systick interrupt time
-  */
-  __HAL_RCC_PLLI2S_ENABLE();
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Configure the Systick interrupt time
+	 */
+	__HAL_RCC_PLLI2S_ENABLE();
 }
 
 /* USER CODE BEGIN 4 */
@@ -243,7 +243,7 @@ void IDC_Alarm_cb(void* fsm)
 
 void heartbeatTimer_cb(void *fsm)
 {
-//	// Take the GlobalState sem, find our values then fire off the packet
+	//	// Take the GlobalState sem, find our values then fire off the packet
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		// Get GPIO States
@@ -270,11 +270,11 @@ void heartbeatTimer_cb(void *fsm)
 		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(HVAn_state, HVBn_state, precharge_state, HVAp_state, HVBp_state, averageVoltage, runtime);
 		CAN_TxHeaderTypeDef header =
 		{
-			.ExtId = canPacket.id,
-			.IDE = CAN_ID_EXT,
-			.RTR = CAN_RTR_DATA,
-			.DLC = sizeof(canPacket.data),
-			.TransmitGlobalTime = DISABLE,
+				.ExtId = canPacket.id,
+				.IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA,
+				.DLC = sizeof(canPacket.data),
+				.TransmitGlobalTime = DISABLE,
 		};
 
 		HAL_CAN_AddTxMessage(&hcan2, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
@@ -288,29 +288,36 @@ void heartbeatTimer_cb(void *fsm)
 void osTimer_cb(void *fsm)
 {
 	CAN_TxHeaderTypeDef header =
-			{
-				.ExtId = 0xA100201,
-				.IDE = CAN_ID_EXT,
-				.RTR = CAN_RTR_DATA,
-				.DLC = 1,
-				.TransmitGlobalTime = DISABLE,
-			};
+	{
+			.ExtId = 0xA100201,
+			.IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA,
+			.DLC = 1,
+			.TransmitGlobalTime = DISABLE,
+	};
+
+	char *msg = "Logging Message 1\r\n";
+	AMS_LogInfo(msg, strlen(msg));
 	uint8_t data = 0x41;
 	if(HAL_CAN_AddTxMessage(&hcan1, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
 		Error_Handler();
 	}
+
+	msg = "Logging Message 2\r\n";
+	AMS_LogInfo(msg, strlen(msg));
 	uint8_t data2 = 0x42;
 	if(HAL_CAN_AddTxMessage(&hcan1, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
 		Error_Handler();
 	}
+
+	free(msg);
 }
 
 /**
  * @brief CAN Callback function
  * @param hcan the can instance responsible for the callback
- * @retval None
  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
@@ -318,14 +325,16 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(msg->header), msg->data);
 
 	/**< Should we lock the GlobalState Semaphore? */
-	AMS_LogInfo("Message going on Q\r\n", strlen("Message going on Q\r\n"));
+	char x[80];
+	int len = sprintf(x, "Got Msg: [ID, Byte 0], [%02lX, %02X]\r\n", msg->header.ExtId, msg->data[0]);
+	AMS_LogInfo(x, len);
 	osMessageQueuePut(AMS_GlobalState->CANQueue, msg, 0U, 0U);
+	AMS_LogInfo("Message Passed to Queue\r\n", strlen("Message Passed to Queue\r\n"));
 }
 
 /**
  * @brief FSM thread main loop task for RTOS
  * @param fsm the FSM object passed to the loop
- * @retval None
  */
 __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
@@ -343,23 +352,33 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 		{
 			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
 		}
-//		char x[80];
-//		int len = sprintf(x, "%MEssagess: %li,%li\r\n", HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0), HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO1));
-//		AMS_LogInfo(x, len);
 	}
 }
 
 /**
- * @brief Creates and logs an error string to huart3
- * @note The form of the log message is as so: "TAG_subsystem: error"
- * @param TAG Primary System eg. "AMS"
- * @param subsystem Subsystem of error eg. "CAN SEND"
- * @param error Full error string
- * @retval None
+ * @brief Log Info to UART
+ * @param msg pointer to msg
+ * @param length lenth of msg
  */
 void AMS_LogInfo(char* msg, size_t length)
 {
 	HAL_UART_Transmit(&huart3, (uint8_t *)msg, length, HAL_MAX_DELAY);
+}
+
+void AMS_VerboseLog(char *msg)
+{
+#ifdef VERBOSE
+	char *msgIter = msg;
+	int length = 0;
+
+	while(*msgIter != '\0')
+	{
+		length++;
+		msgIter++;
+	}
+
+	AMS_LogInfo(msg, length);
+#endif
 }
 
 void AMS_LogErr(char* error, size_t length)
@@ -384,55 +403,67 @@ void AMS_LogToSD(char* msg, size_t length)
 		bbspi_transferByte(SPI, *(msg + i));
 	}
 }
+
+float vToSoC(float voltage)
+{
+	if(voltage > 3.9 || voltage < 2.6)
+	{
+		char msg[80];
+		int len = sprintf(msg, "Found voltage outside of expected range of [3.9 -> 2.6]\r\n");
+		AMS_LogInfo(msg, len);
+		return 0.0f;
+	}
+	return 0.55; // For now, return 55% SoC
+}
 /* USER CODE END 4 */
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM6 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* USER CODE BEGIN Callback 0 */
+	/* USER CODE BEGIN Callback 0 */
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+	/* USER CODE END Callback 0 */
+	if (htim->Instance == TIM6) {
+		HAL_IncTick();
+	}
+	/* USER CODE BEGIN Callback 1 */
 
-  /* USER CODE END Callback 1 */
+	/* USER CODE END Callback 1 */
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	AMS_LogErr("Error Handler Tripped\r\n", strlen("Error Handler Tripped\r\n"));
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 

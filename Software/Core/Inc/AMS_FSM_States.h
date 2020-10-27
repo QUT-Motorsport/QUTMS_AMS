@@ -206,4 +206,15 @@ void state_charging_exit(fsm_t *fsm);
  */
 state_t chargingState;
 
+void state_SoC_enter(fsm_t *fsm);
+void state_SoC_iterate(fsm_t *fsm);
+void state_SoC_exit(fsm_t *fsm);
+
+/**
+ * @brief SoCState ie. sets up the initial SoC
+ * @note SoC State, get initial average voltage from BMSs, map to SoC, monitor SoC using Current Sensor
+ * @details Next: errorState (On error), resetState (CAN), idleState (done SoC Setup)
+ */
+state_t SoCState;
+
 #endif /* INC_AMS_FSM_STATES_H_ */

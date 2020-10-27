@@ -363,9 +363,6 @@ void state_driving_enter(fsm_t *fsm)
 
 void state_driving_iterate(fsm_t *fsm)
 {
-	char x[80];
-			int len = sprintf(x, "Messages: %i\r\n", osMessageQueueGetCount(AMS_GlobalState->CANQueue));
-//			AMS_LogInfo(x, len);
 	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
 	{
 		AMS_CAN_Generic_t msg;
@@ -569,4 +566,22 @@ void state_reset_iterate(fsm_t *fsm)
 void state_reset_exit(fsm_t *fsm)
 {
 	return;
+}
+
+state_t SoCState = {&state_SoC_enter, &state_SoC_iterate, &state_SoC_exit, "SoC_s"};
+
+void state_SoC_enter(fsm_t *fsm)
+{
+	// TODO
+	/** Request 10 Sets of Voltages from each BMS*/
+}
+
+void state_SoC_iterate(fsm_t *fsm)
+{
+	// TODO
+}
+
+void state_SoC_exit(fsm_t *fsm)
+{
+	// TODO
 }
