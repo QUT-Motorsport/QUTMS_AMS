@@ -47,6 +47,7 @@ extern "C" {
 #define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
+#define AMS_CS_PERIOD 1000U // Milliseconds
 #define AMS_CAN_QUEUESIZE 255
 
 #define BMS_COUNT 12
@@ -80,6 +81,7 @@ void IDC_Alarm_cb(void* fsm);
  * @param fsm A pointer to the FSM object
  */
 void heartbeatTimer_cb(void *fsm);
+void osTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);

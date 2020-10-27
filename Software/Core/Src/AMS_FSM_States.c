@@ -43,8 +43,15 @@ void state_idle_enter(fsm_t *fsm)
 			{
 				Error_Handler();
 			}
+
 			AMS_GlobalState->IDC_AlarmTimer = osTimerNew(&IDC_Alarm_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->IDC_AlarmTimer, AMS_IDC_PERIOD) != osOK)
+			{
+				Error_Handler();
+			}
+
+			AMS_GlobalState->csTimer = osTimerNew(&osTimer_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->csTimer, AMS_CS_PERIOD) != osOK)
 			{
 				Error_Handler();
 			}
@@ -356,6 +363,9 @@ void state_driving_enter(fsm_t *fsm)
 
 void state_driving_iterate(fsm_t *fsm)
 {
+	char x[80];
+			int len = sprintf(x, "Messages: %i\r\n", osMessageQueueGetCount(AMS_GlobalState->CANQueue));
+//			AMS_LogInfo(x, len);
 	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
 	{
 		AMS_CAN_Generic_t msg;
@@ -456,6 +466,12 @@ void state_driving_iterate(fsm_t *fsm)
 
 				// Bad BMS cell temperature found, we need to change to errorState
 				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
+			}
+
+			/** Current Sensor Response */
+			if((msg.header.ExtId) == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+			{
+				AMS_LogInfo("Received A CS Packet\r\n", strlen("Received A CS Packet\r\n"));
 			}
 		}
 	}
