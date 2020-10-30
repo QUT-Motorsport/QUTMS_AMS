@@ -25,9 +25,9 @@ void state_dead_exit(fsm_t *fsm)
 	return;
 }
 
-state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "Idle_s"};
+state_t initState = {&state_init_enter, &state_init_iterate, &state_init_exit, "Init_s"};
 
-void state_idle_enter(fsm_t *fsm)
+void state_init_enter(fsm_t *fsm)
 {
 	if(AMS_GlobalState == NULL)
 	{
@@ -39,10 +39,6 @@ void state_idle_enter(fsm_t *fsm)
 		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 		{
 			AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
-			if(osTimerStart(AMS_GlobalState->heartbeatTimer, AMS_HEARTBEAT_PERIOD) != osOK)
-			{
-				Error_Handler();
-			}
 
 			AMS_GlobalState->IDC_AlarmTimer = osTimerNew(&IDC_Alarm_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->IDC_AlarmTimer, AMS_IDC_PERIOD) != osOK)
@@ -56,6 +52,14 @@ void state_idle_enter(fsm_t *fsm)
 				Error_Handler();
 			}
 
+			#ifdef LOG_GLOBALSTATE
+				AMS_GlobalState->debugTimer = osTimerNew(&debugTimer_cb, osTimerPeriodic, fsm, NULL);
+				if(osTimerStart(AMS_GlobalState->debugTimer, DEBUG_PERIOD) != osOK)
+				{
+					Error_Handler();
+				}
+			#endif
+
 			AMS_GlobalState->CANQueue = osMessageQueueNew(AMS_CAN_QUEUESIZE, sizeof(AMS_CAN_Generic_t), NULL);
 			if(AMS_GlobalState->CANQueue == NULL)
 			{
@@ -63,7 +67,51 @@ void state_idle_enter(fsm_t *fsm)
 			}
 			AMS_GlobalState->startupTicks = HAL_GetTick();
 			osSemaphoreRelease(AMS_GlobalState->sem);
+
 		}
+	}
+
+	/* Set initial pin states */
+	// ALARM Line - HIGH
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
+
+	// BMS Control - HIGH (Turn on all BMS)
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
+
+	//Set Initial PROFET Pin Positions (All Off)
+	// Contactors
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+	// Precharge
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// FAN On
+	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
+}
+
+void state_init_iterate(fsm_t *fsm)
+{
+	fsm_changeState(fsm, &SoCState, "We are initialised, time to SoC");
+}
+
+void state_init_exit(fsm_t *fsm)
+{
+	return;
+}
+
+state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "Idle_s"};
+
+void state_idle_enter(fsm_t *fsm)
+{
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		if(osTimerStart(AMS_GlobalState->heartbeatTimer, AMS_HEARTBEAT_PERIOD) != osOK)
+		{
+			Error_Handler();
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
 
 	/* Set initial pin states */
@@ -190,9 +238,43 @@ void state_idle_iterate(fsm_t *fsm)
 				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 			}
 
-			/**
-			 * TODO: ChargeEnabled & RTD
-			 */
+			/** Current Sensor Coulomb Counting */
+			if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+			{
+				if(msg.data[0] == CURRENT_SENSOR_CC_LOW)
+				{
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						AMS_GlobalState->CoulombCountuA = 0;
+						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 24;
+						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 16;
+						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 8;
+						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 0;
+
+						osSemaphoreRelease(AMS_GlobalState->sem);
+
+					}
+				} else if(msg.data[0] == CURRENT_SENSOR_CC_HIGH)
+				{
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 56;
+						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 48;
+						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 40;
+						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 32;
+
+						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
+
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
+				}
+			}
+
+			/** CC_RTD with no care about BMSID */
+			if((msg.header.ExtId) == Compose_CANId(0x2, 0x16, 0x0, 0x0, 0x0, 0x0))
+			{
+				fsm_changeState(fsm, &prechargeState, "RTD from CC, moving to Precharge");
+			}
 		}
 	}
 }
@@ -366,7 +448,7 @@ void state_driving_iterate(fsm_t *fsm)
 	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
 	{
 		AMS_CAN_Generic_t msg;
-		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U))
+		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U) == osOK)
 		{
 			/** Handle the packet */
 			/**
@@ -465,10 +547,36 @@ void state_driving_iterate(fsm_t *fsm)
 				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
 			}
 
-			/** Current Sensor Response */
-			if((msg.header.ExtId) == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+			/** Current Sensor Coulomb Counting */
+			if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
 			{
-				AMS_LogInfo("Received A CS Packet\r\n", strlen("Received A CS Packet\r\n"));
+				if(msg.data[0] == CURRENT_SENSOR_CC_LOW)
+				{
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						AMS_GlobalState->CoulombCountuA = 0;
+						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 24;
+						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 16;
+						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 8;
+						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 0;
+
+						osSemaphoreRelease(AMS_GlobalState->sem);
+
+					}
+				} else if(msg.data[0] == CURRENT_SENSOR_CC_HIGH)
+				{
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 56;
+						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 48;
+						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 40;
+						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 32;
+
+						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
+
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
+				}
 			}
 		}
 	}
@@ -578,7 +686,10 @@ void state_SoC_enter(fsm_t *fsm)
 
 void state_SoC_iterate(fsm_t *fsm)
 {
-	// TODO
+	if(HAL_GetTick() - AMS_GlobalState->startupTicks > 2000)
+	{
+		fsm_changeState(fsm, &idleState, "Timeout of SoC, moving to idle");
+	}
 }
 
 void state_SoC_exit(fsm_t *fsm)

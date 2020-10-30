@@ -37,10 +37,14 @@ typedef struct
 	uint16_t BMSVoltages[BMS_COUNT][BMS_VOLTAGE_COUNT]; /**< Globally stores the 10 Voltages for each BMS*/
 	uint8_t BMSTemperatues[BMS_COUNT][BMS_TEMPERATURE_COUNT]; /**< Globally stores the 12 Temperatures for each BMS*/
 
+	int64_t CoulombCountuA;
+	float CoulombCount;
+
 	osMessageQueueId_t CANQueue;
 	osTimerId_t heartbeatTimer;
 	osTimerId_t IDC_AlarmTimer;
 	osTimerId_t csTimer;
+	osTimerId_t debugTimer;
 	osSemaphoreId_t sem;
 } AMS_GlobalState_t;
 
@@ -216,5 +220,19 @@ void state_SoC_exit(fsm_t *fsm);
  * @details Next: errorState (On error), resetState (CAN), idleState (done SoC Setup)
  */
 state_t SoCState;
+
+
+void state_init_enter(fsm_t *fsm);
+
+void state_init_iterate(fsm_t *fsm);
+
+void state_init_exit(fsm_t *fsm);
+/**
+ * @brief initState ie. sets up intial globalState
+ * @notes Init State, create and init initial globalState
+ * @details Next: errorState (On error), resetState (CAN), SoCState (CAN RTD)
+ */
+state_t initState;
+
 
 #endif /* INC_AMS_FSM_STATES_H_ */

@@ -42,7 +42,6 @@
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
-
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 /* USER CODE END PD */
@@ -75,41 +74,41 @@ bbspi_t *SPI;
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
-	/* USER CODE BEGIN 1 */
-	/* USER CODE END 1 */
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
 	GPIO_TypeDef ports[4] = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port};
 	uint16_t pins[4] = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin};
 	SPI = new_bbspi(ports, pins);
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_CAN1_Init();
-	MX_USART3_UART_Init();
-	MX_TIM4_Init();
-	MX_CAN2_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_CAN1_Init();
+  MX_USART3_UART_Init();
+  MX_TIM4_Init();
+  MX_CAN2_Init();
+  /* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
 	char *msg = "------------------------------------\r\n";
 	AMS_LogInfo(msg, strlen(msg));
@@ -124,19 +123,6 @@ int main(void)
 	}
 
 	if (HAL_CAN_Start(&hcan2) != HAL_OK)
-	{
-		Error_Handler();
-	}
-
-	if(HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if(HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if(HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -168,66 +154,66 @@ int main(void)
 	}
 
 	//Create FSM instance
-	fsm_t *fsm = fsm_new(&idleState);
+	fsm_t *fsm = fsm_new(&deadState);
 
 	// Create a new thread, where our FSM will run.
 	osThreadNew(fsm_thread_mainLoop, fsm, &fsmThreadAttr);
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Init scheduler */
-	osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
-	MX_FREERTOS_Init();
-	/* Start scheduler */
-	osKernelStart();
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+  /* Start scheduler */
+  osKernelStart();
 
-	/* We should never get here as control is now taken by the scheduler */
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* We should never get here as control is now taken by the scheduler */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-	RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Configure the Systick interrupt time
-	 */
-	__HAL_RCC_PLLI2S_ENABLE();
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure the Systick interrupt time
+  */
+  __HAL_RCC_PLLI2S_ENABLE();
 }
 
 /* USER CODE BEGIN 4 */
@@ -296,40 +282,55 @@ void osTimer_cb(void *fsm)
 			.TransmitGlobalTime = DISABLE,
 	};
 
-	char *msg = "Logging Message 1\r\n";
-	AMS_LogInfo(msg, strlen(msg));
 	uint8_t data = 0x41;
 	if(HAL_CAN_AddTxMessage(&hcan1, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
 		Error_Handler();
 	}
 
-	msg = "Logging Message 2\r\n";
-	AMS_LogInfo(msg, strlen(msg));
+	osDelay(1);
+
 	uint8_t data2 = 0x42;
 	if(HAL_CAN_AddTxMessage(&hcan1, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
 		Error_Handler();
 	}
-
-	free(msg);
 }
 
-/**
- * @brief CAN Callback function
- * @param hcan the can instance responsible for the callback
- */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+void debugTimer_cb(void *fsm)
 {
-	AMS_CAN_Generic_t *msg = calloc(1, sizeof(AMS_CAN_Generic_t));
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &(msg->header), msg->data);
-
-	/**< Should we lock the GlobalState Semaphore? */
-	char x[80];
-	int len = sprintf(x, "Got Msg: [ID, Byte 0], [%02lX, %02X]\r\n", msg->header.ExtId, msg->data[0]);
-	AMS_LogInfo(x, len);
-	osMessageQueuePut(AMS_GlobalState->CANQueue, msg, 0U, 0U);
-	AMS_LogInfo("Message Passed to Queue\r\n", strlen("Message Passed to Queue\r\n"));
+//	char x[250];
+//	int len = 0;
+//	float cc;
+//	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+//	{
+//		cc = AMS_GlobalState->CoulombCount;
+//
+//		osSemaphoreRelease(AMS_GlobalState->sem);
+//	}
+//
+//	len = sprintf(x, "Global State Log:\r\n{"
+//			"\r\n\tCoulomb Count:\t%f"
+//			"\r\n\tFSM_STATE:\t%s"
+//			"\r\n\t{"
+//			"\r\n\t\t PROFETS: [%i,%i,%i,%i,%i]"
+//			"\r\n\t}"
+//			"\r\n}"
+//			"\r\n",
+//			cc,
+//			fsm_getState(fsm),
+//			HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin),
+//			HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin),
+//			HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin),
+//			HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin),
+//			HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin)
+//			);
+//	if(len > 0)
+//	{
+//		AMS_LogInfo(x, len);
+//	} else {
+//		Error_Handler();
+//	}
 }
 
 /**
@@ -338,20 +339,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
  */
 __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
-	AMS_LogInfo("Entering FSM Thread\r\n", strlen("Entering FSM Thread\r\n"));
 	// Reset our FSM in idleState, as we are just starting
 	fsm_setLogFunction(fsm, &AMS_LogInfo);
-	fsm_reset(fsm, &idleState);
+	fsm_reset(fsm, &initState);
 
 	for(;;)
 	{
-		//TODO
-		// T`s is our main loop now.
-		fsm_iterate(fsm);
-		if(fsm_getState_t(fsm) == &idleState)
+		while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0)
 		{
-			fsm_changeState(fsm, &prechargeState, "Main loop changing precharge");
+			AMS_CAN_Generic_t msg;
+			HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &(msg.header), msg.data);
+			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
 		}
+
+		fsm_iterate(fsm);
+//		if(fsm_getState_t(fsm) == &idleState)
+//		{
+//			fsm_changeState(fsm, &prechargeState, "Fake RTD");
+//		}
 	}
 }
 
@@ -418,52 +423,52 @@ float vToSoC(float voltage)
 /* USER CODE END 4 */
 
 /**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM6 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- * @param  htim : TIM handle
- * @retval None
- */
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	/* USER CODE BEGIN Callback 0 */
+  /* USER CODE BEGIN Callback 0 */
 
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM6) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
 
-	/* USER CODE END Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	AMS_LogErr("Error Handler Tripped\r\n", strlen("Error Handler Tripped\r\n"));
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 

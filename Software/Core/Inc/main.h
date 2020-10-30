@@ -48,7 +48,8 @@ extern "C" {
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
-#define AMS_CAN_QUEUESIZE 255
+#define DEBUG_PERIOD 1500U // Milliseconds
+#define AMS_CAN_QUEUESIZE 10
 
 #define BMS_COUNT 12
 #define BMS_VOLTAGE_COUNT 10
@@ -61,9 +62,15 @@ extern "C" {
 #define CURRENT_SENSOR_CAN_EXTID 0xA100201
 #define CURRENT_SENSOR_CAN_RESPONSE_EXTID 0xA100200
 #define CURRENT_SENSOR_REQ_SIZE 1
+#define CURRENT_SENSOR_CC_LOW 0x41
+#define CURRENT_SENSOR_CC_HIGH 0x42
+
+#define CURRENT_SENSOR_MAX_AS CURRENT_SENSOR_MAX_AH * 3600
+#define CURRENT_SENSOR_MAX_AH 54.495
 
 // General
 #define VERBOSE
+#define LOG_GLOBALSTATE
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -86,6 +93,7 @@ void IDC_Alarm_cb(void* fsm);
  */
 void heartbeatTimer_cb(void *fsm);
 void osTimer_cb(void *fsm);
+void debugTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
 void AMS_VerboseLog(char *msg);
 void AMS_LogErr(char* error, size_t length);
