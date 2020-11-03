@@ -42,6 +42,7 @@
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
+
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 /* USER CODE END PD */
@@ -141,13 +142,27 @@ int main(void)
 	sFilterConfig.FilterActivation = ENABLE;
 	sFilterConfig.SlaveStartFilterBank = 14;
 
+	CAN_FilterTypeDef  sFilterConfig2;
+
+	sFilterConfig2.FilterBank = 0;
+	sFilterConfig2.FilterMode = CAN_FILTERMODE_IDMASK;
+	sFilterConfig2.FilterScale = CAN_FILTERSCALE_32BIT;
+	sFilterConfig2.FilterIdHigh = 0x0000;
+	sFilterConfig2.FilterIdLow = 0x0001;
+	sFilterConfig2.FilterMaskIdHigh = 0x0000;
+	sFilterConfig2.FilterMaskIdLow = 0x0000;
+	sFilterConfig2.FilterFIFOAssignment = CAN_RX_FIFO0;
+	sFilterConfig2.FilterActivation = ENABLE;
+	sFilterConfig2.SlaveStartFilterBank = 14;
+
+
 	if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK)
 	{
 		/* Filter configuration Error */
 		Error_Handler();
 	}
 
-	if (HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig) != HAL_OK)
+	if (HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig2) != HAL_OK)
 	{
 		/* Filter configuration Error */
 		Error_Handler();
@@ -299,38 +314,38 @@ void osTimer_cb(void *fsm)
 
 void debugTimer_cb(void *fsm)
 {
-//	char x[250];
-//	int len = 0;
-//	float cc;
-//	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-//	{
-//		cc = AMS_GlobalState->CoulombCount;
-//
-//		osSemaphoreRelease(AMS_GlobalState->sem);
-//	}
-//
-//	len = sprintf(x, "Global State Log:\r\n{"
-//			"\r\n\tCoulomb Count:\t%f"
-//			"\r\n\tFSM_STATE:\t%s"
-//			"\r\n\t{"
-//			"\r\n\t\t PROFETS: [%i,%i,%i,%i,%i]"
-//			"\r\n\t}"
-//			"\r\n}"
-//			"\r\n",
-//			cc,
-//			fsm_getState(fsm),
-//			HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin),
-//			HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin),
-//			HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin),
-//			HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin),
-//			HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin)
-//			);
-//	if(len > 0)
-//	{
-//		AMS_LogInfo(x, len);
-//	} else {
-//		Error_Handler();
-//	}
+	//	char x[250];
+	//	int len = 0;
+	//	float cc;
+	//	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	//	{
+	//		cc = AMS_GlobalState->CoulombCount;
+	//
+	//		osSemaphoreRelease(AMS_GlobalState->sem);
+	//	}
+	//
+	//	len = sprintf(x, "Global State Log:\r\n{"
+	//			"\r\n\tCoulomb Count:\t%f"
+	//			"\r\n\tFSM_STATE:\t%s"
+	//			"\r\n\t{"
+	//			"\r\n\t\t PROFETS: [%i,%i,%i,%i,%i]"
+	//			"\r\n\t}"
+	//			"\r\n}"
+	//			"\r\n",
+	//			cc,
+	//			fsm_getState(fsm),
+	//			HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin),
+	//			HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin),
+	//			HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin),
+	//			HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin),
+	//			HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin)
+	//			);
+	//	if(len > 0)
+	//	{
+	//		AMS_LogInfo(x, len);
+	//	} else {
+	//		Error_Handler();
+	//	}
 }
 
 /**
@@ -345,18 +360,41 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 
 	for(;;)
 	{
+		int fillLevels[4] = {HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0), HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0), HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO1), HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO1)};
+		int sum = 0;
+		for(int i = 0; i < 4; i++)
+		{
+			sum += fillLevels[i];
+		}
+		char y[80];
+		int len = sprintf(y, "Fill Levels, [1-0, 2-0, 1-1, 2-1]: [%i,%i,%i,%i]\r\n", fillLevels[0], fillLevels[1], fillLevels[2], fillLevels[3]);
+		AMS_LogInfo(y, len);
+
 		while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0)
 		{
 			AMS_CAN_Generic_t msg;
 			HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &(msg.header), msg.data);
 			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+			char x[80];
+			int len = sprintf(x, "Got CAN msg from CAN4: %02lX\r\n", msg.header.ExtId);
+			AMS_LogInfo(x, len);
+		}
+
+		while(HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0) > 0)
+		{
+			AMS_CAN_Generic_t msg;
+			HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &(msg.header), msg.data);
+			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+			char x[80];
+			int len = sprintf(x, "Got CAN msg from CAN2: %02lX\r\n", msg.header.ExtId);
+			AMS_LogInfo(x, len);
 		}
 
 		fsm_iterate(fsm);
-//		if(fsm_getState_t(fsm) == &idleState)
-//		{
-//			fsm_changeState(fsm, &prechargeState, "Fake RTD");
-//		}
+		if(fsm_getState_t(fsm) == &idleState)
+		{
+			fsm_changeState(fsm, &prechargeState, "Fake RTD");
+		}
 	}
 }
 
