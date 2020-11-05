@@ -118,17 +118,17 @@ int main(void)
 
 	HAL_Delay(500U);
 
-	if (HAL_CAN_Start(&hcan1) != HAL_OK)
+	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
 	{
 		Error_Handler();
 	}
 
-	if (HAL_CAN_Start(&hcan2) != HAL_OK)
+	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
 		Error_Handler();
 	}
 
-	/** Create CAN Filter & Apply it to &hcan1, &hcan2 */
+	/** Create CAN Filter & Apply it to &CANBUS4, &CANBUS2 */
 	CAN_FilterTypeDef  sFilterConfig;
 
 	sFilterConfig.FilterBank = 0;
@@ -144,7 +144,7 @@ int main(void)
 
 	CAN_FilterTypeDef  sFilterConfig2;
 
-	sFilterConfig2.FilterBank = 0;
+	sFilterConfig2.FilterBank = 14;
 	sFilterConfig2.FilterMode = CAN_FILTERMODE_IDMASK;
 	sFilterConfig2.FilterScale = CAN_FILTERSCALE_32BIT;
 	sFilterConfig2.FilterIdHigh = 0x0000;
@@ -156,13 +156,13 @@ int main(void)
 	sFilterConfig2.SlaveStartFilterBank = 14;
 
 
-	if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK)
+	if (HAL_CAN_ConfigFilter(&CANBUS4, &sFilterConfig) != HAL_OK)
 	{
 		/* Filter configuration Error */
 		Error_Handler();
 	}
 
-	if (HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig2) != HAL_OK)
+	if (HAL_CAN_ConfigFilter(&CANBUS2, &sFilterConfig2) != HAL_OK)
 	{
 		/* Filter configuration Error */
 		Error_Handler();
@@ -278,7 +278,7 @@ void heartbeatTimer_cb(void *fsm)
 				.TransmitGlobalTime = DISABLE,
 		};
 
-		HAL_CAN_AddTxMessage(&hcan2, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
+		HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	} else
 	{
@@ -298,7 +298,7 @@ void osTimer_cb(void *fsm)
 	};
 
 	uint8_t data = 0x41;
-	if(HAL_CAN_AddTxMessage(&hcan1, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -306,7 +306,7 @@ void osTimer_cb(void *fsm)
 	osDelay(1);
 
 	uint8_t data2 = 0x42;
-	if(HAL_CAN_AddTxMessage(&hcan1, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -360,33 +360,23 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 
 	for(;;)
 	{
-		int fillLevels[4] = {HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0), HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0), HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO1), HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO1)};
-		int sum = 0;
-		for(int i = 0; i < 4; i++)
-		{
-			sum += fillLevels[i];
-		}
-		char y[80];
-		int len = sprintf(y, "Fill Levels, [1-0, 2-0, 1-1, 2-1]: [%i,%i,%i,%i]\r\n", fillLevels[0], fillLevels[1], fillLevels[2], fillLevels[3]);
-		AMS_LogInfo(y, len);
-
-		while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0)
+		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS4, CAN_RX_FIFO0) > 0)
 		{
 			AMS_CAN_Generic_t msg;
-			HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &(msg.header), msg.data);
+			HAL_CAN_GetRxMessage(&CANBUS4, CAN_RX_FIFO0, &(msg.header), msg.data);
 			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
 			char x[80];
-			int len = sprintf(x, "Got CAN msg from CAN4: %02lX\r\n", msg.header.ExtId);
+			int len = sprintf(x, "[%li] Got CAN msg from CAN4: %02lX\r\n", (HAL_GetTick() - AMS_GlobalState->startupTicks)/1000, msg.header.ExtId);
 			AMS_LogInfo(x, len);
 		}
 
-		while(HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0) > 0)
+		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS2, CAN_RX_FIFO0) > 0)
 		{
 			AMS_CAN_Generic_t msg;
-			HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &(msg.header), msg.data);
+			HAL_CAN_GetRxMessage(&CANBUS2, CAN_RX_FIFO0, &(msg.header), msg.data);
 			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
 			char x[80];
-			int len = sprintf(x, "Got CAN msg from CAN2: %02lX\r\n", msg.header.ExtId);
+			int len = sprintf(x, "[%li] Got CAN msg from CAN2: %02lX\r\n", (HAL_GetTick() - AMS_GlobalState->startupTicks)/1000, msg.header.ExtId);
 			AMS_LogInfo(x, len);
 		}
 

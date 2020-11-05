@@ -38,6 +38,8 @@ extern CAN_HandleTypeDef hcan2;
  * For when you forget
  * @brief CAN2 = Chassis = hcan1, CAN4 = BMS = hcan2
  */
+#define CANBUS4 hcan1
+#define CANBUS2 hcan2
 /* USER CODE END Private defines */
 
 void MX_CAN1_Init(void);
