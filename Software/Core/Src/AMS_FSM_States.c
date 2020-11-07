@@ -52,13 +52,13 @@ void state_init_enter(fsm_t *fsm)
 				Error_Handler();
 			}
 
-			#ifdef LOG_GLOBALSTATE
-				AMS_GlobalState->debugTimer = osTimerNew(&debugTimer_cb, osTimerPeriodic, fsm, NULL);
-				if(osTimerStart(AMS_GlobalState->debugTimer, DEBUG_PERIOD) != osOK)
-				{
-					Error_Handler();
-				}
-			#endif
+#ifdef LOG_GLOBALSTATE
+			AMS_GlobalState->debugTimer = osTimerNew(&debugTimer_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->debugTimer, DEBUG_PERIOD) != osOK)
+			{
+				Error_Handler();
+			}
+#endif
 
 			AMS_GlobalState->CANQueue = osMessageQueueNew(AMS_CAN_QUEUESIZE, sizeof(AMS_CAN_Generic_t), NULL);
 			if(AMS_GlobalState->CANQueue == NULL)
@@ -152,7 +152,7 @@ void state_idle_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(*((BMS_TransmitVoltage_t*)&(msg.data)), &BMSId, &vMsgId, voltages);
+				Parse_BMS_TransmitVoltage(msg.data, &BMSId, &vMsgId, voltages);
 
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
@@ -164,7 +164,7 @@ void state_idle_iterate(fsm_t *fsm)
 					/** If last message, log all voltages to SD*/
 					if(vMsgId == 2)
 					{
-						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
+//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -186,7 +186,7 @@ void state_idle_iterate(fsm_t *fsm)
 					/** If last message, log all temperatures to SD*/
 					if(tMsgId == 1)
 					{
-						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
+//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -323,7 +323,7 @@ void state_precharge_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(*((BMS_TransmitVoltage_t*)&(msg.data)), &BMSId, &vMsgId, voltages);
+				Parse_BMS_TransmitVoltage(msg.data, &BMSId, &vMsgId, voltages);
 
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
@@ -335,7 +335,7 @@ void state_precharge_iterate(fsm_t *fsm)
 					/** If last message, log all voltages to SD*/
 					if(vMsgId == 2)
 					{
-						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
+//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -357,7 +357,7 @@ void state_precharge_iterate(fsm_t *fsm)
 					/** If last message, log all temperatures to SD*/
 					if(tMsgId == 1)
 					{
-						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
+//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -461,8 +461,7 @@ void state_driving_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(*((BMS_TransmitVoltage_t*)&(msg.data)), &BMSId, &vMsgId, voltages);
-
+				Parse_BMS_TransmitVoltage(msg.data, &BMSId, &vMsgId, voltages);
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 				{
@@ -473,7 +472,11 @@ void state_driving_iterate(fsm_t *fsm)
 					/** If last message, log all voltages to SD*/
 					if(vMsgId == 2)
 					{
-						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
+//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
+//						char x[80];
+//						int len = sprintf(x, "Voltage 0: %i\r\n", AMS_GlobalState->BMSVoltages[BMSId][0]);
+//						AMS_LogInfo(x, len);
+
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -495,7 +498,7 @@ void state_driving_iterate(fsm_t *fsm)
 					/** If last message, log all temperatures to SD*/
 					if(tMsgId == 1)
 					{
-						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
+//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -574,7 +577,14 @@ void state_driving_iterate(fsm_t *fsm)
 
 						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
 
+#if CS_LOG_CC
+						char x[80];
+						int len = sprintf(x, "[%li] Coloumb Count: %f\r\n", (HAL_GetTick() - AMS_GlobalState->startupTicks)/1000, AMS_GlobalState->CoulombCount);
+#endif
 						osSemaphoreRelease(AMS_GlobalState->sem);
+#if CS_LOG_CC
+						AMS_LogInfo(x, len);
+#endif
 					}
 				}
 			}
@@ -598,7 +608,7 @@ state_t errorState = {&state_error_enter, &state_error_iterate, &state_error_exi
 
 void state_error_enter(fsm_t *fsm)
 {
-	AMS_LogToSD("Entered Error State. Oh No", strlen("Entered Error State. Oh No"));
+//	AMS_LogToSD("Entered Error State. Oh No", strlen("Entered Error State. Oh No"));
 
 	// LOW - PRECHG
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);

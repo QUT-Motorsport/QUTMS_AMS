@@ -68,6 +68,10 @@ extern "C" {
 #define CURRENT_SENSOR_MAX_AS CURRENT_SENSOR_MAX_AH * 3600
 #define CURRENT_SENSOR_MAX_AH 54.495
 
+// LOGGING DEFS
+#define CS_LOG_CC 0
+#define CAN_LOG_ON_MSG 1
+
 // General
 #define VERBOSE
 #define LOG_GLOBALSTATE
