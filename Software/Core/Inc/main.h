@@ -42,18 +42,23 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+// Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
 #define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
-#define DEBUG_PERIOD 1500U // Milliseconds
 #define AMS_CAN_QUEUESIZE 10
 
+// BMS
 #define BMS_COUNT 12
 #define BMS_VOLTAGE_COUNT 10
 #define BMS_TEMPERATURE_COUNT 12
+
+// Debug
+#define DEBUG_CB
+#define DEBUG_PERIOD 1500U // Milliseconds
 
 // Bit Masks
 #define BMS_ID_MASK 0x1FFFFFF0
@@ -71,10 +76,9 @@ extern "C" {
 // LOGGING DEFS
 #define CS_LOG_CC 0
 #define CAN_LOG_ON_MSG 1
+#define BMS_LOG 1
 
 // General
-#define VERBOSE
-#define LOG_GLOBALSTATE
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -99,7 +103,6 @@ void heartbeatTimer_cb(void *fsm);
 void osTimer_cb(void *fsm);
 void debugTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
-void AMS_VerboseLog(char *msg);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);

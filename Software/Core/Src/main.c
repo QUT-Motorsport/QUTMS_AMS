@@ -298,46 +298,46 @@ void osTimer_cb(void *fsm)
 	};
 
 	uint8_t data = 0x41;
-//	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
-//	{
-//		Error_Handler();
-//	}
-//
-//	osDelay(1);
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	osDelay(1);
 
 	uint8_t data2 = 0x42;
-//	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
-//	{
-//		Error_Handler();
-//	}
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 void debugTimer_cb(void *fsm)
 {
-	//	char x[80];
-	//	int len = 0;
-	//	float cc;
-	//	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-	//	{
-	//		cc = AMS_GlobalState->CoulombCount;
-	//
-	//		osSemaphoreRelease(AMS_GlobalState->sem);
-	//	}
-	//
-	//	len = sprintf(x, "Global State Log:\r\n{"
-	//			"\r\n\tCoulomb Count:\t%f"
-	//			"\r\n\tFSM_STATE:\t%s"
-	//			"\r\n}"
-	//			"\r\n",
-	//			cc,
-	//			fsm_getState(fsm)
-	//	);
-	//	if(len > 0)
-	//	{
-	//		AMS_LogInfo(x, len);
-	//	} else {
-	//		Error_Handler();
-	//	}
+	uint16_t BMSvAv[BMS_COUNT] = {0};
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		// Get variables we want to monitor and log
+		for(int i = 0; i < BMS_COUNT; i++)
+		{
+			for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
+			{
+				BMSvAv[i] += AMS_GlobalState->BMSVoltages[i][j];
+			}
+			BMSvAv[i] /= BMS_COUNT;
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
+		for(int i = 0; i < BMS_COUNT; i++)
+		{
+			char x[80];
+			int len = snprintf(x, 80, "BMS %i AVG: %fV\r\n", i, BMSvAv[i]/1000.f);
+			if(len)
+			{
+				AMS_LogInfo(x, len);
+			}
+		}
+	}
+	return;
 }
 
 /**
@@ -392,22 +392,6 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 void AMS_LogInfo(char* msg, size_t length)
 {
 	HAL_UART_Transmit(&huart3, (uint8_t *)msg, length, HAL_MAX_DELAY);
-}
-
-void AMS_VerboseLog(char *msg)
-{
-#ifdef VERBOSE
-	char *msgIter = msg;
-	int length = 0;
-
-	while(*msgIter != '\0')
-	{
-		length++;
-		msgIter++;
-	}
-
-	AMS_LogInfo(msg, length);
-#endif
 }
 
 void AMS_LogErr(char* error, size_t length)

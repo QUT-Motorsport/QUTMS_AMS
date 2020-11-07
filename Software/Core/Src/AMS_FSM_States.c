@@ -52,7 +52,7 @@ void state_init_enter(fsm_t *fsm)
 				Error_Handler();
 			}
 
-#ifdef LOG_GLOBALSTATE
+#ifdef DEBUG_CB
 			AMS_GlobalState->debugTimer = osTimerNew(&debugTimer_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->debugTimer, DEBUG_PERIOD) != osOK)
 			{
@@ -152,20 +152,20 @@ void state_idle_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.data, &BMSId, &vMsgId, voltages);
+				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
 
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 				{
-					for(int i = 0; i < 4; i++)
+					for(int i = 0; i < (vMsgId != 2 ? 4 : 2); i++)
 					{
 						AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
 					}
 					/** If last message, log all voltages to SD*/
-					if(vMsgId == 2)
-					{
+//					if(vMsgId == 2)
+//					{
 //						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
-					}
+//					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
 			}
@@ -174,7 +174,7 @@ void state_idle_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
 			{
 				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-				Parse_BMS_TransmitTemperature(*((BMS_TransmitTemperature_t*)&(msg.data)), &BMSId, &tMsgId, temperatures);
+				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
 
 				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
@@ -184,10 +184,10 @@ void state_idle_iterate(fsm_t *fsm)
 						AMS_GlobalState->BMSTemperatues[BMSId][temperatureIndexStart + i] = temperatures[i];
 					}
 					/** If last message, log all temperatures to SD*/
-					if(tMsgId == 1)
-					{
+//					if(tMsgId == 1)
+//					{
 //						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
-					}
+//					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
 			}
@@ -196,7 +196,7 @@ void state_idle_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
 			{
 				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-				Parse_BMS_BadCellVoltage(*((BMS_BadCellVoltage_t *)(&msg.data)), &BMSId, &cellNum, &voltage);
+				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
 
 				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
 				CAN_TxHeaderTypeDef header =
@@ -219,7 +219,7 @@ void state_idle_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
 			{
 				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-				Parse_BMS_BadCellTemperature(*((BMS_BadCellTemperature_t *)(&msg.data)), &BMSId, &cellNum, &temperature);
+				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
 
 				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
 				CAN_TxHeaderTypeDef header =
@@ -246,10 +246,10 @@ void state_idle_iterate(fsm_t *fsm)
 					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 					{
 						AMS_GlobalState->CoulombCountuA = 0;
-						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 24;
-						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 16;
-						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 8;
-						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 0;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 24;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 16;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 8;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 0;
 
 						osSemaphoreRelease(AMS_GlobalState->sem);
 
@@ -258,10 +258,10 @@ void state_idle_iterate(fsm_t *fsm)
 				{
 					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 					{
-						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 56;
-						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 48;
-						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 40;
-						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 32;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 56;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 48;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 40;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 32;
 
 						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
 
@@ -323,7 +323,7 @@ void state_precharge_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.data, &BMSId, &vMsgId, voltages);
+				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
 
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
@@ -345,7 +345,7 @@ void state_precharge_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
 			{
 				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-				Parse_BMS_TransmitTemperature(*((BMS_TransmitTemperature_t*)&(msg.data)), &BMSId, &tMsgId, temperatures);
+				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
 
 				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
@@ -367,7 +367,7 @@ void state_precharge_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
 			{
 				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-				Parse_BMS_BadCellVoltage(*((BMS_BadCellVoltage_t *)(&msg.data)), &BMSId, &cellNum, &voltage);
+				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
 
 				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
 				CAN_TxHeaderTypeDef header =
@@ -390,7 +390,7 @@ void state_precharge_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
 			{
 				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-				Parse_BMS_BadCellTemperature(*((BMS_BadCellTemperature_t *)(&msg.data)), &BMSId, &cellNum, &temperature);
+				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
 
 				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
 				CAN_TxHeaderTypeDef header =
@@ -461,7 +461,7 @@ void state_driving_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.data, &BMSId, &vMsgId, voltages);
+				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 				{
@@ -486,7 +486,7 @@ void state_driving_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
 			{
 				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-				Parse_BMS_TransmitTemperature(*((BMS_TransmitTemperature_t*)&(msg.data)), &BMSId, &tMsgId, temperatures);
+				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
 
 				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
@@ -508,7 +508,7 @@ void state_driving_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
 			{
 				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-				Parse_BMS_BadCellVoltage(*((BMS_BadCellVoltage_t *)(&msg.data)), &BMSId, &cellNum, &voltage);
+				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
 
 				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
 				CAN_TxHeaderTypeDef header =
@@ -531,7 +531,7 @@ void state_driving_iterate(fsm_t *fsm)
 			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
 			{
 				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-				Parse_BMS_BadCellTemperature(*((BMS_BadCellTemperature_t *)(&msg.data)), &BMSId, &cellNum, &temperature);
+				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
 
 				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
 				CAN_TxHeaderTypeDef header =
@@ -558,10 +558,10 @@ void state_driving_iterate(fsm_t *fsm)
 					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 					{
 						AMS_GlobalState->CoulombCountuA = 0;
-						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 24;
-						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 16;
-						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 8;
-						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 0;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 24;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 16;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 8;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 0;
 
 						osSemaphoreRelease(AMS_GlobalState->sem);
 
@@ -570,10 +570,10 @@ void state_driving_iterate(fsm_t *fsm)
 				{
 					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 					{
-						AMS_GlobalState->CoulombCountuA |= msg.data[1] << 56;
-						AMS_GlobalState->CoulombCountuA |= msg.data[2] << 48;
-						AMS_GlobalState->CoulombCountuA |= msg.data[3] << 40;
-						AMS_GlobalState->CoulombCountuA |= msg.data[4] << 32;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 56;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 48;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 40;
+						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 32;
 
 						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
 
