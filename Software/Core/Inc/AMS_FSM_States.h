@@ -14,6 +14,7 @@
 #include "cmsis_os.h"
 #include <memory.h>
 #include <stdbool.h>
+#include <stdbool.h>
 #include "AMS_CAN_Messages.h"
 #include "BMS_CAN_Messages.h"
 #include "can.h"
@@ -34,8 +35,9 @@ typedef struct
 
 	uint32_t startupTicks; /**< The Tick count at the initial startup time */
 
+	bool BMSStartupSoc[BMS_COUNT];
 	uint16_t BMSVoltages[BMS_COUNT][BMS_VOLTAGE_COUNT]; /**< Globally stores the 10 Voltages for each BMS*/
-	uint8_t BMSTemperatues[BMS_COUNT][BMS_TEMPERATURE_COUNT]; /**< Globally stores the 12 Temperatures for each BMS*/
+	uint8_t BMSTemperatures[BMS_COUNT][BMS_TEMPERATURE_COUNT]; /**< Globally stores the 12 Temperatures for each BMS*/
 
 	int64_t CoulombCountuA;
 	float CoulombCount;

@@ -37,7 +37,6 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -57,8 +56,8 @@ extern "C" {
 #define BMS_TEMPERATURE_COUNT 12
 
 // Debug
-#define DEBUG_CB
-#define DEBUG_PERIOD 1500U // Milliseconds
+//#define DEBUG_CB
+#define DEBUG_PERIOD 2500U // Milliseconds
 
 // Bit Masks
 #define BMS_ID_MASK 0x1FFFFFF0
@@ -106,7 +105,9 @@ void AMS_LogInfo(char* msg, size_t length);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-__NO_RETURN void fsm_thread_mainLoop(void* arg);
+uint32_t getRuntime();
+__NO_RETURN void fsm_thread_mainLoop(void* fsm);
+__NO_RETURN void uart_thread_mainLoop(void* fsm);
 
 /** Temp Function */
 float vToSoC(float voltage);
