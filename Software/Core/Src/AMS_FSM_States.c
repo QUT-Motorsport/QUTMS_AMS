@@ -39,6 +39,10 @@ void state_init_enter(fsm_t *fsm)
 		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 		{
 			AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->heartbeatTimer, AMS_HEARTBEAT_PERIOD) != osOK)
+			{
+				Error_Handler();
+			}
 
 			AMS_GlobalState->IDC_AlarmTimer = osTimerNew(&IDC_Alarm_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->IDC_AlarmTimer, AMS_IDC_PERIOD) != osOK)
@@ -106,15 +110,6 @@ state_t idleState = {&state_idle_enter, &state_idle_iterate, &state_idle_exit, "
 
 void state_idle_enter(fsm_t *fsm)
 {
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-	{
-		if(osTimerStart(AMS_GlobalState->heartbeatTimer, AMS_HEARTBEAT_PERIOD) != osOK)
-		{
-			Error_Handler();
-		}
-		osSemaphoreRelease(AMS_GlobalState->sem);
-	}
-
 	/* Set initial pin states */
 	// ALARM Line - HIGH
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
@@ -588,6 +583,13 @@ void state_driving_iterate(fsm_t *fsm)
 #endif
 					}
 				}
+			}
+
+			/** CC Soft Shutdown */
+			if(msg.header.ExtId == Compose_CANId(0x02, 0x16, 0x0, 0x1, 0x1, 0))
+			{
+				// Return to IdleState
+				fsm_changeState(fsm, &idleState, "Soft Shutdown from CC");
 			}
 		}
 	}

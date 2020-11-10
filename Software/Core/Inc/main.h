@@ -74,7 +74,7 @@ extern "C" {
 
 // LOGGING DEFS
 #define CS_LOG_CC 0
-#define CAN_LOG_ON_MSG 1
+#define CAN_LOG_ON_MSG 0
 #define BMS_LOG 1
 
 // General
