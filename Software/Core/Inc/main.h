@@ -48,7 +48,7 @@ extern "C" {
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
-#define AMS_CAN_QUEUESIZE 10
+#define AMS_CAN_QUEUESIZE 25
 
 // BMS
 #define BMS_COUNT 12
@@ -57,6 +57,7 @@ extern "C" {
 
 // Debug
 //#define DEBUG_CB
+//#define ENABLE_CS
 #define DEBUG_PERIOD 2500U // Milliseconds
 
 // Bit Masks
@@ -74,7 +75,8 @@ extern "C" {
 
 // LOGGING DEFS
 #define CS_LOG_CC 0
-#define CAN_LOG_ON_MSG 0
+//#define CAN2_LOG_ON_MSG
+#define CAN4_LOG_ON_MSG
 #define BMS_LOG 1
 
 // General
@@ -130,10 +132,6 @@ float vToSoC(float voltage);
 #define ALARM_CTRL_GPIO_Port GPIOB
 #define SD_DI_Pin GPIO_PIN_9
 #define SD_DI_GPIO_Port GPIOC
-#define CAN2_RX_Pin GPIO_PIN_11
-#define CAN2_RX_GPIO_Port GPIOA
-#define CAN2_TX_Pin GPIO_PIN_12
-#define CAN2_TX_GPIO_Port GPIOA
 #define SD_CLK_Pin GPIO_PIN_10
 #define SD_CLK_GPIO_Port GPIOC
 #define SD_DO_Pin GPIO_PIN_11

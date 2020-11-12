@@ -122,12 +122,14 @@ int main(void)
 
 	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
 	{
-		Error_Handler();
+		char msg[] = "Failed to CAN_Start CAN4";
+		AMS_LogErr(msg, strlen(msg));
 	}
 
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
-		Error_Handler();
+		char msg[] = "Failed to CAN_Start CAN2";
+		AMS_LogErr(msg, strlen(msg));
 	}
 
 	/** Create CAN Filter & Apply it to &CANBUS4, &CANBUS2 */
@@ -161,13 +163,15 @@ int main(void)
 	if (HAL_CAN_ConfigFilter(&CANBUS4, &sFilterConfig) != HAL_OK)
 	{
 		/* Filter configuration Error */
-		Error_Handler();
+		char msg[] = "Failed to set CAN4 Filter";
+		AMS_LogErr(msg, strlen(msg));
 	}
 
 	if (HAL_CAN_ConfigFilter(&CANBUS2, &sFilterConfig2) != HAL_OK)
 	{
 		/* Filter configuration Error */
-		Error_Handler();
+		char msg[] = "Failed to set CAN2 Filter";
+		AMS_LogErr(msg, strlen(msg));
 	}
 
 	//Create FSM instance
@@ -292,7 +296,8 @@ void heartbeatTimer_cb(void *fsm)
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	} else
 	{
-		Error_Handler();
+		char msg[] = "Failed to send AMS Heartbeat";
+		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
@@ -310,7 +315,8 @@ void osTimer_cb(void *fsm)
 	uint8_t data = 0x41;
 	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
-		Error_Handler();
+		char msg[] = "Failed to send current sensor packet 1";
+		AMS_LogErr(msg, strlen(msg));
 	}
 
 	osDelay(1);
@@ -318,7 +324,8 @@ void osTimer_cb(void *fsm)
 	uint8_t data2 = 0x42;
 	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 	{
-		Error_Handler();
+		char msg[] = "Failed to send current sensor packet 2";
+		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
@@ -376,7 +383,7 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 			AMS_CAN_Generic_t msg;
 			HAL_CAN_GetRxMessage(&CANBUS4, CAN_RX_FIFO0, &(msg.header), msg.data);
 			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-#if CAN_LOG_ON_MSG
+#ifdef CAN4_LOG_ON_MSG
 			char x[80];
 			int len = sprintf(x, "[%li] Got CAN msg from CAN4: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
 			AMS_LogInfo(x, len);
@@ -388,7 +395,7 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 			AMS_CAN_Generic_t msg;
 			HAL_CAN_GetRxMessage(&CANBUS2, CAN_RX_FIFO0, &(msg.header), msg.data);
 			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-#if CAN_LOG_ON_MSG
+#ifdef CAN2_LOG_ON_MSG
 			char x[80];
 			int len = sprintf(x, "[%li] Got CAN msg from CAN2: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
 			AMS_LogInfo(x, len);
@@ -418,7 +425,8 @@ void AMS_LogErr(char* error, size_t length)
 		HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
 	} else
 	{
-		Error_Handler();
+		char msg[] = "Failed to log error in AMS_LogErr\r\n";
+		AMS_LogInfo(msg, strlen(msg));
 	}
 	free(errorMsg);
 }
@@ -428,7 +436,7 @@ void AMS_LogToSD(char* msg, size_t length)
 	for(int i = 0; i < length; i++)
 	{
 		// Transfer each byte of our message
-		bbspi_transferByte(SPI, *(msg + i));
+//		bbspi_transferByte(SPI, *(msg + i));
 	}
 }
 
@@ -467,7 +475,8 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
-	AMS_LogErr("Error Handler Tripped\r\n", strlen("Error Handler Tripped\r\n"));
+	char msg[] = "Error Handler Triggered";
+	AMS_LogErr(msg, strlen(msg));
   /* USER CODE END Error_Handler_Debug */
 }
 

@@ -41,33 +41,38 @@ void state_init_enter(fsm_t *fsm)
 			AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->heartbeatTimer, AMS_HEARTBEAT_PERIOD) != osOK)
 			{
-				Error_Handler();
+				char msg[] = "Failed to create Heartbeat Timer";
+				AMS_LogErr(msg, strlen(msg));
 			}
 
 			AMS_GlobalState->IDC_AlarmTimer = osTimerNew(&IDC_Alarm_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->IDC_AlarmTimer, AMS_IDC_PERIOD) != osOK)
 			{
-				Error_Handler();
+				char msg[] = "Failed to create IDC_Alarm Timer";
+				AMS_LogErr(msg, strlen(msg));
 			}
-
+#ifdef ENABLE_CS
 			AMS_GlobalState->csTimer = osTimerNew(&osTimer_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->csTimer, AMS_CS_PERIOD) != osOK)
 			{
-				Error_Handler();
+				char msg[] = "Failed to create Current Sensor Timer";
+				AMS_LogErr(msg, strlen(msg));
 			}
-
+#endif
 #ifdef DEBUG_CB
 			AMS_GlobalState->debugTimer = osTimerNew(&debugTimer_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->debugTimer, DEBUG_PERIOD) != osOK)
 			{
-				Error_Handler();
+				char msg[] = "Failed to create debug timer";
+				AMS_LogErr(msg, strlen(msg));
 			}
 #endif
 
 			AMS_GlobalState->CANQueue = osMessageQueueNew(AMS_CAN_QUEUESIZE, sizeof(AMS_CAN_Generic_t), NULL);
 			if(AMS_GlobalState->CANQueue == NULL)
 			{
-				Error_Handler();
+				char msg[] = "Failed to make CANQueue";
+				AMS_LogErr(msg, strlen(msg));
 			}
 
 			AMS_GlobalState->startupTicks = HAL_GetTick();
@@ -295,7 +300,8 @@ void state_precharge_enter(fsm_t *fsm)
 	prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerOnce, fsm, NULL);
 	if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
 	{
-		Error_Handler();
+		char msg[] = "Failed to start Precharge Timer";
+		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
@@ -412,7 +418,8 @@ void state_precharge_exit(fsm_t *fsm)
 {
 	if(osTimerDelete(prechargeTimer) != osOK)
 	{
-		Error_Handler();
+		char msg[] = "Failed to delete precharge timer";
+		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
@@ -655,7 +662,7 @@ void state_error_iterate(fsm_t *fsm)
 		// Trip Shutdown Alarm Line
 		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 		AMS_LogErr("Stuck in error state", strlen("Stuck in error state"));
-		HAL_Delay(50);
+		HAL_Delay(100);
 	} while(1);
 }
 
@@ -755,4 +762,5 @@ void state_SoC_iterate(fsm_t *fsm)
 void state_SoC_exit(fsm_t *fsm)
 {
 	// TODO
+	return;
 }
