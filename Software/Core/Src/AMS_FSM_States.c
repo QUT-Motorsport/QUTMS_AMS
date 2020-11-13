@@ -149,95 +149,152 @@ void state_idle_iterate(fsm_t *fsm)
 			 * [BMS_TransmitVoltages], [BMS_TransmitTemperatures]
 			 */
 
-			/** BMS_TransmitVoltages With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
+			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-
-				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				/** BMS_TransmitVoltages With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
 				{
-					for(int i = 0; i < (vMsgId != 2 ? 4 : 2); i++)
+					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
+					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
+					if(BMSId > BMS_COUNT)
 					{
-						AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						char msg[] = "BMS ID Outside of acceptable range!";
+						AMS_LogErr(msg, strlen(msg));
+						return;
 					}
-					/** If last message, log all voltages to SD*/
-					//					if(vMsgId == 2)
-					//					{
-					//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
-					//					}
-					osSemaphoreRelease(AMS_GlobalState->sem);
+					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 4; i++)
+						{
+							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						}
+						/** If last message, log all voltages to SD*/
+						if(vMsgId == 2)
+						{
+#if BMS_LOG_IDLE_V
+							char x[80];
+							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
+							if(len > 0)
+							{
+								AMS_LogInfo(x, len);
+							} else
+							{
+								char msg[] = "Buffer too short for BMS Voltage Message";
+								AMS_LogErr(msg, strlen(msg));
+							}
+#endif
+						}
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
+				}
+
+				/** BMS_TransmitTemperatures With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
+				{
+					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
+					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
+					if(BMSId > BMS_COUNT)
+					{
+						char msg[] = "BMS ID Outside of acceptable range!";
+						AMS_LogErr(msg, strlen(msg));
+						return;
+					}
+					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 6; i++)
+						{
+							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
+						}
+						/** If last message, log all temperatures to SD*/
+						if(tMsgId == 1)
+						{
+#if BMS_LOG_IDLE_T
+							char x[80];
+							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+									AMS_GlobalState->BMSTemperatures[BMSId][0],
+									AMS_GlobalState->BMSTemperatures[BMSId][1],
+									AMS_GlobalState->BMSTemperatures[BMSId][2],
+									AMS_GlobalState->BMSTemperatures[BMSId][3],
+									AMS_GlobalState->BMSTemperatures[BMSId][4],
+									AMS_GlobalState->BMSTemperatures[BMSId][5],
+									AMS_GlobalState->BMSTemperatures[BMSId][6],
+									AMS_GlobalState->BMSTemperatures[BMSId][7],
+									AMS_GlobalState->BMSTemperatures[BMSId][8],
+									AMS_GlobalState->BMSTemperatures[BMSId][9],
+									AMS_GlobalState->BMSTemperatures[BMSId][10],
+									AMS_GlobalState->BMSTemperatures[BMSId][11]);
+							if(len > 0)
+							{
+								AMS_LogInfo(x, len);
+							} else
+							{
+								char msg[] = "Buffer too short for BMS Temperature Message";
+								AMS_LogErr(msg, strlen(msg));
+							}
+#endif
+						}
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
 				}
 			}
-
-			/** BMS_TransmitTemperatures With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
-			{
-				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
-
-				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-				{
-					for(int i = 0; i < 6; i++)
-					{
-						AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
-					}
-					/** If last message, log all temperatures to SD*/
-					//					if(tMsgId == 1)
-					//					{
-					//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
-					//					}
-					osSemaphoreRelease(AMS_GlobalState->sem);
-				}
-			}
-
-			/** BMS_BadCellVoltage With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
-			{
-				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
-
-				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
-				CAN_TxHeaderTypeDef header =
-				{
-						.ExtId = cVS.id,
-						.IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA,
-						.DLC = sizeof(cVS.data),
-						.TransmitGlobalTime = DISABLE,
-				};
-
-				// Notify Chassis we have a bad cell voltage.
-				HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
-
-				// Bad BMS cell voltage found, we need to change to errorState.
-				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
-			}
-
-			/** BMS_BadCellTemperature With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
-			{
-				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
-
-				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
-				CAN_TxHeaderTypeDef header =
-				{
-						.ExtId = cTS.id,
-						.IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA,
-						.DLC = sizeof(cTS.data),
-						.TransmitGlobalTime = DISABLE,
-				};
-
-				// Notify Chassis we have a bad cell temperature.
-				HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
-
-				// Bad BMS cell temperature found, we need to change to errorState
-				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
-			}
+			//
+			//			/** BMS_BadCellVoltage With BMSID masked off */
+			//			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
+			//			{
+			//				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
+			//				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
+			//
+			//				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
+			//				CAN_TxHeaderTypeDef header =
+			//				{
+			//						.ExtId = cVS.id,
+			//						.IDE = CAN_ID_EXT,
+			//						.RTR = CAN_RTR_DATA,
+			//						.DLC = sizeof(cVS.data),
+			//						.TransmitGlobalTime = DISABLE,
+			//				};
+			//
+			//				// Notify Chassis we have a bad cell voltage.
+			//				HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
+			//
+			//				// Bad BMS cell voltage found, we need to change to errorState.
+			//				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
+			//			}
+			//
+			//			/** BMS_BadCellTemperature With BMSID masked off */
+			//			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
+			//			{
+			//				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
+			//				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
+			//
+			//				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
+			//				CAN_TxHeaderTypeDef header =
+			//				{
+			//						.ExtId = cTS.id,
+			//						.IDE = CAN_ID_EXT,
+			//						.RTR = CAN_RTR_DATA,
+			//						.DLC = sizeof(cTS.data),
+			//						.TransmitGlobalTime = DISABLE,
+			//				};
+			//
+			//				// Notify Chassis we have a bad cell temperature.
+			//				HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
+			//
+			//				// Bad BMS cell temperature found, we need to change to errorState
+			//				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+			//			}
 
 			/** Current Sensor Coulomb Counting */
 			if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
@@ -322,11 +379,10 @@ void state_precharge_iterate(fsm_t *fsm)
 			 */
 
 			/** BMS_TransmitVoltages With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
+			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
 			{
 				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
 				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-
 				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 				{
@@ -337,14 +393,13 @@ void state_precharge_iterate(fsm_t *fsm)
 					/** If last message, log all voltages to SD*/
 					if(vMsgId == 2)
 					{
-						//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
 			}
 
 			/** BMS_TransmitTemperatures With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
+			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
 			{
 				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
 				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
@@ -359,7 +414,6 @@ void state_precharge_iterate(fsm_t *fsm)
 					/** If last message, log all temperatures to SD*/
 					if(tMsgId == 1)
 					{
-						//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
 					}
 					osSemaphoreRelease(AMS_GlobalState->sem);
 				}
@@ -460,50 +514,104 @@ void state_driving_iterate(fsm_t *fsm)
 			 * BMS_TransmitVoltages, BMS_TransmitTemperatures
 			 */
 
-			/** BMS_TransmitVoltages With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
+			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				/** BMS_TransmitVoltages With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
 				{
-					for(int i = 0; i < 4; i++)
+					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
+					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
+					if(BMSId > BMS_COUNT)
 					{
-						AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						char msg[] = "BMS ID Outside of acceptable range!";
+						AMS_LogErr(msg, strlen(msg));
+						return;
 					}
-					/** If last message, log all voltages to SD*/
-					if(vMsgId == 2)
-						//					{
-						//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
-						//						char x[80];
-						//						int len = sprintf(x, "Voltage 0: %i\r\n", AMS_GlobalState->BMSVoltages[BMSId][0]);
-						//						AMS_LogInfo(x, len);
-
-						//					}
+					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 4; i++)
+						{
+							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						}
+						/** If last message, log all voltages to SD*/
+						if(vMsgId == 2)
+						{
+#if BMS_LOG_IDLE_V
+							char x[80];
+							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
+							if(len > 0)
+							{
+								AMS_LogInfo(x, len);
+							} else
+							{
+								char msg[] = "Buffer too short for BMS Voltage Message";
+								AMS_LogErr(msg, strlen(msg));
+							}
+#endif
+						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
 				}
-			}
 
-			/** BMS_TransmitTemperatures With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3,0x03, 0x0))
-			{
-				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
-
-				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				/** BMS_TransmitTemperatures With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
 				{
-					for(int i = 0; i < 6; i++)
+					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
+					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
+					if(BMSId > BMS_COUNT)
 					{
-						AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
+						char msg[] = "BMS ID Outside of acceptable range!";
+						AMS_LogErr(msg, strlen(msg));
+						return;
 					}
-					/** If last message, log all temperatures to SD*/
-					if(tMsgId == 1)
-						//					{
-						//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSTemperatues[BMSId][0]), BMS_TEMPERATURE_COUNT);
-						//					}
+					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 6; i++)
+						{
+							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
+						}
+						/** If last message, log all temperatures to SD*/
+						if(tMsgId == 1)
+						{
+#if BMS_LOG_IDLE_T
+							char x[80];
+							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+									AMS_GlobalState->BMSTemperatures[BMSId][0],
+									AMS_GlobalState->BMSTemperatures[BMSId][1],
+									AMS_GlobalState->BMSTemperatures[BMSId][2],
+									AMS_GlobalState->BMSTemperatures[BMSId][3],
+									AMS_GlobalState->BMSTemperatures[BMSId][4],
+									AMS_GlobalState->BMSTemperatures[BMSId][5],
+									AMS_GlobalState->BMSTemperatures[BMSId][6],
+									AMS_GlobalState->BMSTemperatures[BMSId][7],
+									AMS_GlobalState->BMSTemperatures[BMSId][8],
+									AMS_GlobalState->BMSTemperatures[BMSId][9],
+									AMS_GlobalState->BMSTemperatures[BMSId][10],
+									AMS_GlobalState->BMSTemperatures[BMSId][11]);
+							if(len > 0)
+							{
+								AMS_LogInfo(x, len);
+							} else
+							{
+								char msg[] = "Buffer too short for BMS Temperature Message";
+								AMS_LogErr(msg, strlen(msg));
+							}
+#endif
+						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
 				}
 			}
 
@@ -716,43 +824,117 @@ void state_SoC_iterate(fsm_t *fsm)
 			 * BMS_BadCellVoltage, BMS_BadCellTemperature,
 			 * BMS_TransmitVoltages, BMS_TransmitTemperatures
 			 */
-
-			/** BMS_TransmitVoltages With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x2, 0x12, 0x0, 0x3, 0x02, 0x0))
+			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				/** BMS_TransmitVoltages With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
 				{
-					AMS_GlobalState->BMSStartupSoc[BMSId] = true;
-					for(int i = 0; i < 4; i++)
+					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
+					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
+					if(BMSId > BMS_COUNT)
 					{
-						AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						char msg[] = "BMS ID Outside of acceptable range!";
+						AMS_LogErr(msg, strlen(msg));
+						return;
 					}
-					/** If last message, log all voltages to SD*/
-					if(vMsgId == 2)
-						//					{
-						//						AMS_LogToSD((char*)&(AMS_GlobalState->BMSVoltages[BMSId][0]), BMS_VOLTAGE_COUNT * (sizeof(uint16_t)/sizeof(char)));
-						//						char x[80];
-						//						int len = sprintf(x, "Voltage 0: %i\r\n", AMS_GlobalState->BMSVoltages[BMSId][0]);
-						//						AMS_LogInfo(x, len);
-
-						//					}
+					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 4; i++)
+						{
+							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						}
+						/** If last message, log all voltages to SD*/
+						if(vMsgId == 2)
+						{
+#if BMS_LOG_IDLE_V
+							char x[80];
+							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
+									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
+							if(len > 0)
+							{
+								AMS_LogInfo(x, len);
+							} else
+							{
+								char msg[] = "Buffer too short for BMS Voltage Message";
+								AMS_LogErr(msg, strlen(msg));
+							}
+#endif
+						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
+				}
+
+				/** BMS_TransmitTemperatures With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
+				{
+					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
+					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
+					if(BMSId > BMS_COUNT)
+					{
+						char msg[] = "BMS ID Outside of acceptable range!";
+						AMS_LogErr(msg, strlen(msg));
+						return;
+					}
+					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 6; i++)
+						{
+							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
+						}
+						/** If last message, log all temperatures to SD*/
+						if(tMsgId == 1)
+						{
+#if BMS_LOG_IDLE_T
+							char x[80];
+							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+									AMS_GlobalState->BMSTemperatures[BMSId][0],
+									AMS_GlobalState->BMSTemperatures[BMSId][1],
+									AMS_GlobalState->BMSTemperatures[BMSId][2],
+									AMS_GlobalState->BMSTemperatures[BMSId][3],
+									AMS_GlobalState->BMSTemperatures[BMSId][4],
+									AMS_GlobalState->BMSTemperatures[BMSId][5],
+									AMS_GlobalState->BMSTemperatures[BMSId][6],
+									AMS_GlobalState->BMSTemperatures[BMSId][7],
+									AMS_GlobalState->BMSTemperatures[BMSId][8],
+									AMS_GlobalState->BMSTemperatures[BMSId][9],
+									AMS_GlobalState->BMSTemperatures[BMSId][10],
+									AMS_GlobalState->BMSTemperatures[BMSId][11]);
+							if(len > 0)
+							{
+								AMS_LogInfo(x, len);
+							} else
+							{
+								char msg[] = "Buffer too short for BMS Temperature Message";
+								AMS_LogErr(msg, strlen(msg));
+							}
+#endif
+						}
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
 				}
 			}
 		}
 	}
-	int i = 0;
-	while(AMS_GlobalState->BMSStartupSoc[i] == true)
-	{
-		if(i == BMS_COUNT)
-		{
-			fsm_changeState(fsm, &drivingState, "Done SoC, RTD");
-		}
-		i++;
-	}
+	//	int i = 0;
+	//	while(AMS_GlobalState->BMSStartupSoc[i] == true)
+	//	{
+	//		if(i == BMS_COUNT)
+	//		{
+	//			fsm_changeState(fsm, &drivingState, "Done SoC, RTD");
+	//		}
+	//		i++;
+	//	}
 	if(HAL_GetTick() - AMS_GlobalState->startupTicks > 2000)
 	{
 		fsm_changeState(fsm, &idleState, "Timeout of SoC, moving to idle");

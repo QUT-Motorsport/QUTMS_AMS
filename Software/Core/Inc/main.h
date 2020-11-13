@@ -57,7 +57,7 @@ extern "C" {
 
 // Debug
 //#define DEBUG_CB
-//#define ENABLE_CS
+#define ENABLE_CS
 #define DEBUG_PERIOD 2500U // Milliseconds
 
 // Bit Masks
@@ -76,8 +76,9 @@ extern "C" {
 // LOGGING DEFS
 #define CS_LOG_CC 0
 //#define CAN2_LOG_ON_MSG
-#define CAN4_LOG_ON_MSG
-#define BMS_LOG 1
+//#define CAN4_LOG_ON_MSG
+#define BMS_LOG_IDLE_V 0
+#define BMS_LOG_IDLE_T 1
 
 // General
 /* USER CODE END EC */
