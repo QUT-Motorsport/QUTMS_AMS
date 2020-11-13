@@ -222,7 +222,7 @@ void state_idle_iterate(fsm_t *fsm)
 						{
 #if BMS_LOG_IDLE_T
 							char x[80];
-							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
 									AMS_GlobalState->BMSTemperatures[BMSId][1],
 									AMS_GlobalState->BMSTemperatures[BMSId][2],
@@ -587,7 +587,7 @@ void state_driving_iterate(fsm_t *fsm)
 						{
 #if BMS_LOG_IDLE_T
 							char x[80];
-							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
 									AMS_GlobalState->BMSTemperatures[BMSId][1],
 									AMS_GlobalState->BMSTemperatures[BMSId][2],
@@ -897,7 +897,7 @@ void state_SoC_iterate(fsm_t *fsm)
 						{
 #if BMS_LOG_IDLE_T
 							char x[80];
-							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
 									AMS_GlobalState->BMSTemperatures[BMSId][1],
 									AMS_GlobalState->BMSTemperatures[BMSId][2],

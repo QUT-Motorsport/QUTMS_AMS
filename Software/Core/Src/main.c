@@ -128,7 +128,7 @@ int main(void)
 		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU", CANBUS4.ErrorCode);
 		AMS_LogErr(msg2, len);
 		char msg3[] = "Error likely caused by BMS not powered with isolated side of BMS powered.";
-		AMS_LogErr(msg, strlen(msg));
+		AMS_LogErr(msg3, strlen(msg3));
 	}
 
 	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
