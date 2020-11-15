@@ -45,6 +45,7 @@ extern "C" {
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
 #define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
+#define AMS_HEARTBEATBMS_PERIOD 1000U
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
@@ -116,6 +117,7 @@ void IDC_Alarm_cb(void* fsm);
  */
 void Sendyne_requestVoltage(int index);
 void heartbeatTimer_cb(void *fsm);
+void heartbeatTimerBMS_cb(void *fsm);
 void osTimer_cb(void *fsm);
 void debugTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);

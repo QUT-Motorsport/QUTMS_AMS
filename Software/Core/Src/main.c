@@ -315,6 +315,39 @@ void heartbeatTimer_cb(void *fsm)
 		};
 
 		HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
+
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	} else
+	{
+		char msg[] = "Failed to send AMS Heartbeat";
+		AMS_LogErr(msg, strlen(msg));
+	}
+}
+
+void heartbeatTimerBMS_cb(void *fsm)
+{
+	//	// Take the GlobalState sem, find our values then fire off the packet
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0, 0, 0, 0, 0, 0, 0, 0);
+
+		canPacket.data[0] = *"#";
+		canPacket.data[1] = *"S";
+		canPacket.data[2] = *"N";
+		canPacket.data[3] = *"D";
+		canPacket.data[4] = *"I";
+		canPacket.data[5] = *"T";
+
+		CAN_TxHeaderTypeDef header =
+		{
+				.ExtId = canPacket.id,
+				.IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA,
+				.DLC = sizeof(canPacket.data),
+				.TransmitGlobalTime = DISABLE,
+		};
+
+		HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data, &AMS_GlobalState->CAN4_TxMailbox);
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	} else
 	{

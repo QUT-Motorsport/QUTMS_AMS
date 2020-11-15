@@ -45,6 +45,13 @@ void state_init_enter(fsm_t *fsm)
 				AMS_LogErr(msg, strlen(msg));
 			}
 
+			AMS_GlobalState->heartbeatTimerAMS = osTimerNew(&heartbeatTimerBMS_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->heartbeatTimerAMS, AMS_HEARTBEATBMS_PERIOD) != osOK)
+			{
+				char msg[] = "Failed to create BMS Heartbeat Timer";
+				AMS_LogErr(msg, strlen(msg));
+			}
+
 			AMS_GlobalState->IDC_AlarmTimer = osTimerNew(&IDC_Alarm_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->IDC_AlarmTimer, AMS_IDC_PERIOD) != osOK)
 			{

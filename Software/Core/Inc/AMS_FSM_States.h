@@ -46,6 +46,7 @@ typedef struct
 	osMessageQueueId_t CANQueue;
 	osTimerId_t heartbeatTimer;
 	osTimerId_t IDC_AlarmTimer;
+	osTimerId_t heartbeatTimerAMS;
 	osTimerId_t csTimer;
 	osTimerId_t debugTimer;
 	osSemaphoreId_t sem;
