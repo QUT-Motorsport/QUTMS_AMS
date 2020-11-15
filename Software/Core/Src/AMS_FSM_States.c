@@ -354,18 +354,16 @@ void state_precharge_enter(fsm_t *fsm)
 
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 
-	prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerOnce, fsm, NULL);
-	if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
-	{
-		char msg[] = "Failed to start Precharge Timer";
-		AMS_LogErr(msg, strlen(msg));
-	}
+		prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerPeriodic, fsm, NULL);
+		if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
+		{
+			char msg[] = "Failed to start Precharge Voltage Request Timer";
+			AMS_LogErr(msg, strlen(msg));
+		}
 }
 
 void state_precharge_iterate(fsm_t *fsm)
 {
-	return; // In precharge state, wait for timer cb.
-
 	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
 	{
 		AMS_CAN_Generic_t msg;
@@ -464,22 +462,66 @@ void state_precharge_iterate(fsm_t *fsm)
 				// Bad BMS cell temperature found, we need to change to errorState
 				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 			}
+
+			/** CS */
+			if((msg.header.ExtId) == 0xA100200)
+			{
+				/** Voltage */
+				if(msg.data[0] == CS_V1)
+				{
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						AMS_GlobalState->VoltageuV = 0;
+						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[1] << 24;
+						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[2] << 16;
+						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[3] << 8;
+						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[4] << 0;
+
+						AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
+
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
+				}
+			}
+		}
+
+		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+		{
+			float accumulatorVoltage = 0;
+			for(int i = 0; i < BMS_COUNT; i++)
+			{
+				for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
+				{
+					accumulatorVoltage += (float)(AMS_GlobalState->BMSVoltages[i][j] / 1000.0f);
+				}
+				// Force Set Accumulator Voltage based on 2 Packs //TODO
+				accumulatorVoltage = ACCUMULATOR_VOLTAGE;
+				if(accumulatorVoltage > 30.f)
+				{
+					if(abs(AMS_GlobalState->Voltage - accumulatorVoltage) < PRECHARGE_VDIFF)
+					{
+						/** Our voltage is close enough to the battery voltage, precharge done */
+						fsm_changeState(fsm, &drivingState, "Battery Voltage == Sendyne Voltage");
+					}
+				}
+			}
+			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
 	}
 }
 
 void state_precharge_exit(fsm_t *fsm)
 {
-	if(osTimerDelete(prechargeTimer) != osOK)
-	{
-		char msg[] = "Failed to delete precharge timer";
-		AMS_LogErr(msg, strlen(msg));
-	}
+		if(osTimerDelete(prechargeTimer) != osOK)
+		{
+			char msg[] = "Failed to Delete Precharge Request Voltage Timer";
+			AMS_LogErr(msg, strlen(msg));
+		}
 }
 
 void prechargeTimer_cb(void *fsm)
 {
-	fsm_changeState((fsm_t *)fsm, &drivingState, "Precharge Done, Now RTD");
+	Sendyne_requestVoltage(CS_V1);
 }
 
 state_t drivingState = {&state_driving_enter, &state_driving_iterate, &state_driving_exit, "Driving_s"};
@@ -822,7 +864,7 @@ void state_SoC_iterate(fsm_t *fsm)
 			/**
 			 * @brief Packets driving state is looking for
 			 * BMS_BadCellVoltage, BMS_BadCellTemperature,
-			 * BMS_TransmitVoltages, BMS_TransmitTemperatures
+			 * BMS_TransmitVoltages, BMS_TransmitTemperatures CC_Voltage
 			 */
 			if(msg.header.IDE == CAN_ID_EXT)
 			{
@@ -926,15 +968,25 @@ void state_SoC_iterate(fsm_t *fsm)
 			}
 		}
 	}
-	//	int i = 0;
-	//	while(AMS_GlobalState->BMSStartupSoc[i] == true)
-	//	{
-	//		if(i == BMS_COUNT)
-	//		{
-	//			fsm_changeState(fsm, &drivingState, "Done SoC, RTD");
-	//		}
-	//		i++;
-	//	}
+
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		int i = 0;
+		while(i < BMS_COUNT)
+		{
+			if(AMS_GlobalState->BMSVoltages[i][0]/1000.0f < BMS_CELL_VMIN)
+			{
+				break;
+			}
+			i++;
+		}
+		if(i == BMS_COUNT)
+		{
+			fsm_changeState(fsm, &idleState, "All BMSs awake, move to idle");
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	}
+
 	if(HAL_GetTick() - AMS_GlobalState->startupTicks > 2000)
 	{
 		fsm_changeState(fsm, &idleState, "Timeout of SoC, moving to idle");
@@ -943,6 +995,5 @@ void state_SoC_iterate(fsm_t *fsm)
 
 void state_SoC_exit(fsm_t *fsm)
 {
-	// TODO
 	return;
 }

@@ -50,8 +50,12 @@ extern "C" {
 #define AMS_CS_PERIOD 1000U // Milliseconds
 #define AMS_CAN_QUEUESIZE 25
 
+//Voltage
+#define ACCUMULATOR_VOLTAGE 60.0f
+
 // BMS
-#define BMS_COUNT 12
+//#define BMS_COUNT 12
+#define BMS_COUNT 2
 #define BMS_VOLTAGE_COUNT 10
 #define BMS_TEMPERATURE_COUNT 12
 
@@ -59,6 +63,8 @@ extern "C" {
 //#define DEBUG_CB
 #define ENABLE_CS
 #define DEBUG_PERIOD 2500U // Milliseconds
+#define PRECHARGE_VDIFF 5.0f
+#define BMS_CELL_VMIN 2.0f
 
 // Bit Masks
 #define BMS_ID_MASK 0x1FFFFFF0
@@ -72,6 +78,13 @@ extern "C" {
 
 #define CURRENT_SENSOR_MAX_AS CURRENT_SENSOR_MAX_AH * 3600
 #define CURRENT_SENSOR_MAX_AH 54.495
+
+#define CS_V1 0x60
+#define CS_V2 0x61
+#define CS_V3 0x62
+
+// AMS_LogInfo
+#define AMS_LOGINFO_ENABLED
 
 // LOGGING DEFS
 #define CS_LOG_CC 0
@@ -101,6 +114,7 @@ void IDC_Alarm_cb(void* fsm);
  * @brief Callback for the heartbeat timer, which will be called every 75 milliseconds to send a heartbeat.
  * @param fsm A pointer to the FSM object
  */
+void Sendyne_requestVoltage(int index);
 void heartbeatTimer_cb(void *fsm);
 void osTimer_cb(void *fsm);
 void debugTimer_cb(void *fsm);

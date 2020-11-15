@@ -25,8 +25,6 @@
  */
 typedef struct
 {
-	//TODO, what's in the AMS global state?
-	// Sounds like an Alistair & Calvin Problem to me
 	//CAN
 	uint32_t CAN2_TxMailbox;
 	uint32_t CAN2_RxMailbox;
@@ -41,6 +39,9 @@ typedef struct
 
 	int64_t CoulombCountuA;
 	float CoulombCount;
+
+	int32_t VoltageuV;
+	float Voltage;
 
 	osMessageQueueId_t CANQueue;
 	osTimerId_t heartbeatTimer;

@@ -35,7 +35,6 @@
 #include "BMS_CAN_Messages.h"
 #include "FSM.h"
 #include "AMS_FSM_States.h"
-#include "BitBangedSD.h"
 #include <math.h>
 /* USER CODE END Includes */
 
@@ -74,8 +73,6 @@ const osThreadAttr_t fsmThreadAttr = {
 		.stack_size = 2048,
 		.priority = osPriorityHigh
 };
-
-bbspi_t *SPI;
 /* USER CODE END 0 */
 
 /**
@@ -97,7 +94,6 @@ int main(void)
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
 	GPIO_TypeDef ports[4] = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port};
 	uint16_t pins[4] = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin};
-	SPI = new_bbspi(ports, pins);
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
@@ -250,11 +246,29 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+void Sendyne_requestVoltage(int index)
+{
+	CAN_TxHeaderTypeDef header =
+	{
+			.ExtId = 0xA100201,
+			.IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA,
+			.DLC = 1,
+			.TransmitGlobalTime = DISABLE,
+	};
+	uint8_t data = index;
+
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	{
+		char msg[] = "Failed to send current sensor voltage packet";
+		AMS_LogErr(msg, strlen(msg));
+	}
+}
+
 void IDC_Alarm_cb(void* fsm)
 {
 	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == GPIO_PIN_RESET)
 	{
-		//TODO
 		fsm_changeState(fsm, &errorState, "BMS Alarm Triggered");
 	}
 }
@@ -439,7 +453,9 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
  */
 void AMS_LogInfo(char* msg, size_t length)
 {
+#ifdef AMS_LOGINFO_ENABLED
 	HAL_UART_Transmit(&huart3, (uint8_t *)msg, length, HAL_MAX_DELAY);
+#endif
 }
 
 void AMS_LogErr(char* error, size_t length)
