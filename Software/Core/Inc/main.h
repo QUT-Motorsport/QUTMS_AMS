@@ -52,6 +52,7 @@ extern "C" {
 #define AMS_CAN_QUEUESIZE 25
 
 //Voltage
+//#define ACCUMULATOR_VOLTAGE 6.79f
 #define ACCUMULATOR_VOLTAGE 60.0f
 
 // BMS

@@ -361,12 +361,12 @@ void state_precharge_enter(fsm_t *fsm)
 
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 
-		prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerPeriodic, fsm, NULL);
-		if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
-		{
-			char msg[] = "Failed to start Precharge Voltage Request Timer";
-			AMS_LogErr(msg, strlen(msg));
-		}
+	prechargeTimer = osTimerNew(&prechargeTimer_cb, osTimerPeriodic, fsm, NULL);
+	if(osTimerStart(prechargeTimer, PRECHARGE_DELAY) != osOK)
+	{
+		char msg[] = "Failed to start Precharge Voltage Request Timer";
+		AMS_LogErr(msg, strlen(msg));
+	}
 }
 
 void state_precharge_iterate(fsm_t *fsm)
@@ -471,7 +471,7 @@ void state_precharge_iterate(fsm_t *fsm)
 			}
 
 			/** CS */
-			if((msg.header.ExtId) == 0xA100200)
+			if((msg.header.ExtId) == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
 			{
 				/** Voltage */
 				if(msg.data[0] == CS_V1)
@@ -483,10 +483,14 @@ void state_precharge_iterate(fsm_t *fsm)
 						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[2] << 16;
 						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[3] << 8;
 						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[4] << 0;
+						AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
 
-						AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
+						//						AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
+						//						char x[80];
+						//						int len = snprintf(x, 80, "Voltage: %f\r\n", AMS_GlobalState->Voltage);
 
 						osSemaphoreRelease(AMS_GlobalState->sem);
+//						AMS_LogInfo(x, len);
 					}
 				}
 			}
@@ -503,13 +507,10 @@ void state_precharge_iterate(fsm_t *fsm)
 				}
 				// Force Set Accumulator Voltage based on 2 Packs //TODO
 				accumulatorVoltage = ACCUMULATOR_VOLTAGE;
-				if(accumulatorVoltage > 30.f)
+				if(abs(AMS_GlobalState->Voltage - accumulatorVoltage) < PRECHARGE_VDIFF)
 				{
-					if(abs(AMS_GlobalState->Voltage - accumulatorVoltage) < PRECHARGE_VDIFF)
-					{
-						/** Our voltage is close enough to the battery voltage, precharge done */
-						fsm_changeState(fsm, &drivingState, "Battery Voltage == Sendyne Voltage");
-					}
+					/** Our voltage is close enough to the battery voltage, precharge done */
+					fsm_changeState(fsm, &drivingState, "Battery Voltage == Sendyne Voltage");
 				}
 			}
 			osSemaphoreRelease(AMS_GlobalState->sem);
@@ -519,11 +520,11 @@ void state_precharge_iterate(fsm_t *fsm)
 
 void state_precharge_exit(fsm_t *fsm)
 {
-		if(osTimerDelete(prechargeTimer) != osOK)
-		{
-			char msg[] = "Failed to Delete Precharge Request Voltage Timer";
-			AMS_LogErr(msg, strlen(msg));
-		}
+	if(osTimerDelete(prechargeTimer) != osOK)
+	{
+		char msg[] = "Failed to Delete Precharge Request Voltage Timer";
+		AMS_LogErr(msg, strlen(msg));
+	}
 }
 
 void prechargeTimer_cb(void *fsm)

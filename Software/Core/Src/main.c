@@ -92,8 +92,6 @@ int main(void)
 	/* USER CODE BEGIN Init */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-	GPIO_TypeDef ports[4] = {*SD_CLK_GPIO_Port, *SD_DO_GPIO_Port, *SD_DI_GPIO_Port, *SD_CS_GPIO_Port};
-	uint16_t pins[4] = {SD_CLK_Pin, SD_DO_Pin, SD_DI_Pin, SD_CS_Pin};
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
@@ -115,6 +113,10 @@ int main(void)
 	AMS_LogInfo(msg, strlen(msg));
 	AMS_LogInfo(msg, strlen(msg));
 	AMS_LogInfo("Setup Complete\r\n", strlen("Setup Complete\r\n"));
+
+	// We need to manually set the BMS wake up line high here, before we start CAN4 or we are doomed.
+	// BMS Control - HIGH (Turn on all BMS)
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
@@ -258,7 +260,7 @@ void Sendyne_requestVoltage(int index)
 	};
 	uint8_t data = index;
 
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
 	{
 		char msg[] = "Failed to send current sensor voltage packet";
 		AMS_LogErr(msg, strlen(msg));
