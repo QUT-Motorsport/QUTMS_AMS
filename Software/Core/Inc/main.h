@@ -91,8 +91,8 @@ extern "C" {
 #define CS_LOG_CC 1
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
-#define BMS_LOG_V 0
-#define BMS_LOG_T 1
+#define BMS_LOG_V 1
+#define BMS_LOG_T 0
 
 // General
 /* USER CODE END EC */

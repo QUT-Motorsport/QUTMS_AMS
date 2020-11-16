@@ -103,7 +103,6 @@ int main(void)
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	MX_CAN1_Init();
 	MX_USART3_UART_Init();
 	MX_TIM4_Init();
 	MX_CAN2_Init();
@@ -117,7 +116,8 @@ int main(void)
 	// We need to manually set the BMS wake up line high here, before we start CAN4 or we are doomed.
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
-
+	HAL_Delay(2500);
+	MX_CAN1_Init();
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
 		char msg[] = "Failed to CAN_Start CAN2";
@@ -332,13 +332,6 @@ void heartbeatTimerBMS_cb(void *fsm)
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0, 0, 0, 0, 0, 0, 0, 0);
-
-		canPacket.data[0] = *"#";
-		canPacket.data[1] = *"S";
-		canPacket.data[2] = *"N";
-		canPacket.data[3] = *"D";
-		canPacket.data[4] = *"I";
-		canPacket.data[5] = *"T";
 
 		CAN_TxHeaderTypeDef header =
 		{
