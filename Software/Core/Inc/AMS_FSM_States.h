@@ -238,5 +238,12 @@ void state_init_exit(fsm_t *fsm);
  */
 state_t initState;
 
+/** Handlers for generic CAN messages that are repeated in multiple states */
+
+void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
+void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg);
+void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
+void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg);
+
 
 #endif /* INC_AMS_FSM_STATES_H_ */

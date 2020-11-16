@@ -179,7 +179,7 @@ void state_idle_iterate(fsm_t *fsm)
 						/** If last message, log all voltages to SD*/
 						if(vMsgId == 2)
 						{
-#if BMS_LOG_IDLE_V
+#if BMS_LOG_V
 							char x[80];
 							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
@@ -227,7 +227,7 @@ void state_idle_iterate(fsm_t *fsm)
 						/** If last message, log all temperatures to SD*/
 						if(tMsgId == 1)
 						{
-#if BMS_LOG_IDLE_T
+#if BMS_LOG_T
 							char x[80];
 							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
@@ -255,90 +255,18 @@ void state_idle_iterate(fsm_t *fsm)
 						osSemaphoreRelease(AMS_GlobalState->sem);
 					}
 				}
-			}
-			//
-			//			/** BMS_BadCellVoltage With BMSID masked off */
-			//			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
-			//			{
-			//				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-			//				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
-			//
-			//				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
-			//				CAN_TxHeaderTypeDef header =
-			//				{
-			//						.ExtId = cVS.id,
-			//						.IDE = CAN_ID_EXT,
-			//						.RTR = CAN_RTR_DATA,
-			//						.DLC = sizeof(cVS.data),
-			//						.TransmitGlobalTime = DISABLE,
-			//				};
-			//
-			//				// Notify Chassis we have a bad cell voltage.
-			//				HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
-			//
-			//				// Bad BMS cell voltage found, we need to change to errorState.
-			//				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
-			//			}
-			//
-			//			/** BMS_BadCellTemperature With BMSID masked off */
-			//			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
-			//			{
-			//				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-			//				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
-			//
-			//				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
-			//				CAN_TxHeaderTypeDef header =
-			//				{
-			//						.ExtId = cTS.id,
-			//						.IDE = CAN_ID_EXT,
-			//						.RTR = CAN_RTR_DATA,
-			//						.DLC = sizeof(cTS.data),
-			//						.TransmitGlobalTime = DISABLE,
-			//				};
-			//
-			//				// Notify Chassis we have a bad cell temperature.
-			//				HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
-			//
-			//				// Bad BMS cell temperature found, we need to change to errorState
-			//				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
-			//			}
 
-			/** Current Sensor Coulomb Counting */
-			if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
-			{
-				if(msg.data[0] == CURRENT_SENSOR_CC_LOW)
+				BMS_handleBadCellVoltage(fsm, msg);
+
+				BMS_handleBadCellTemperature(fsm, msg);
+
+				Sendyne_handleCurrent(fsm, msg);
+
+				/** CC_RTD with no care about BMSID */
+				if((msg.header.ExtId) == Compose_CANId(0x2, 0x16, 0x0, 0x0, 0x0, 0x0))
 				{
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						AMS_GlobalState->CoulombCountuA = 0;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 24;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 16;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 8;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 0;
-
-						osSemaphoreRelease(AMS_GlobalState->sem);
-
-					}
-				} else if(msg.data[0] == CURRENT_SENSOR_CC_HIGH)
-				{
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 56;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 48;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 40;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 32;
-
-						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
-
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
+					fsm_changeState(fsm, &prechargeState, "RTD from CC, moving to Precharge");
 				}
-			}
-
-			/** CC_RTD with no care about BMSID */
-			if((msg.header.ExtId) == Compose_CANId(0x2, 0x16, 0x0, 0x0, 0x0, 0x0))
-			{
-				fsm_changeState(fsm, &prechargeState, "RTD from CC, moving to Precharge");
 			}
 		}
 	}
@@ -382,139 +310,81 @@ void state_precharge_iterate(fsm_t *fsm)
 			 * [BMS_BadCellVoltage], [BMS_BadCellTemperature],
 			 * [BMS_TransmitVoltages], [BMS_TransmitTemperatures]
 			 */
-
-			/** BMS_TransmitVoltages With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
+			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-				Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-				uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+				/** BMS_TransmitVoltages With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
 				{
-					for(int i = 0; i < 4; i++)
-					{
-						AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
-					}
-					/** If last message, log all voltages to SD*/
-					if(vMsgId == 2)
-					{
-					}
-					osSemaphoreRelease(AMS_GlobalState->sem);
-				}
-			}
-
-			/** BMS_TransmitTemperatures With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
-			{
-				uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-				Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
-
-				uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-				if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-				{
-					for(int i = 0; i < 6; i++)
-					{
-						AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
-					}
-					/** If last message, log all temperatures to SD*/
-					if(tMsgId == 1)
-					{
-					}
-					osSemaphoreRelease(AMS_GlobalState->sem);
-				}
-			}
-
-			/** BMS_BadCellVoltage With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
-			{
-				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
-
-				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
-				CAN_TxHeaderTypeDef header =
-				{
-						.ExtId = cVS.id,
-						.IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA,
-						.DLC = sizeof(cVS.data),
-						.TransmitGlobalTime = DISABLE,
-				};
-
-				// Notify Chassis we have a bad cell voltage.
-				HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
-
-				// Bad BMS cell voltage found, we need to change to errorState.
-				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
-			}
-
-			/** BMS_BadCellTemperature With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
-			{
-				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
-
-				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
-				CAN_TxHeaderTypeDef header =
-				{
-						.ExtId = cTS.id,
-						.IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA,
-						.DLC = sizeof(cTS.data),
-						.TransmitGlobalTime = DISABLE,
-				};
-
-				// Notify Chassis we have a bad cell temperature.
-				HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
-
-				// Bad BMS cell temperature found, we need to change to errorState
-				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
-			}
-
-			/** CS */
-			if((msg.header.ExtId) == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
-			{
-				/** Voltage */
-				if(msg.data[0] == CS_V1)
-				{
+					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
+					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
+					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 					{
-						AMS_GlobalState->VoltageuV = 0;
-						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[1] << 24;
-						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[2] << 16;
-						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[3] << 8;
-						AMS_GlobalState->VoltageuV |= (int32_t)msg.data[4] << 0;
-						AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
-
-						//						AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
-						//						char x[80];
-						//						int len = snprintf(x, 80, "Voltage: %f\r\n", AMS_GlobalState->Voltage);
-
+						for(int i = 0; i < 4; i++)
+						{
+							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+						}
+						/** If last message, log all voltages to SD*/
+						if(vMsgId == 2)
+						{
+						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
-//						AMS_LogInfo(x, len);
 					}
 				}
-			}
-		}
 
-		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-		{
-			float accumulatorVoltage = 0;
-			for(int i = 0; i < BMS_COUNT; i++)
-			{
-				for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
+				/** BMS_TransmitTemperatures With BMSID masked off */
+				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
 				{
-					accumulatorVoltage += (float)(AMS_GlobalState->BMSVoltages[i][j] / 1000.0f);
+					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
+					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
+
+					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
+					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					{
+						for(int i = 0; i < 6; i++)
+						{
+							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
+						}
+						/** If last message, log all temperatures to SD*/
+						if(tMsgId == 1)
+						{
+						}
+						osSemaphoreRelease(AMS_GlobalState->sem);
+					}
 				}
-				// Force Set Accumulator Voltage based on 2 Packs //TODO
-				accumulatorVoltage = ACCUMULATOR_VOLTAGE;
-				if(abs(AMS_GlobalState->Voltage - accumulatorVoltage) < PRECHARGE_VDIFF)
-				{
-					/** Our voltage is close enough to the battery voltage, precharge done */
-					fsm_changeState(fsm, &drivingState, "Battery Voltage == Sendyne Voltage");
-				}
+
+				Sendyne_handleVoltage(fsm, msg);
+
+				Sendyne_handleCurrent(fsm, msg);
+
+				BMS_handleBadCellVoltage(fsm, msg);
+
+				BMS_handleBadCellTemperature(fsm, msg);
 			}
-			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
+	}
+
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		float accumulatorVoltage = 0;
+		for(int i = 0; i < BMS_COUNT; i++)
+		{
+			for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
+			{
+				accumulatorVoltage += (float)(AMS_GlobalState->BMSVoltages[i][j] / 1000.0f);
+			}
+			// Force Set Accumulator Voltage based on 2 Packs //TODO
+			accumulatorVoltage = ACCUMULATOR_VOLTAGE;
+			if(abs(AMS_GlobalState->Voltage - accumulatorVoltage) < PRECHARGE_VDIFF)
+			{
+				/** Our voltage is close enough to the battery voltage, precharge done */
+				fsm_changeState(fsm, &drivingState, "Battery == Sendyne");
+			}
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	} else {
+		char msg[] = "Failed to acquire semaphore in precharge check";
+		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
@@ -587,7 +457,7 @@ void state_driving_iterate(fsm_t *fsm)
 						/** If last message, log all voltages to SD*/
 						if(vMsgId == 2)
 						{
-#if BMS_LOG_IDLE_V
+#if BMS_LOG_V
 							char x[80];
 							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
@@ -635,7 +505,7 @@ void state_driving_iterate(fsm_t *fsm)
 						/** If last message, log all temperatures to SD*/
 						if(tMsgId == 1)
 						{
-#if BMS_LOG_IDLE_T
+#if BMS_LOG_T
 							char x[80];
 							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
@@ -665,90 +535,11 @@ void state_driving_iterate(fsm_t *fsm)
 				}
 			}
 
-			/** BMS_BadCellVoltage With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
-			{
-				uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
-				Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
+			BMS_handleBadCellVoltage(fsm, msg);
 
-				AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
-				CAN_TxHeaderTypeDef header =
-				{
-						.ExtId = cVS.id,
-						.IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA,
-						.DLC = sizeof(cVS.data),
-						.TransmitGlobalTime = DISABLE,
-				};
+			BMS_handleBadCellTemperature(fsm, msg);
 
-				// Notify Chassis we have a bad cell voltage.
-				HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
-
-				// Bad BMS cell voltage found, we need to change to errorState.
-				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
-			}
-
-			/** BMS_BadCellTemperature With BMSID masked off */
-			if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
-			{
-				uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
-				Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
-
-				AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
-				CAN_TxHeaderTypeDef header =
-				{
-						.ExtId = cTS.id,
-						.IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA,
-						.DLC = sizeof(cTS.data),
-						.TransmitGlobalTime = DISABLE,
-				};
-
-				// Notify Chassis we have a bad cell temperature.
-				HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
-
-				// Bad BMS cell temperature found, we need to change to errorState
-				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
-			}
-
-			/** Current Sensor Coulomb Counting */
-			if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
-			{
-				if(msg.data[0] == CURRENT_SENSOR_CC_LOW)
-				{
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						AMS_GlobalState->CoulombCountuA = 0;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 24;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 16;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 8;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 0;
-
-						osSemaphoreRelease(AMS_GlobalState->sem);
-
-					}
-				} else if(msg.data[0] == CURRENT_SENSOR_CC_HIGH)
-				{
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 56;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 48;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 40;
-						AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 32;
-
-						AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
-
-#if CS_LOG_CC
-						char x[80];
-						int len = sprintf(x, "[%li] Coloumb Count: %f\r\n", getRuntime(), AMS_GlobalState->CoulombCount);
-#endif
-						osSemaphoreRelease(AMS_GlobalState->sem);
-#if CS_LOG_CC
-						AMS_LogInfo(x, len);
-#endif
-					}
-				}
-			}
+			Sendyne_handleCurrent(fsm, msg);
 
 			/** CC Soft Shutdown */
 			if(msg.header.ExtId == Compose_CANId(0x02, 0x16, 0x0, 0x1, 0x1, 0))
@@ -897,7 +688,7 @@ void state_SoC_iterate(fsm_t *fsm)
 						/** If last message, log all voltages to SD*/
 						if(vMsgId == 2)
 						{
-#if BMS_LOG_IDLE_V
+#if BMS_LOG_V
 							char x[80];
 							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
@@ -945,7 +736,7 @@ void state_SoC_iterate(fsm_t *fsm)
 						/** If last message, log all temperatures to SD*/
 						if(tMsgId == 1)
 						{
-#if BMS_LOG_IDLE_T
+#if BMS_LOG_T
 							char x[80];
 							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
@@ -973,6 +764,10 @@ void state_SoC_iterate(fsm_t *fsm)
 						osSemaphoreRelease(AMS_GlobalState->sem);
 					}
 				}
+
+				BMS_handleBadCellVoltage(fsm, msg);
+
+				BMS_handleBadCellTemperature(fsm, msg);
 			}
 		}
 	}
@@ -1005,3 +800,128 @@ void state_SoC_exit(fsm_t *fsm)
 {
 	return;
 }
+
+void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	/** BMS_BadCellVoltage With BMSID masked off */
+	if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x00, 0x0))
+	{
+		uint8_t BMSId; uint8_t cellNum; uint8_t voltage;
+		Parse_BMS_BadCellVoltage(msg.data, &BMSId, &cellNum, &voltage);
+
+		AMS_CellVoltageShutdown_t cVS = Compose_AMS_CellVoltageShutdown(cellNum, BMSId, voltage);
+		CAN_TxHeaderTypeDef header =
+		{
+				.ExtId = cVS.id,
+				.IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA,
+				.DLC = sizeof(cVS.data),
+				.TransmitGlobalTime = DISABLE,
+		};
+
+		// Notify Chassis we have a bad cell voltage.
+		HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
+
+		// Bad BMS cell voltage found, we need to change to errorState.
+		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
+	}
+}
+
+void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	/** BMS_BadCellTemperature With BMSID masked off */
+	if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(0x0, 0x12, 0x0, 0x0, 0x01, 0x0))
+	{
+		uint8_t BMSId; uint8_t cellNum; uint8_t temperature;
+		Parse_BMS_BadCellTemperature(msg.data, &BMSId, &cellNum, &temperature);
+
+		AMS_CellTemperatureShutdown_t cTS = Compose_AMS_CellTemperatureShutdown(cellNum, BMSId, temperature);
+		CAN_TxHeaderTypeDef header =
+		{
+				.ExtId = cTS.id,
+				.IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA,
+				.DLC = sizeof(cTS.data),
+				.TransmitGlobalTime = DISABLE,
+		};
+
+		// Notify Chassis we have a bad cell temperature.
+		HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
+
+		// Bad BMS cell temperature found, we need to change to errorState
+		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+	}
+}
+
+void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	/** CS */
+	if((msg.header.ExtId) == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+	{
+		/** Voltage */
+		if(msg.data[0] == CS_V1)
+		{
+			if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+			{
+				AMS_GlobalState->VoltageuV = 0;
+				AMS_GlobalState->VoltageuV |= (int32_t)msg.data[1] << 24;
+				AMS_GlobalState->VoltageuV |= (int32_t)msg.data[2] << 16;
+				AMS_GlobalState->VoltageuV |= (int32_t)msg.data[3] << 8;
+				AMS_GlobalState->VoltageuV |= (int32_t)msg.data[4] << 0;
+				AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
+
+										AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
+										char x[80];
+										int len = snprintf(x, 80, "[%i] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
+
+				osSemaphoreRelease(AMS_GlobalState->sem);
+										AMS_LogInfo(x, len);
+			}
+		}
+	}
+}
+
+void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	/** Current Sensor Coulomb Counting */
+	if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+	{
+		if(msg.data[0] == CURRENT_SENSOR_CC_LOW)
+		{
+			if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+			{
+				AMS_GlobalState->CoulombCountuA = 0;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 24;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 16;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 8;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 0;
+
+				osSemaphoreRelease(AMS_GlobalState->sem);
+
+			}
+		} else if(msg.data[0] == CURRENT_SENSOR_CC_HIGH)
+		{
+			if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+			{
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[1] << 56;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[2] << 48;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[3] << 40;
+				AMS_GlobalState->CoulombCountuA |= (int64_t)msg.data[4] << 32;
+
+				AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
+
+#if CS_LOG_CC
+				char x[80];
+				int len = sprintf(x, "[%li] Coloumb Count: %f\r\n", getRuntime(), AMS_GlobalState->CoulombCount);
+#endif
+				osSemaphoreRelease(AMS_GlobalState->sem);
+#if CS_LOG_CC
+				AMS_LogInfo(x, len);
+#endif
+			}
+		}
+	}
+}
+
+
+

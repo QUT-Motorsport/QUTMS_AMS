@@ -44,12 +44,11 @@ extern "C" {
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
-#define SEM_ACQUIRE_GLOBALSTATE_TIMEOUT 64U // Milliseconds, might need a longer timeout for global states.
 #define AMS_HEARTBEATBMS_PERIOD 1000U
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
-#define AMS_CAN_QUEUESIZE 25
+#define AMS_CAN_QUEUESIZE 25 //Units
 
 //Voltage
 //#define ACCUMULATOR_VOLTAGE 6.79f
@@ -75,8 +74,8 @@ extern "C" {
 #define CURRENT_SENSOR_CAN_EXTID 0xA100201
 #define CURRENT_SENSOR_CAN_RESPONSE_EXTID 0xA100200
 #define CURRENT_SENSOR_REQ_SIZE 1
-#define CURRENT_SENSOR_CC_LOW 0x41
-#define CURRENT_SENSOR_CC_HIGH 0x42
+#define CURRENT_SENSOR_CC_LOW 0x40
+#define CURRENT_SENSOR_CC_HIGH 0x41
 
 #define CURRENT_SENSOR_MAX_AS CURRENT_SENSOR_MAX_AH * 3600
 #define CURRENT_SENSOR_MAX_AH 54.495
@@ -89,11 +88,11 @@ extern "C" {
 #define AMS_LOGINFO_ENABLED
 
 // LOGGING DEFS
-#define CS_LOG_CC 0
+#define CS_LOG_CC 1
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
-#define BMS_LOG_IDLE_V 0
-#define BMS_LOG_IDLE_T 1
+#define BMS_LOG_V 0
+#define BMS_LOG_T 1
 
 // General
 /* USER CODE END EC */

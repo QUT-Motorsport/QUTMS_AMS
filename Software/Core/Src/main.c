@@ -369,8 +369,8 @@ void osTimer_cb(void *fsm)
 			.TransmitGlobalTime = DISABLE,
 	};
 
-	uint8_t data = 0x41;
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	uint8_t data = CURRENT_SENSOR_CC_LOW;
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
 	{
 		char msg[] = "Failed to send current sensor packet 1";
 		AMS_LogErr(msg, strlen(msg));
@@ -378,8 +378,8 @@ void osTimer_cb(void *fsm)
 
 	osDelay(1);
 
-	uint8_t data2 = 0x42;
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
+	uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
 	{
 		char msg[] = "Failed to send current sensor packet 2";
 		AMS_LogErr(msg, strlen(msg));
@@ -568,6 +568,9 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
 	/* USER CODE BEGIN 6 */
+	char x[80];
+	int len = snprintf(x, sizeof(x), "Failed to assert @ [%i, %li]\r\n", *file, line);
+	AMS_LogErr(x, len);
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 	/* USER CODE END 6 */
