@@ -7,6 +7,8 @@
 
 #include <AMS_FSM_States.h>
 
+int globalTimer = 0;
+
 state_t deadState = {&state_dead_enter, &state_dead_iterate, &state_dead_exit, "Dead_s"};
 
 void state_dead_enter(fsm_t *fsm)
@@ -295,6 +297,7 @@ void state_precharge_enter(fsm_t *fsm)
 		char msg[] = "Failed to start Precharge Voltage Request Timer";
 		AMS_LogErr(msg, strlen(msg));
 	}
+	globalTimer = HAL_GetTick();
 }
 
 void state_precharge_iterate(fsm_t *fsm)
@@ -387,7 +390,7 @@ void state_precharge_iterate(fsm_t *fsm)
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	if(HAL_GetTick() > 5750)
+	if(HAL_GetTick() - globalTimer > 2000)
 	{
 		fsm_changeState(fsm, &drivingState, "Forced into driving state on timeout");
 	}
@@ -892,7 +895,7 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 
 										AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
 										char x[80];
-										int len = snprintf(x, 80, "[%i] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
+										int len = snprintf(x, 80, "[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
 
 				osSemaphoreRelease(AMS_GlobalState->sem);
 										AMS_LogInfo(x, len);
