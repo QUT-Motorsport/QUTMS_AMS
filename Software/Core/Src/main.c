@@ -116,7 +116,9 @@ int main(void)
 	// We need to manually set the BMS wake up line high here, before we start CAN4 or we are doomed.
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
-	HAL_Delay(2500);
+	// ALARM Line - HIGH
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
+	HAL_Delay(2750);
 	MX_CAN1_Init();
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
@@ -269,7 +271,7 @@ void Sendyne_requestVoltage(int index)
 
 void IDC_Alarm_cb(void* fsm)
 {
-	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == GPIO_PIN_RESET)
+	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == 0)
 	{
 		fsm_changeState(fsm, &errorState, "BMS Alarm Triggered");
 	}

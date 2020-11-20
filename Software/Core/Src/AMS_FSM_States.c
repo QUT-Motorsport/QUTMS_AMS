@@ -386,6 +386,11 @@ void state_precharge_iterate(fsm_t *fsm)
 		char msg[] = "Failed to acquire semaphore in precharge check";
 		AMS_LogErr(msg, strlen(msg));
 	}
+
+	if(HAL_GetTick() > 5750)
+	{
+		fsm_changeState(fsm, &drivingState, "Forced into driving state on timeout");
+	}
 }
 
 void state_precharge_exit(fsm_t *fsm)
@@ -567,7 +572,6 @@ state_t errorState = {&state_error_enter, &state_error_iterate, &state_error_exi
 
 void state_error_enter(fsm_t *fsm)
 {
-	//	AMS_LogToSD("Entered Error State. Oh No", strlen("Entered Error State. Oh No"));
 
 	// LOW - PRECHG
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
@@ -588,6 +592,14 @@ void state_error_enter(fsm_t *fsm)
 			Error_Handler();
 		}
 		if(osTimerDelete(AMS_GlobalState->heartbeatTimer) != osOK)
+		{
+			Error_Handler();
+		}
+		if(osTimerDelete(AMS_GlobalState->heartbeatTimerAMS) != osOK)
+		{
+			Error_Handler();
+		}
+		if(osTimerDelete(AMS_GlobalState->csTimer) != osOK)
 		{
 			Error_Handler();
 		}
@@ -822,8 +834,12 @@ void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 		// Notify Chassis we have a bad cell voltage.
 		HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
 
+		char x[80];
+			int len = snprintf(x, 80, "Found Bad Cell Voltage: Cell:%i, Voltage: %i", cellNum, voltage);
+
 		// Bad BMS cell voltage found, we need to change to errorState.
-		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
+		AMS_LogErr(x, len);
+//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
 	}
 }
 
@@ -848,8 +864,12 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 		// Notify Chassis we have a bad cell temperature.
 		HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
 
+		char x[80];
+		int len = snprintf(x, 80, "Found Bad Cell Temperature: Cell:%i, Temp: %i", cellNum, temperature);
+
 		// Bad BMS cell temperature found, we need to change to errorState
-		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+		AMS_LogErr(x, len);
+//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 	}
 }
 
