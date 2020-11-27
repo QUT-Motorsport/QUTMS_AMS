@@ -58,7 +58,7 @@ uint8_t bbspi_transferByte(bbspi_t *dev, uint8_t data)
 	{
 		HAL_GPIO_WritePin(&(dev->MOSI_Port), dev->MOSI_Pin, (data & i) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-		for(int j = 0; j < 500; j++);	// TODO, calc delay time
+		for(int j = 0; j < 500; j++);
 
 		HAL_GPIO_WritePin(&(dev->CLK_Port), dev->CLK_Pin, GPIO_PIN_SET);
 		if(HAL_GPIO_ReadPin(&(dev->MISO_Port), dev->MISO_Pin) == GPIO_PIN_SET)
@@ -66,7 +66,7 @@ uint8_t bbspi_transferByte(bbspi_t *dev, uint8_t data)
 			dataIn |= i;
 		}
 
-		for(int j = 0; j < 500; j++);	// TODO, calc delay time
+		for(int j = 0; j < 500; j++);
 
 		HAL_GPIO_WritePin(&(dev->CLK_Port), dev->CLK_Pin, GPIO_PIN_RESET);
 	}

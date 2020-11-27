@@ -36,6 +36,7 @@
 #include "FSM.h"
 #include "AMS_FSM_States.h"
 #include <math.h>
+#include  <sys/unistd.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,16 +110,32 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
 	char *msg = "------------------------------------\r\n";
-	AMS_LogInfo(msg, strlen(msg));
-	AMS_LogInfo(msg, strlen(msg));
-	AMS_LogInfo("Setup Complete\r\n", strlen("Setup Complete\r\n"));
+	printf(msg);
+	printf(msg);
+	printf("Setup Complete\r\n");
 
 	// We need to manually set the BMS wake up line high here, before we start CAN4 or we are doomed.
+
+	// ALARM Line - HIGH is actaully RESET...
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
+
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
-	// ALARM Line - HIGH
-	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
+
+	//Set Initial PROFET Pin Positions (All Off)
+	// Contactors
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+	// Precharge
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// FAN On
+	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
+
 	HAL_Delay(2750);
+
 	MX_CAN1_Init();
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
@@ -254,7 +271,7 @@ void Sendyne_requestVoltage(int index)
 {
 	CAN_TxHeaderTypeDef header =
 	{
-			.ExtId = 0xA100201,
+			.ExtId = CS_1_EXTID,
 			.IDE = CAN_ID_EXT,
 			.RTR = CAN_RTR_DATA,
 			.DLC = 1,
@@ -353,86 +370,79 @@ void heartbeatTimerBMS_cb(void *fsm)
 	}
 }
 
-void osTimer_cb(void *fsm)
+void ccTimer_cb(void *fsm)
 {
+//	 Request Coloumb Count From CS1
+		CAN_TxHeaderTypeDef header =
+		{
+				.ExtId = CS_1_EXTID,
+				.IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA,
+				.DLC = 1,
+				.TransmitGlobalTime = DISABLE,
+		};
+
+		uint8_t data = CURRENT_SENSOR_CC_LOW;
+		if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+		{
+			char msg[] = "Failed to send current sensor packet 1";
+			AMS_LogErr(msg, strlen(msg));
+		}
+
+		osDelay(1);
+
+		uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
+		if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+		{
+			char msg[] = "Failed to send current sensor packet 2";
+			AMS_LogErr(msg, strlen(msg));
+		}
+	return;
+}
+
+void cTimer_cb(void *fsm)
+{
+	// Request Current From Both
 	CAN_TxHeaderTypeDef header =
 	{
-			.ExtId = 0xA100201,
+			.ExtId = CS_1_EXTID,
 			.IDE = CAN_ID_EXT,
 			.RTR = CAN_RTR_DATA,
 			.DLC = 1,
 			.TransmitGlobalTime = DISABLE,
 	};
 
-	uint8_t data = CURRENT_SENSOR_CC_LOW;
+	uint8_t data = CURRENT_SENSOR_CURRENT;
 	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
 	{
-		char msg[] = "Failed to send current sensor packet 1";
+		char msg[] = "Failed to send current sensor current packet 1";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
 	osDelay(1);
 
-	uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+	header.ExtId = CS_2_EXTID;
+
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
 	{
-		char msg[] = "Failed to send current sensor packet 2";
+		char msg[] = "Failed to send current sensor current packet 1";
 		AMS_LogErr(msg, strlen(msg));
 	}
+	return;
 }
 
 void debugTimer_cb(void *fsm)
 {
 	heartbeatTimer_cb(fsm);
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-	{
-		int BMSId = 5; //Hard-coded
-		char x[120];
-		int len = snprintf(x, sizeof(x), "BMS-%i: %.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f (V)\r\n", BMSId,
-				AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
-				AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-		if(len > 0)
-		{
-			AMS_LogInfo(x, len);
-		} else
-		{
-			char msg[] = "Bad";
-			AMS_LogErr(msg, strlen(msg));
-		}
-		len = snprintf(x, sizeof(x), "BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", BMSId,
-				AMS_GlobalState->BMSTemperatures[BMSId][0],
-				AMS_GlobalState->BMSTemperatures[BMSId][1],
-				AMS_GlobalState->BMSTemperatures[BMSId][2],
-				AMS_GlobalState->BMSTemperatures[BMSId][3],
-				AMS_GlobalState->BMSTemperatures[BMSId][4],
-				AMS_GlobalState->BMSTemperatures[BMSId][5],
-				AMS_GlobalState->BMSTemperatures[BMSId][6],
-				AMS_GlobalState->BMSTemperatures[BMSId][7],
-				AMS_GlobalState->BMSTemperatures[BMSId][8],
-				AMS_GlobalState->BMSTemperatures[BMSId][9],
-				AMS_GlobalState->BMSTemperatures[BMSId][10],
-				AMS_GlobalState->BMSTemperatures[BMSId][11]);
-		if(len > 0)
-		{
-			AMS_LogInfo(x, len);
-		} else
-		{
-			char msg[] = "Bad";
-			AMS_LogErr(msg, strlen(msg));
-		}
-		osSemaphoreRelease(AMS_GlobalState->sem);
-	} else {
-		char msg[] = "Failed to claim semaphore in debugTimer_cb";
-		AMS_LogErr(msg, strlen(msg));
-	}
+	char x[80];
+	int len = snprintf(x, 80, "[%li] V: %f, ", getRuntime(), AMS_GlobalState->Voltage);
+	AMS_LogInfo(x, len);
+
+	len = snprintf(x, 80, "IC: %f, ", AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
+	AMS_LogInfo(x, len);
+
+	len = snprintf(x, 80, "CC: %f\r\n", AMS_GlobalState->CoulombCount);
+	AMS_LogInfo(x, len);
 	return;
 }
 
@@ -445,7 +455,6 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	// Reset our FSM in idleState, as we are just starting
 	fsm_setLogFunction(fsm, &AMS_LogInfo);
 	fsm_reset(fsm, &initState);
-
 	for(;;)
 	{
 		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS4, CAN_RX_FIFO0) > 0)
@@ -471,7 +480,6 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 			AMS_LogInfo(x, len);
 #endif
 		}
-
 		fsm_iterate(fsm);
 	}
 }
@@ -516,6 +524,19 @@ uint32_t getRuntime()
 {
 	return floor((HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000.f);
 }
+
+#ifdef PRINTF_TO_UART
+int _write(int file, char *data, int len)
+{
+	if((file != STDOUT_FILENO) && (file != STDERR_FILENO))
+	{
+		return -1;
+	}
+	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart3, (uint8_t*)data, len, HAL_MAX_DELAY);
+
+	return (s == HAL_OK ? len : 0);
+}
+#endif
 /* USER CODE END 4 */
 
 /**

@@ -60,14 +60,18 @@ void state_init_enter(fsm_t *fsm)
 				char msg[] = "Failed to create IDC_Alarm Timer";
 				AMS_LogErr(msg, strlen(msg));
 			}
-#ifdef ENABLE_CS
-			AMS_GlobalState->csTimer = osTimerNew(&osTimer_cb, osTimerPeriodic, fsm, NULL);
-			if(osTimerStart(AMS_GlobalState->csTimer, AMS_CS_PERIOD) != osOK)
+			AMS_GlobalState->ccTimer = osTimerNew(&ccTimer_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->ccTimer, AMS_CS_PERIOD) != osOK)
 			{
-				char msg[] = "Failed to create Current Sensor Timer";
+				char msg[] = "Failed to create Coulomb Counting Timer";
 				AMS_LogErr(msg, strlen(msg));
 			}
-#endif
+			AMS_GlobalState->cTimer = osTimerNew(&cTimer_cb, osTimerPeriodic, fsm, NULL);
+			if(osTimerStart(AMS_GlobalState->cTimer, AMS_CS_PERIOD/2) != osOK)
+			{
+				char msg[] = "Failed to create Current Sensing Timer";
+				AMS_LogErr(msg, strlen(msg));
+			}
 #ifdef DEBUG_CB
 			AMS_GlobalState->debugTimer = osTimerNew(&debugTimer_cb, osTimerPeriodic, fsm, NULL);
 			if(osTimerStart(AMS_GlobalState->debugTimer, DEBUG_PERIOD) != osOK)
@@ -92,7 +96,7 @@ void state_init_enter(fsm_t *fsm)
 
 	/* Set initial pin states */
 	// ALARM Line - HIGH
-	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
@@ -126,7 +130,7 @@ void state_idle_enter(fsm_t *fsm)
 {
 	/* Set initial pin states */
 	// ALARM Line - HIGH
-	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
@@ -182,8 +186,7 @@ void state_idle_iterate(fsm_t *fsm)
 						if(vMsgId == 2)
 						{
 #if BMS_LOG_V
-							char x[80];
-							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+							printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
@@ -194,14 +197,6 @@ void state_idle_iterate(fsm_t *fsm)
 									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-							if(len > 0)
-							{
-								AMS_LogInfo(x, len);
-							} else
-							{
-								char msg[] = "Buffer too short for BMS Voltage Message";
-								AMS_LogErr(msg, strlen(msg));
-							}
 #endif
 						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
@@ -230,8 +225,7 @@ void state_idle_iterate(fsm_t *fsm)
 						if(tMsgId == 1)
 						{
 #if BMS_LOG_T
-							char x[80];
-							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+							printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
 									AMS_GlobalState->BMSTemperatures[BMSId][1],
 									AMS_GlobalState->BMSTemperatures[BMSId][2],
@@ -244,14 +238,6 @@ void state_idle_iterate(fsm_t *fsm)
 									AMS_GlobalState->BMSTemperatures[BMSId][9],
 									AMS_GlobalState->BMSTemperatures[BMSId][10],
 									AMS_GlobalState->BMSTemperatures[BMSId][11]);
-							if(len > 0)
-							{
-								AMS_LogInfo(x, len);
-							} else
-							{
-								char msg[] = "Buffer too short for BMS Temperature Message";
-								AMS_LogErr(msg, strlen(msg));
-							}
 #endif
 						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
@@ -261,6 +247,8 @@ void state_idle_iterate(fsm_t *fsm)
 				BMS_handleBadCellVoltage(fsm, msg);
 
 				BMS_handleBadCellTemperature(fsm, msg);
+
+				Sendyne_handleColoumbCount(fsm, msg);
 
 				Sendyne_handleCurrent(fsm, msg);
 
@@ -358,6 +346,8 @@ void state_precharge_iterate(fsm_t *fsm)
 
 				Sendyne_handleVoltage(fsm, msg);
 
+				Sendyne_handleColoumbCount(fsm, msg);
+
 				Sendyne_handleCurrent(fsm, msg);
 
 				BMS_handleBadCellVoltage(fsm, msg);
@@ -376,12 +366,14 @@ void state_precharge_iterate(fsm_t *fsm)
 			{
 				accumulatorVoltage += (float)(AMS_GlobalState->BMSVoltages[i][j] / 1000.0f);
 			}
-			// Force Set Accumulator Voltage based on 2 Packs //TODO
 			accumulatorVoltage = ACCUMULATOR_VOLTAGE;
-			if(abs(AMS_GlobalState->Voltage - accumulatorVoltage) < PRECHARGE_VDIFF)
+
+			if(fabs(fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE) < PRECHARGE_VDIFF)
 			{
 				/** Our voltage is close enough to the battery voltage, precharge done */
-				fsm_changeState(fsm, &drivingState, "Battery == Sendyne");
+				char x[80];
+				snprintf(x, 80, "HV Voltage Drop: %f, RTD.", fabs(fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE));
+				fsm_changeState(fsm, &drivingState, x);
 			}
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
@@ -389,11 +381,10 @@ void state_precharge_iterate(fsm_t *fsm)
 		char msg[] = "Failed to acquire semaphore in precharge check";
 		AMS_LogErr(msg, strlen(msg));
 	}
-
-	if(HAL_GetTick() - globalTimer > 2000)
-	{
-		fsm_changeState(fsm, &drivingState, "Forced into driving state on timeout");
-	}
+	//	if(HAL_GetTick() - globalTimer > 2000)
+	//	{
+	//		fsm_changeState(fsm, &drivingState, "Forced into driving state on timeout");
+	//	}
 }
 
 void state_precharge_exit(fsm_t *fsm)
@@ -417,7 +408,7 @@ void state_driving_enter(fsm_t *fsm)
 	// Close Connectors
 
 	// LOW - PRECHG
-	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 
 	// PROFET Positions AFTER Precharge
 	// HIGH - HVA+, HVA-, HVB+, HVB-
@@ -466,8 +457,7 @@ void state_driving_iterate(fsm_t *fsm)
 						if(vMsgId == 2)
 						{
 #if BMS_LOG_V
-							char x[80];
-							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+							printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
@@ -478,14 +468,6 @@ void state_driving_iterate(fsm_t *fsm)
 									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-							if(len > 0)
-							{
-								AMS_LogInfo(x, len);
-							} else
-							{
-								char msg[] = "Buffer too short for BMS Voltage Message";
-								AMS_LogErr(msg, strlen(msg));
-							}
 #endif
 						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
@@ -514,8 +496,7 @@ void state_driving_iterate(fsm_t *fsm)
 						if(tMsgId == 1)
 						{
 #if BMS_LOG_T
-							char x[80];
-							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+							printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
 									AMS_GlobalState->BMSTemperatures[BMSId][1],
 									AMS_GlobalState->BMSTemperatures[BMSId][2],
@@ -528,14 +509,6 @@ void state_driving_iterate(fsm_t *fsm)
 									AMS_GlobalState->BMSTemperatures[BMSId][9],
 									AMS_GlobalState->BMSTemperatures[BMSId][10],
 									AMS_GlobalState->BMSTemperatures[BMSId][11]);
-							if(len > 0)
-							{
-								AMS_LogInfo(x, len);
-							} else
-							{
-								char msg[] = "Buffer too short for BMS Temperature Message";
-								AMS_LogErr(msg, strlen(msg));
-							}
 #endif
 						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
@@ -546,6 +519,8 @@ void state_driving_iterate(fsm_t *fsm)
 			BMS_handleBadCellVoltage(fsm, msg);
 
 			BMS_handleBadCellTemperature(fsm, msg);
+
+			Sendyne_handleColoumbCount(fsm, msg);
 
 			Sendyne_handleCurrent(fsm, msg);
 
@@ -586,7 +561,7 @@ void state_error_enter(fsm_t *fsm)
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
 
 	// Trip Shutdown Alarm Line
-	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
@@ -602,7 +577,11 @@ void state_error_enter(fsm_t *fsm)
 		{
 			Error_Handler();
 		}
-		if(osTimerDelete(AMS_GlobalState->csTimer) != osOK)
+		if(osTimerDelete(AMS_GlobalState->ccTimer) != osOK)
+		{
+			Error_Handler();
+		}
+		if(osTimerDelete(AMS_GlobalState->cTimer) != osOK)
 		{
 			Error_Handler();
 		}
@@ -624,7 +603,7 @@ void state_error_iterate(fsm_t *fsm)
 	do{
 		// We cannot escape from here. We are forever hitting UART.
 		// Trip Shutdown Alarm Line
-		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 		AMS_LogErr("Stuck in error state", strlen("Stuck in error state"));
 		HAL_Delay(100);
 	} while(1);
@@ -704,8 +683,7 @@ void state_SoC_iterate(fsm_t *fsm)
 						if(vMsgId == 2)
 						{
 #if BMS_LOG_V
-							char x[80];
-							int len = snprintf(x, sizeof(x), "[%i] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+							printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
@@ -716,14 +694,6 @@ void state_SoC_iterate(fsm_t *fsm)
 									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
 									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-							if(len > 0)
-							{
-								AMS_LogInfo(x, len);
-							} else
-							{
-								char msg[] = "Buffer too short for BMS Voltage Message";
-								AMS_LogErr(msg, strlen(msg));
-							}
 #endif
 						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
@@ -752,8 +722,7 @@ void state_SoC_iterate(fsm_t *fsm)
 						if(tMsgId == 1)
 						{
 #if BMS_LOG_T
-							char x[80];
-							int len = snprintf(x, sizeof(x), "[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+							printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
 									AMS_GlobalState->BMSTemperatures[BMSId][0],
 									AMS_GlobalState->BMSTemperatures[BMSId][1],
 									AMS_GlobalState->BMSTemperatures[BMSId][2],
@@ -766,14 +735,6 @@ void state_SoC_iterate(fsm_t *fsm)
 									AMS_GlobalState->BMSTemperatures[BMSId][9],
 									AMS_GlobalState->BMSTemperatures[BMSId][10],
 									AMS_GlobalState->BMSTemperatures[BMSId][11]);
-							if(len > 0)
-							{
-								AMS_LogInfo(x, len);
-							} else
-							{
-								char msg[] = "Buffer too short for BMS Temperature Message";
-								AMS_LogErr(msg, strlen(msg));
-							}
 #endif
 						}
 						osSemaphoreRelease(AMS_GlobalState->sem);
@@ -838,11 +799,11 @@ void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 		HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data, &AMS_GlobalState->CAN2_TxMailbox);
 
 		char x[80];
-			int len = snprintf(x, 80, "Found Bad Cell Voltage: Cell:%i, Voltage: %i", cellNum, voltage);
+		int len = snprintf(x, 80, "Found Bad Cell Voltage: Cell:%i, Voltage: %i", cellNum, voltage);
 
 		// Bad BMS cell voltage found, we need to change to errorState.
 		AMS_LogErr(x, len);
-//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
+		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Voltage");
 	}
 }
 
@@ -872,14 +833,14 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 
 		// Bad BMS cell temperature found, we need to change to errorState
 		AMS_LogErr(x, len);
-//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+		//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 	}
 }
 
 void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 {
 	/** CS */
-	if((msg.header.ExtId) == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+	if((msg.header.ExtId) == CS_1_RESPONSE_EXTID)
 	{
 		/** Voltage */
 		if(msg.data[0] == CS_V1)
@@ -893,21 +854,19 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				AMS_GlobalState->VoltageuV |= (int32_t)msg.data[4] << 0;
 				AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
 
-										AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
-										char x[80];
-										int len = snprintf(x, 80, "[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
+				AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
+				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
 
 				osSemaphoreRelease(AMS_GlobalState->sem);
-										AMS_LogInfo(x, len);
 			}
 		}
 	}
 }
 
-void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg)
+void Sendyne_handleColoumbCount(fsm_t *fsm, AMS_CAN_Generic_t msg)
 {
 	/** Current Sensor Coulomb Counting */
-	if(msg.header.ExtId == CURRENT_SENSOR_CAN_RESPONSE_EXTID)
+	if(msg.header.ExtId == CS_1_RESPONSE_EXTID)
 	{
 		if(msg.data[0] == CURRENT_SENSOR_CC_LOW)
 		{
@@ -934,13 +893,48 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				AMS_GlobalState->CoulombCount = (float)(AMS_GlobalState->CoulombCountuA / 1000000.f);
 
 #if CS_LOG_CC
-				char x[80];
-				int len = sprintf(x, "[%li] Coloumb Count: %f\r\n", getRuntime(), AMS_GlobalState->CoulombCount);
+				printf(x, "[%li] Coloumb Count: %f\r\n", getRuntime(), AMS_GlobalState->CoulombCount);
 #endif
 				osSemaphoreRelease(AMS_GlobalState->sem);
-#if CS_LOG_CC
-				AMS_LogInfo(x, len);
-#endif
+			}
+		}
+	}
+}
+
+void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	if(msg.header.ExtId == CS_1_RESPONSE_EXTID)
+	{
+		if(msg.data[0] == CURRENT_SENSOR_CURRENT)
+		{
+			if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+			{
+				AMS_GlobalState->HVACurrentuA = 0;
+				AMS_GlobalState->HVACurrentuA |= (int64_t)msg.data[1] << 24;
+				AMS_GlobalState->HVACurrentuA |= (int64_t)msg.data[2] << 16;
+				AMS_GlobalState->HVACurrentuA |= (int64_t)msg.data[3] << 8;
+				AMS_GlobalState->HVACurrentuA |= (int64_t)msg.data[4] << 0;
+
+				AMS_GlobalState->HVACurrent = (float)(AMS_GlobalState->HVACurrentuA / 1000000.f);
+
+				osSemaphoreRelease(AMS_GlobalState->sem);
+			}
+		}
+	} else if(msg.header.ExtId == CS_2_RESPONSE_EXTID)
+	{
+		if(msg.data[0] == CURRENT_SENSOR_CURRENT)
+		{
+			if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+			{
+				AMS_GlobalState->HVBCurrentuA = 0;
+				AMS_GlobalState->HVBCurrentuA |= (int64_t)msg.data[1] << 24;
+				AMS_GlobalState->HVBCurrentuA |= (int64_t)msg.data[2] << 16;
+				AMS_GlobalState->HVBCurrentuA |= (int64_t)msg.data[3] << 8;
+				AMS_GlobalState->HVBCurrentuA |= (int64_t)msg.data[4] << 0;
+
+				AMS_GlobalState->HVBCurrent = (float)(AMS_GlobalState->HVBCurrentuA / 1000000.f);
+
+				osSemaphoreRelease(AMS_GlobalState->sem);
 			}
 		}
 	}

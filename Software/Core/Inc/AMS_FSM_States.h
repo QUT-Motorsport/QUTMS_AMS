@@ -18,6 +18,7 @@
 #include "AMS_CAN_Messages.h"
 #include "BMS_CAN_Messages.h"
 #include "can.h"
+#include <math.h>
 
 /**
  * @brief AMS Global State
@@ -43,11 +44,18 @@ typedef struct
 	int32_t VoltageuV;
 	float Voltage;
 
+	int32_t HVACurrentuA;
+	float HVACurrent;
+
+	int32_t HVBCurrentuA;
+	float HVBCurrent;
+
 	osMessageQueueId_t CANQueue;
 	osTimerId_t heartbeatTimer;
 	osTimerId_t IDC_AlarmTimer;
 	osTimerId_t heartbeatTimerAMS;
-	osTimerId_t csTimer;
+	osTimerId_t ccTimer;
+	osTimerId_t cTimer;
 	osTimerId_t debugTimer;
 	osSemaphoreId_t sem;
 } AMS_GlobalState_t;
@@ -243,6 +251,7 @@ state_t initState;
 void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
+void Sendyne_handleColoumbCount(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg);
 
 

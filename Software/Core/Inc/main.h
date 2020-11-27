@@ -41,6 +41,10 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+
+// Printf to UART
+#define PRINTF_TO_UART
+
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
@@ -63,7 +67,7 @@ extern "C" {
 // Debug
 //#define DEBUG_CB
 #define ENABLE_CS
-#define DEBUG_PERIOD 2500U // Milliseconds
+#define DEBUG_PERIOD 500U // Milliseconds
 #define PRECHARGE_VDIFF 5.0f
 #define BMS_CELL_VMIN 2.0f
 
@@ -71,11 +75,16 @@ extern "C" {
 #define BMS_ID_MASK 0x1FFFFFF0
 
 // Current Sensor CAN Information
-#define CURRENT_SENSOR_CAN_EXTID 0xA100201
-#define CURRENT_SENSOR_CAN_RESPONSE_EXTID 0xA100200
+#define CS_1_EXTID 0xA100201
+#define CS_2_EXTID 0xA100211
+#define CS_1_RESPONSE_EXTID 0xA100200
+#define CS_2_RESPONSE_EXTID 0xA100210
 #define CURRENT_SENSOR_REQ_SIZE 1
 #define CURRENT_SENSOR_CC_LOW 0x40
 #define CURRENT_SENSOR_CC_HIGH 0x41
+#define CURRENT_SENSOR_CURRENT 0x20
+
+
 
 #define CURRENT_SENSOR_MAX_AS CURRENT_SENSOR_MAX_AH * 3600
 #define CURRENT_SENSOR_MAX_AH 54.495
@@ -88,7 +97,7 @@ extern "C" {
 #define AMS_LOGINFO_ENABLED
 
 // LOGGING DEFS
-#define CS_LOG_CC 1
+#define CS_LOG_CC 0
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
 #define BMS_LOG_V 0
@@ -118,13 +127,15 @@ void IDC_Alarm_cb(void* fsm);
 void Sendyne_requestVoltage(int index);
 void heartbeatTimer_cb(void *fsm);
 void heartbeatTimerBMS_cb(void *fsm);
-void osTimer_cb(void *fsm);
+void ccTimer_cb(void *fsm);
+void cTimer_cb(void *fsm);
 void debugTimer_cb(void *fsm);
 void AMS_LogInfo(char* msg, size_t length);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 uint32_t getRuntime();
+int _write(int file, char *data, int len);
 __NO_RETURN void fsm_thread_mainLoop(void* fsm);
 __NO_RETURN void uart_thread_mainLoop(void* fsm);
 
