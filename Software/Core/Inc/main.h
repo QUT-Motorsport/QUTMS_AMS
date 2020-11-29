@@ -136,6 +136,7 @@ void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 uint32_t getRuntime();
 int _write(int file, char *data, int len);
+void handleCAN(CAN_HandleTypeDef *hcan, int fifo);
 __NO_RETURN void fsm_thread_mainLoop(void* fsm);
 __NO_RETURN void uart_thread_mainLoop(void* fsm);
 

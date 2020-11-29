@@ -31,12 +31,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+#include <sys/unistd.h>
 #include "AMS_CAN_Messages.h"
 #include "BMS_CAN_Messages.h"
 #include "FSM.h"
 #include "AMS_FSM_States.h"
-#include <math.h>
-#include  <sys/unistd.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,37 +77,38 @@ const osThreadAttr_t fsmThreadAttr = {
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
-	/* USER CODE BEGIN 1 */
-	/* USER CODE END 1 */
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_USART3_UART_Init();
-	MX_TIM4_Init();
-	MX_CAN2_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_CAN1_Init();
+  MX_USART3_UART_Init();
+  MX_TIM4_Init();
+  MX_CAN2_Init();
+  /* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
 	char *msg = "------------------------------------\r\n";
 	printf(msg);
@@ -204,65 +205,65 @@ int main(void)
 
 	// Create a new thread, where our FSM will run.
 	osThreadNew(fsm_thread_mainLoop, fsm, &fsmThreadAttr);
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Init scheduler */
-	osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
-	MX_FREERTOS_Init();
-	/* Start scheduler */
-	osKernelStart();
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+  /* Start scheduler */
+  osKernelStart();
 
-	/* We should never get here as control is now taken by the scheduler */
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* We should never get here as control is now taken by the scheduler */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-	RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Configure the Systick interrupt time
-	 */
-	__HAL_RCC_PLLI2S_ENABLE();
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure the Systick interrupt time
+  */
+  __HAL_RCC_PLLI2S_ENABLE();
 }
 
 /* USER CODE BEGIN 4 */
@@ -372,31 +373,31 @@ void heartbeatTimerBMS_cb(void *fsm)
 
 void ccTimer_cb(void *fsm)
 {
-//	 Request Coloumb Count From CS1
-		CAN_TxHeaderTypeDef header =
-		{
-				.ExtId = CS_1_EXTID,
-				.IDE = CAN_ID_EXT,
-				.RTR = CAN_RTR_DATA,
-				.DLC = 1,
-				.TransmitGlobalTime = DISABLE,
-		};
+	//	 Request Coloumb Count From CS1
+	CAN_TxHeaderTypeDef header =
+	{
+			.ExtId = CS_1_EXTID,
+			.IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA,
+			.DLC = 1,
+			.TransmitGlobalTime = DISABLE,
+	};
 
-		uint8_t data = CURRENT_SENSOR_CC_LOW;
-		if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-		{
-			char msg[] = "Failed to send current sensor packet 1";
-			AMS_LogErr(msg, strlen(msg));
-		}
+	uint8_t data = CURRENT_SENSOR_CC_LOW;
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+	{
+		char msg[] = "Failed to send current sensor packet 1";
+		AMS_LogErr(msg, strlen(msg));
+	}
 
-		osDelay(1);
+	osDelay(1);
 
-		uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
-		if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-		{
-			char msg[] = "Failed to send current sensor packet 2";
-			AMS_LogErr(msg, strlen(msg));
-		}
+	uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+	{
+		char msg[] = "Failed to send current sensor packet 2";
+		AMS_LogErr(msg, strlen(msg));
+	}
 	return;
 }
 
@@ -457,29 +458,29 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	fsm_reset(fsm, &initState);
 	for(;;)
 	{
-		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS4, CAN_RX_FIFO0) > 0)
-		{
-			AMS_CAN_Generic_t msg;
-			HAL_CAN_GetRxMessage(&CANBUS4, CAN_RX_FIFO0, &(msg.header), msg.data);
-			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-#ifdef CAN4_LOG_ON_MSG
-			char x[80];
-			int len = sprintf(x, "[%li] Got CAN msg from CAN4: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
-			AMS_LogInfo(x, len);
-#endif
-		}
-
-		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS2, CAN_RX_FIFO0) > 0)
-		{
-			AMS_CAN_Generic_t msg;
-			HAL_CAN_GetRxMessage(&CANBUS2, CAN_RX_FIFO0, &(msg.header), msg.data);
-			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-#ifdef CAN2_LOG_ON_MSG
-			char x[80];
-			int len = sprintf(x, "[%li] Got CAN msg from CAN2: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
-			AMS_LogInfo(x, len);
-#endif
-		}
+//		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS4, CAN_RX_FIFO0) > 0)
+//		{
+//			AMS_CAN_Generic_t msg;
+//			HAL_CAN_GetRxMessage(&CANBUS4, CAN_RX_FIFO0, &(msg.header), msg.data);
+//			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+//#ifdef CAN4_LOG_ON_MSG
+//			char x[80];
+//			int len = sprintf(x, "[%li] Got CAN msg from CAN4: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
+//			AMS_LogInfo(x, len);
+//#endif
+//		}
+//
+//		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS2, CAN_RX_FIFO0) > 0)
+//		{
+//			AMS_CAN_Generic_t msg;
+//			HAL_CAN_GetRxMessage(&CANBUS2, CAN_RX_FIFO0, &(msg.header), msg.data);
+//			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+//#ifdef CAN2_LOG_ON_MSG
+//			char x[80];
+//			int len = sprintf(x, "[%li] Got CAN msg from CAN2: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
+//			AMS_LogInfo(x, len);
+//#endif
+//		}
 		fsm_iterate(fsm);
 	}
 }
@@ -537,59 +538,74 @@ int _write(int file, char *data, int len)
 	return (s == HAL_OK ? len : 0);
 }
 #endif
+
+void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
+{
+	// Iterate over the CAN FIFO buffer, adding all CAN messages to the CAN Queue.
+	while(HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0)
+	{
+		AMS_CAN_Generic_t msg;
+		if(HAL_CAN_GetRxMessage(hcan, fifo,  &(msg.header), msg.data) != HAL_OK)
+		{
+			char msg[] = "Failed top read in CAN message";
+			AMS_LogErr(msg, strlen(msg));
+		}
+		osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+	}
+}
 /* USER CODE END 4 */
 
-/**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM6 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- * @param  htim : TIM handle
- * @retval None
- */
+ /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	/* USER CODE BEGIN Callback 0 */
+  /* USER CODE BEGIN Callback 0 */
 
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM6) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
 
-	/* USER CODE END Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	char msg[] = "Error Handler Triggered";
 	AMS_LogErr(msg, strlen(msg));
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
 	char x[80];
 	int len = snprintf(x, sizeof(x), "Failed to assert @ [%i, %li]\r\n", *file, line);
 	AMS_LogErr(x, len);
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
