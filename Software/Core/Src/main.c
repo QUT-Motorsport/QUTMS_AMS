@@ -68,6 +68,7 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/** Create global object required for RTOS */
 osThreadId_t fsmThread;
 const osThreadAttr_t fsmThreadAttr = {
 		.name = "fsmMainThread",
@@ -91,6 +92,7 @@ int main(void)
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
+	/** Turn one LED 1 on, LED0 off */
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
 	/* USER CODE END Init */
@@ -109,34 +111,35 @@ int main(void)
 	MX_TIM4_Init();
 	MX_CAN2_Init();
 	/* USER CODE BEGIN 2 */
-	// Activate CAN Interrupt
+	/** Log Boot & HAL Initionalisation */
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
 
-	// We need to manually set the BMS wake up line high here, before we start CAN4 or we are doomed.
-
-	// ALARM Line - HIGH is actaully RESET...
+	/** ALARM Line - Safe is actually logic low */
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
-	// BMS Control - HIGH (Turn on all BMS)
+	/** BMS Control - HIGH (Turn on all BMS) */
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 
-	//Set Initial PROFET Pin Positions (All Off)
-	// Contactors
+	/** Set Initial PROFET Pin Positions (All Off) */
+	/** Contactors */
 	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
-	// Precharge
+	/** Precharge */
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
-	// FAN On
+	/** FAN On (Not used as of 2020 QLD Comp */
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 
+	/** Wait for the BMSs to boot up */
 	HAL_Delay(2750);
 
+	/** Log above */
 	printf("BMS Wake-up Timeout Complete\r\n");
 
+	/** Start the CAN Busses */
 	MX_CAN1_Init();
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
@@ -185,7 +188,6 @@ int main(void)
 	sFilterConfig2.FilterActivation = ENABLE;
 	sFilterConfig2.SlaveStartFilterBank = 14;
 
-
 	if (HAL_CAN_ConfigFilter(&CANBUS4, &sFilterConfig) != HAL_OK)
 	{
 		/* Filter configuration Error */
@@ -200,6 +202,7 @@ int main(void)
 		AMS_LogErr(msg, strlen(msg));
 	}
 
+	/** Active CAN Interrupts for handling incomming messages */
 	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
 	{
 		char msg[] = "Failed to activate CAN2 notification on RX0";
@@ -224,10 +227,10 @@ int main(void)
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	//Create FSM instance
+	/** Create FSM instance */
 	fsm_t *fsm = fsm_new(&deadState);
 
-	// Create a new thread, where our FSM will run.
+	/** Create a new thread, where our FSM will run. */
 	osThreadNew(fsm_thread_mainLoop, fsm, &fsmThreadAttr);
 	/* USER CODE END 2 */
 
@@ -291,7 +294,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+/** Request a voltage from the Sendyne SFP200MOD3 */
 void Sendyne_requestVoltage(int index)
 {
 	CAN_TxHeaderTypeDef header =
@@ -310,7 +313,7 @@ void Sendyne_requestVoltage(int index)
 		AMS_LogErr(msg, strlen(msg));
 	}
 }
-
+/** BMS Alarm Line Timer Callback */
 void IDC_Alarm_cb(void* fsm)
 {
 	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == 0)
@@ -319,6 +322,7 @@ void IDC_Alarm_cb(void* fsm)
 	}
 }
 
+/** Heartbeat Callback */
 void heartbeatTimer_cb(void *fsm)
 {
 	//	// Take the GlobalState sem, find our values then fire off the packet
@@ -370,6 +374,7 @@ void heartbeatTimer_cb(void *fsm)
 	}
 }
 
+/** BMS Heartbeat Callback (lower 1Hz compared to 13.3Hz as above */
 void heartbeatTimerBMS_cb(void *fsm)
 {
 	//	// Take the GlobalState sem, find our values then fire off the packet
@@ -395,6 +400,7 @@ void heartbeatTimerBMS_cb(void *fsm)
 	}
 }
 
+/** Coulomb Counting Timer Callback */
 void ccTimer_cb(void *fsm)
 {
 	//	 Request Coloumb Count From CS1
@@ -425,6 +431,7 @@ void ccTimer_cb(void *fsm)
 	return;
 }
 
+/** Current Timer Callback */
 void cTimer_cb(void *fsm)
 {
 	// Request Current From Both
@@ -456,18 +463,15 @@ void cTimer_cb(void *fsm)
 	return;
 }
 
+/** Debug Timer Callback (Forces a heartbeat to ensure logging doesnt lead to shutdown) */
 void debugTimer_cb(void *fsm)
 {
 	heartbeatTimer_cb(fsm);
-	char x[80];
-	int len = snprintf(x, 80, "[%li] V: %f, ", getRuntime(), AMS_GlobalState->Voltage);
-	AMS_LogInfo(x, len);
+	printf("[%li] V: %f, ", getRuntime(), AMS_GlobalState->Voltage);
 
-	len = snprintf(x, 80, "IC: %f, ", AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
-	AMS_LogInfo(x, len);
+	printf("IC: %f, ", AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
 
-	len = snprintf(x, 80, "CC: %f\r\n", AMS_GlobalState->CoulombCount);
-	AMS_LogInfo(x, len);
+	printf("CC: %f\r\n", AMS_GlobalState->CoulombCount);
 	return;
 }
 
@@ -478,7 +482,7 @@ void debugTimer_cb(void *fsm)
 __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 {
 	// Reset our FSM in idleState, as we are just starting
-	fsm_setLogFunction(fsm, &AMS_LogInfo);
+	fsm_setLogFunction(fsm, &printf);
 	fsm_reset(fsm, &initState);
 	for(;;)
 	{
@@ -487,17 +491,10 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 }
 
 /**
- * @brief Log Info to UART
+ * @brief Log Error to UART
  * @param msg pointer to msg
  * @param length lenth of msg
  */
-void AMS_LogInfo(char* msg, size_t length)
-{
-#ifdef AMS_LOGINFO_ENABLED
-	HAL_UART_Transmit(&huart3, (uint8_t *)msg, length, HAL_MAX_DELAY);
-#endif
-}
-
 void AMS_LogErr(char* error, size_t length)
 {
 	char* errorMsg = malloc(length + 9);
@@ -507,12 +504,11 @@ void AMS_LogErr(char* error, size_t length)
 		HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
 	} else
 	{
-		char msg[] = "Failed to log error in AMS_LogErr\r\n";
-		AMS_LogInfo(msg, strlen(msg));
+		printf("Failed to log error in AMS_LogErr\r\n");
 	}
 	free(errorMsg);
 }
-
+/** Unused as SD is wired incorrectly */
 void AMS_LogToSD(char* msg, size_t length)
 {
 	for(int i = 0; i < length; i++)
@@ -522,12 +518,14 @@ void AMS_LogToSD(char* msg, size_t length)
 	}
 }
 
+/** Get the runtime of the FSM in seconds */
 uint32_t getRuntime()
 {
 	return floor((HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000.f);
 }
 
 #ifdef PRINTF_TO_UART
+/** Override _write to log to UART */
 int _write(int file, char *data, int len)
 {
 	if((file != STDOUT_FILENO) && (file != STDERR_FILENO))
@@ -540,10 +538,11 @@ int _write(int file, char *data, int len)
 }
 #endif
 
+/** CAN Message Management */
 void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
 {
 	// Iterate over the CAN FIFO buffer, adding all CAN messages to the CAN Queue.
-//	printf("Handling Can \r\n");
+	//	printf("Handling Can \r\n");
 	while(HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0)
 	{
 		AMS_CAN_Generic_t msg;
@@ -602,9 +601,7 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
 	/* USER CODE BEGIN 6 */
-	char x[80];
-	int len = snprintf(x, sizeof(x), "Failed to assert @ [%i, %li]\r\n", *file, line);
-	AMS_LogErr(x, len);
+	printf("%s: Failed to assert @ [%i, %li]\r\n", "ERROR", *file, line);
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 	/* USER CODE END 6 */

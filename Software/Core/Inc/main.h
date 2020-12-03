@@ -130,7 +130,6 @@ void heartbeatTimerBMS_cb(void *fsm);
 void ccTimer_cb(void *fsm);
 void cTimer_cb(void *fsm);
 void debugTimer_cb(void *fsm);
-void AMS_LogInfo(char* msg, size_t length);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
