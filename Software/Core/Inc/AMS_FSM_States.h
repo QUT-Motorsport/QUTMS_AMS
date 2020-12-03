@@ -253,7 +253,5 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleColoumbCount(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg);
-void CAN_handleLog(fsm_t *fsm, AMS_CAN_Generic_t msg);
-
 
 #endif /* INC_AMS_FSM_STATES_H_ */

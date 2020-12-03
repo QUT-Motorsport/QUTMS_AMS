@@ -110,10 +110,8 @@ int main(void)
 	MX_CAN2_Init();
 	/* USER CODE BEGIN 2 */
 	// Activate CAN Interrupt
-	char *msg = "------------------------------------\r\n";
-	printf(msg);
-	printf(msg);
-	printf("Setup Complete\r\n");
+	printf("PWR_ENABLED\r\n");
+	printf("HAL Initialisation Complete\r\n");
 
 	// We need to manually set the BMS wake up line high here, before we start CAN4 or we are doomed.
 
@@ -136,6 +134,8 @@ int main(void)
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 
 	HAL_Delay(2750);
+
+	printf("BMS Wake-up Timeout Complete\r\n");
 
 	MX_CAN1_Init();
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
