@@ -482,29 +482,6 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	fsm_reset(fsm, &initState);
 	for(;;)
 	{
-		//		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS4, CAN_RX_FIFO0) > 0)
-		//		{
-		//			AMS_CAN_Generic_t msg;
-		//			HAL_CAN_GetRxMessage(&CANBUS4, CAN_RX_FIFO0, &(msg.header), msg.data);
-		//			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-		//#ifdef CAN4_LOG_ON_MSG
-		//			char x[80];
-		//			int len = sprintf(x, "[%li] Got CAN msg from CAN4: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
-		//			AMS_LogInfo(x, len);
-		//#endif
-		//		}
-		//
-		//		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS2, CAN_RX_FIFO0) > 0)
-		//		{
-		//			AMS_CAN_Generic_t msg;
-		//			HAL_CAN_GetRxMessage(&CANBUS2, CAN_RX_FIFO0, &(msg.header), msg.data);
-		//			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-		//#ifdef CAN2_LOG_ON_MSG
-		//			char x[80];
-		//			int len = sprintf(x, "[%li] Got CAN msg from CAN2: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
-		//			AMS_LogInfo(x, len);
-		//#endif
-		//		}
 		fsm_iterate(fsm);
 	}
 }
@@ -566,6 +543,7 @@ int _write(int file, char *data, int len)
 void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
 {
 	// Iterate over the CAN FIFO buffer, adding all CAN messages to the CAN Queue.
+//	printf("Handling Can \r\n");
 	while(HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0)
 	{
 		AMS_CAN_Generic_t msg;

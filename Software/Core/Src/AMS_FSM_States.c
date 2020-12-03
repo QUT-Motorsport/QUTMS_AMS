@@ -765,11 +765,6 @@ void state_SoC_iterate(fsm_t *fsm)
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
-
-	if(HAL_GetTick() - AMS_GlobalState->startupTicks > 2000)
-	{
-		fsm_changeState(fsm, &idleState, "Timeout of SoC, moving to idle");
-	}
 }
 
 void state_SoC_exit(fsm_t *fsm)
@@ -828,12 +823,29 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 		// Notify Chassis we have a bad cell temperature.
 		HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
 
-		char x[80];
-		int len = snprintf(x, 80, "Found Bad Cell Temperature: Cell:%i, Temp: %i", cellNum, temperature);
+//		char x[80];
+//		int len = snprintf(x, 80, "Found Bad Cell Temperature: Cell:%i, Temp: %i", cellNum, temperature);
 
 		// Bad BMS cell temperature found, we need to change to errorState
-		AMS_LogErr(x, len);
+//		AMS_LogErr(x, len);
 		//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+		{
+			for(int i = 0; i < BMS_COUNT; i++)
+			{
+				for(int j = 0; j < BMS_TEMPERATURE_COUNT; j++)
+				{
+					if(AMS_GlobalState->BMSTemperatures[i][j] > 55 && AMS_GlobalState->BMSTemperatures[i][j] < 150)
+					{
+						char x[80];
+						int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
+						AMS_LogErr(x, len);
+						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+					}
+
+				}
+			}
+		}
 	}
 }
 
@@ -855,9 +867,32 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
 
 				AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
-				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
+				//				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
 
 				osSemaphoreRelease(AMS_GlobalState->sem);
+
+				/** Send Voltage Log Msg to CC */
+				uint8_t priority;
+				uint16_t sourceId;
+				uint8_t autonomous;
+				uint8_t type;
+				uint16_t extra;
+				uint8_t BMSId;
+				Parse_CANId(msg.header.ExtId, &priority, &sourceId, &autonomous, &type, &extra, &BMSId);
+
+				CAN_TxHeaderTypeDef h = {
+						.ExtId = Compose_CANId(CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra, BMSId),
+						.IDE = CAN_ID_EXT,
+						.RTR = CAN_RTR_DATA,
+						.DLC = msg.header.DLC,
+						.TransmitGlobalTime = DISABLE
+				};
+
+				if(HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+				{
+					char msg[]  = "Failed to send Sendyne Voltage log msg";
+					AMS_LogErr(msg, strlen(msg));
+				}
 			}
 		}
 	}
@@ -918,6 +953,30 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				AMS_GlobalState->HVACurrent = (float)(AMS_GlobalState->HVACurrentuA / 1000000.f);
 
 				osSemaphoreRelease(AMS_GlobalState->sem);
+
+				/** Send Voltage Log Msg to CC */
+
+				uint8_t priority;
+				uint16_t sourceId;
+				uint8_t autonomous;
+				uint8_t type;
+				uint16_t extra;
+				uint8_t BMSId;
+				Parse_CANId(msg.header.ExtId, &priority, &sourceId, &autonomous, &type, &extra, &BMSId);
+
+				CAN_TxHeaderTypeDef h = {
+						.ExtId = Compose_CANId(CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra, BMSId),
+						.IDE = CAN_ID_EXT,
+						.RTR = CAN_RTR_DATA,
+						.DLC = msg.header.DLC,
+						.TransmitGlobalTime = DISABLE
+				};
+
+				if(HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+				{
+					char msg[]  = "Failed to send Sendyne Current log msg";
+					AMS_LogErr(msg, strlen(msg));
+				}
 			}
 		}
 	} else if(msg.header.ExtId == CS_2_RESPONSE_EXTID)
