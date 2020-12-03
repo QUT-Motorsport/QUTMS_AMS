@@ -65,9 +65,9 @@ extern "C" {
 #define BMS_TEMPERATURE_COUNT 12
 
 // Debug
-//#define DEBUG_CB
+#define DEBUG_CB
 #define ENABLE_CS
-#define DEBUG_PERIOD 500U // Milliseconds
+#define DEBUG_PERIOD 1000U // Milliseconds
 #define PRECHARGE_VDIFF 5.0f
 #define BMS_CELL_VMIN 2.0f
 
@@ -100,8 +100,8 @@ extern "C" {
 #define CS_LOG_CC 0
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
-#define BMS_LOG_V 0
-#define BMS_LOG_T 0
+#define BMS_LOG_V 1
+#define BMS_LOG_T 1
 
 // General
 /* USER CODE END EC */
@@ -136,6 +136,7 @@ void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 uint32_t getRuntime();
 int _write(int file, char *data, int len);
+void handleCAN(CAN_HandleTypeDef *hcan, int fifo);
 __NO_RETURN void fsm_thread_mainLoop(void* fsm);
 __NO_RETURN void uart_thread_mainLoop(void* fsm);
 

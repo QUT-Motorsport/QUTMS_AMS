@@ -31,12 +31,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+#include <sys/unistd.h>
 #include "AMS_CAN_Messages.h"
 #include "BMS_CAN_Messages.h"
 #include "FSM.h"
 #include "AMS_FSM_States.h"
-#include <math.h>
-#include  <sys/unistd.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -104,6 +104,7 @@ int main(void)
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
+	MX_CAN1_Init();
 	MX_USART3_UART_Init();
 	MX_TIM4_Init();
 	MX_CAN2_Init();
@@ -196,6 +197,30 @@ int main(void)
 	{
 		/* Filter configuration Error */
 		char msg[] = "Failed to set CAN2 Filter";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+	{
+		char msg[] = "Failed to activate CAN2 notification on RX0";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
+	{
+		char msg[] = "Failed to activate CAN2 notification on RX1";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+	{
+		char msg[] = "Failed to activate CAN4 notification on RX0";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
+	{
+		char msg[] = "Failed to activate CAN4 notification on RX1";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
@@ -372,31 +397,31 @@ void heartbeatTimerBMS_cb(void *fsm)
 
 void ccTimer_cb(void *fsm)
 {
-//	 Request Coloumb Count From CS1
-		CAN_TxHeaderTypeDef header =
-		{
-				.ExtId = CS_1_EXTID,
-				.IDE = CAN_ID_EXT,
-				.RTR = CAN_RTR_DATA,
-				.DLC = 1,
-				.TransmitGlobalTime = DISABLE,
-		};
+	//	 Request Coloumb Count From CS1
+	CAN_TxHeaderTypeDef header =
+	{
+			.ExtId = CS_1_EXTID,
+			.IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA,
+			.DLC = 1,
+			.TransmitGlobalTime = DISABLE,
+	};
 
-		uint8_t data = CURRENT_SENSOR_CC_LOW;
-		if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-		{
-			char msg[] = "Failed to send current sensor packet 1";
-			AMS_LogErr(msg, strlen(msg));
-		}
+	uint8_t data = CURRENT_SENSOR_CC_LOW;
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+	{
+		char msg[] = "Failed to send current sensor packet 1";
+		AMS_LogErr(msg, strlen(msg));
+	}
 
-		osDelay(1);
+	osDelay(1);
 
-		uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
-		if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-		{
-			char msg[] = "Failed to send current sensor packet 2";
-			AMS_LogErr(msg, strlen(msg));
-		}
+	uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
+	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+	{
+		char msg[] = "Failed to send current sensor packet 2";
+		AMS_LogErr(msg, strlen(msg));
+	}
 	return;
 }
 
@@ -457,29 +482,6 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	fsm_reset(fsm, &initState);
 	for(;;)
 	{
-		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS4, CAN_RX_FIFO0) > 0)
-		{
-			AMS_CAN_Generic_t msg;
-			HAL_CAN_GetRxMessage(&CANBUS4, CAN_RX_FIFO0, &(msg.header), msg.data);
-			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-#ifdef CAN4_LOG_ON_MSG
-			char x[80];
-			int len = sprintf(x, "[%li] Got CAN msg from CAN4: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
-			AMS_LogInfo(x, len);
-#endif
-		}
-
-		while(HAL_CAN_GetRxFifoFillLevel(&CANBUS2, CAN_RX_FIFO0) > 0)
-		{
-			AMS_CAN_Generic_t msg;
-			HAL_CAN_GetRxMessage(&CANBUS2, CAN_RX_FIFO0, &(msg.header), msg.data);
-			osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
-#ifdef CAN2_LOG_ON_MSG
-			char x[80];
-			int len = sprintf(x, "[%li] Got CAN msg from CAN2: 0x%02lX\r\n", getRuntime(), msg.header.ExtId);
-			AMS_LogInfo(x, len);
-#endif
-		}
 		fsm_iterate(fsm);
 	}
 }
@@ -537,6 +539,22 @@ int _write(int file, char *data, int len)
 	return (s == HAL_OK ? len : 0);
 }
 #endif
+
+void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
+{
+	// Iterate over the CAN FIFO buffer, adding all CAN messages to the CAN Queue.
+//	printf("Handling Can \r\n");
+	while(HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0)
+	{
+		AMS_CAN_Generic_t msg;
+		if(HAL_CAN_GetRxMessage(hcan, fifo,  &(msg.header), msg.data) != HAL_OK)
+		{
+			char msg[] = "Failed top read in CAN message";
+			AMS_LogErr(msg, strlen(msg));
+		}
+		osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+	}
+}
 /* USER CODE END 4 */
 
 /**
