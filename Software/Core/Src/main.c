@@ -107,9 +107,9 @@ int main(void)
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_CAN1_Init();
-	MX_USART3_UART_Init();
 	MX_TIM4_Init();
 	MX_CAN2_Init();
+	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
 	printf("PWR_ENABLED\r\n");
@@ -133,76 +133,42 @@ int main(void)
 	/** FAN On (Not used as of 2020 QLD Comp */
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 
-	/** Wait for the BMSs to boot up */
-	HAL_Delay(2750);
-
 	/** Log above */
 	printf("BMS Wake-up Timeout Complete\r\n");
 
-	/** Start the CAN Busses */
-	MX_CAN1_Init();
+	/** Start CANBUS2 only */
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
 		char msg[] = "Failed to CAN_Start CAN2";
 		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
-		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU", CANBUS4.ErrorCode);
-		AMS_LogErr(msg2, len);
-		char msg3[] = "Error likely caused by BMS not powered with isolated side of BMS powered.";
-		AMS_LogErr(msg3, strlen(msg3));
-	}
-
-	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
-	{
-		char msg[] = "Failed to CAN_Start CAN4";
-		AMS_LogErr(msg, strlen(msg));
-		char msg2[80];
-		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU", CANBUS4.ErrorCode);
+		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU", CANBUS2.ErrorCode);
 		AMS_LogErr(msg2, len);
 	}
 
-	/** Create CAN Filter & Apply it to &CANBUS4, &CANBUS2 */
-	CAN_FilterTypeDef  sFilterConfig;
+	/** Create CAN Filter & Apply it to CANBUS2 */
 
-	sFilterConfig.FilterBank = 0;
-	sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	sFilterConfig.FilterIdHigh = 0x0000;
-	sFilterConfig.FilterIdLow = 0x0001;
-	sFilterConfig.FilterMaskIdHigh = 0x0000;
-	sFilterConfig.FilterMaskIdLow = 0x0000;
-	sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-	sFilterConfig.FilterActivation = ENABLE;
-	sFilterConfig.SlaveStartFilterBank = 14;
+	CAN_FilterTypeDef  CAN2FilterConfig;
 
-	CAN_FilterTypeDef  sFilterConfig2;
+	CAN2FilterConfig.FilterBank = 14;
+	CAN2FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	CAN2FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	CAN2FilterConfig.FilterIdHigh = 0x0000;
+	CAN2FilterConfig.FilterIdLow = 0x0001;
+	CAN2FilterConfig.FilterMaskIdHigh = 0x0000;
+	CAN2FilterConfig.FilterMaskIdLow = 0x0000;
+	CAN2FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+	CAN2FilterConfig.FilterActivation = ENABLE;
+	CAN2FilterConfig.SlaveStartFilterBank = 14;
 
-	sFilterConfig2.FilterBank = 14;
-	sFilterConfig2.FilterMode = CAN_FILTERMODE_IDMASK;
-	sFilterConfig2.FilterScale = CAN_FILTERSCALE_32BIT;
-	sFilterConfig2.FilterIdHigh = 0x0000;
-	sFilterConfig2.FilterIdLow = 0x0001;
-	sFilterConfig2.FilterMaskIdHigh = 0x0000;
-	sFilterConfig2.FilterMaskIdLow = 0x0000;
-	sFilterConfig2.FilterFIFOAssignment = CAN_RX_FIFO0;
-	sFilterConfig2.FilterActivation = ENABLE;
-	sFilterConfig2.SlaveStartFilterBank = 14;
-
-	if (HAL_CAN_ConfigFilter(&CANBUS4, &sFilterConfig) != HAL_OK)
-	{
-		/* Filter configuration Error */
-		char msg[] = "Failed to set CAN4 Filter";
-		AMS_LogErr(msg, strlen(msg));
-	}
-
-	if (HAL_CAN_ConfigFilter(&CANBUS2, &sFilterConfig2) != HAL_OK)
+	if (HAL_CAN_ConfigFilter(&CANBUS2, &CAN2FilterConfig) != HAL_OK)
 	{
 		/* Filter configuration Error */
 		char msg[] = "Failed to set CAN2 Filter";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	/** Active CAN Interrupts for handling incomming messages */
+	/** Active CAN Interrupts for handling incoming messages */
 	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
 	{
 		char msg[] = "Failed to activate CAN2 notification on RX0";
@@ -212,18 +178,6 @@ int main(void)
 	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
 	{
 		char msg[] = "Failed to activate CAN2 notification on RX1";
-		AMS_LogErr(msg, strlen(msg));
-	}
-
-	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-	{
-		char msg[] = "Failed to activate CAN4 notification on RX0";
-		AMS_LogErr(msg, strlen(msg));
-	}
-
-	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
-	{
-		char msg[] = "Failed to activate CAN4 notification on RX1";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
@@ -484,6 +438,60 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	// Reset our FSM in idleState, as we are just starting
 	fsm_setLogFunction(fsm, &printf);
 	fsm_reset(fsm, &initState);
+
+	/** Wait for BMSs to boot */
+	osDelay(2750);
+
+	/** Now BMSs have booted, start CAN4 */
+	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
+	{
+		char msg[] = "Failed to CAN_Start CAN4";
+		AMS_LogErr(msg, strlen(msg));
+		char msg2[80];
+		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU", CANBUS4.ErrorCode);
+		AMS_LogErr(msg2, len);
+		char msg3[] = "Error likely caused by BMS not powered with isolated side of BMS powered.";
+		AMS_LogErr(msg3, strlen(msg3));
+	}
+
+	CAN_FilterTypeDef  CAN4FilterConfig;
+
+	CAN4FilterConfig.FilterBank = 0;
+	CAN4FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	CAN4FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	CAN4FilterConfig.FilterIdHigh = 0x0000;
+	CAN4FilterConfig.FilterIdLow = 0x0001;
+	CAN4FilterConfig.FilterMaskIdHigh = 0x0000;
+	CAN4FilterConfig.FilterMaskIdLow = 0x0000;
+	CAN4FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+	CAN4FilterConfig.FilterActivation = ENABLE;
+	CAN4FilterConfig.SlaveStartFilterBank = 14;
+
+	if (HAL_CAN_ConfigFilter(&CANBUS4, &CAN4FilterConfig) != HAL_OK)
+	{
+		/* Filter configuration Error */
+		char msg[] = "Failed to set CAN4 Filter";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+	{
+		char msg[] = "Failed to activate CAN4 notification on RX0";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
+	{
+		char msg[] = "Failed to activate CAN4 notification on RX1";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if(fsm_getState_t(fsm) != &errorState)
+	{
+		/** Manually move into SoC now the BMSs have booted */
+		fsm_changeState(fsm, &SoCState, "BMS timeout complete, move to SoC");
+	}
+
 	for(;;)
 	{
 		fsm_iterate(fsm);
@@ -501,7 +509,7 @@ void AMS_LogErr(char* error, size_t length)
 	int len = sprintf(errorMsg, "ERROR: %s\r\n", error);
 	if(len == length + 9)
 	{
-		HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart1, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
 	} else
 	{
 		printf("Failed to log error in AMS_LogErr\r\n");
@@ -532,7 +540,7 @@ int _write(int file, char *data, int len)
 	{
 		return -1;
 	}
-	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart3, (uint8_t*)data, len, HAL_MAX_DELAY);
+	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart1, (uint8_t*)data, len, HAL_MAX_DELAY);
 
 	return (s == HAL_OK ? len : 0);
 }

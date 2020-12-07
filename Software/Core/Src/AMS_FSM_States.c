@@ -116,7 +116,7 @@ void state_init_enter(fsm_t *fsm)
 
 void state_init_iterate(fsm_t *fsm)
 {
-	fsm_changeState(fsm, &SoCState, "We are initialised, time to SoC");
+	return;
 }
 
 void state_init_exit(fsm_t *fsm)
@@ -381,10 +381,6 @@ void state_precharge_iterate(fsm_t *fsm)
 		char msg[] = "Failed to acquire semaphore in precharge check";
 		AMS_LogErr(msg, strlen(msg));
 	}
-	//	if(HAL_GetTick() - globalTimer > 2000)
-	//	{
-	//		fsm_changeState(fsm, &drivingState, "Forced into driving state on timeout");
-	//	}
 }
 
 void state_precharge_exit(fsm_t *fsm)
@@ -408,7 +404,7 @@ void state_driving_enter(fsm_t *fsm)
 	// Close Connectors
 
 	// LOW - PRECHG
-	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
 	// PROFET Positions AFTER Precharge
 	// HIGH - HVA+, HVA-, HVB+, HVB-
@@ -751,17 +747,21 @@ void state_SoC_iterate(fsm_t *fsm)
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		int i = 0;
+		float reportingVoltage = 0;
 		while(i < BMS_COUNT)
 		{
 			if(AMS_GlobalState->BMSVoltages[i][0]/1000.0f < BMS_CELL_VMIN)
 			{
 				break;
 			}
+			reportingVoltage += AMS_GlobalState->BMSVoltages[i][0]/1000.0f;
 			i++;
 		}
 		if(i == BMS_COUNT)
 		{
-			fsm_changeState(fsm, &idleState, "All BMSs awake, move to idle");
+			char x[80];
+			snprintf(x, strlen(x), "All BMSs awake, reporting voltage of %f, moving to idle", reportingVoltage);
+			fsm_changeState(fsm, &idleState, x);
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
