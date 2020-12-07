@@ -133,9 +133,6 @@ int main(void)
 	/** FAN On (Not used as of 2020 QLD Comp */
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 
-	/** Log above */
-	printf("BMS Wake-up Timeout Complete\r\n");
-
 	/** Start CANBUS2 only */
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
 	{
@@ -442,6 +439,9 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	/** Wait for BMSs to boot */
 	osDelay(2750);
 
+	/** Log above */
+	printf("BMS Wake-up Timeout Complete\r\n");
+
 	/** Now BMSs have booted, start CAN4 */
 	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
 	{
@@ -560,6 +560,20 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
 			AMS_LogErr(msg, strlen(msg));
 		}
 		osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+
+		/** Send any CAN4 messages out on CAN2 */
+		if(hcan == &CANBUS4)
+		{
+			CAN_TxHeaderTypeDef header =
+			{
+					.ExtId = msg.header.ExtId,
+					.IDE = CAN_ID_EXT,
+					.RTR = CAN_RTR_DATA,
+					.DLC = sizeof(msg.header.DLC),
+					.TransmitGlobalTime = DISABLE,
+			};
+			HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data, &AMS_GlobalState->CAN2_TxMailbox);
+		}
 	}
 }
 /* USER CODE END 4 */

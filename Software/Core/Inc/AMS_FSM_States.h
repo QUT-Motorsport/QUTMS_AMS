@@ -248,8 +248,13 @@ state_t initState;
 
 /** Handlers for generic CAN messages that are repeated in multiple states */
 
+/** BMS Handlers */
+void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
+void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg);
+
+/** Sendyne Sensor Handlers */
 void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleColoumbCount(fsm_t *fsm, AMS_CAN_Generic_t msg);
 void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg);

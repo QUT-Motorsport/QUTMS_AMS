@@ -158,90 +158,33 @@ void state_idle_iterate(fsm_t *fsm)
 			/** Handle the packet */
 			/**
 			 * @brief Packets idle is looking for
-			 * CHASSIS_RTD, [BMS_BadCellVoltage], [BMS_BadCellTemperature], AMS2_ChargEnabled,
+			 * CHASSIS_RTD, [BMS_BadCellVoltage], [BMS_BadCellTemperature], AMS2_ChargeEnabled,
 			 * [BMS_TransmitVoltages], [BMS_TransmitTemperatures]
 			 */
 
 			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				/** BMS_TransmitVoltages With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
-				{
-					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-					if(BMSId > BMS_COUNT)
-					{
-						char msg[] = "BMS ID Outside of acceptable range!";
-						AMS_LogErr(msg, strlen(msg));
-						return;
-					}
-					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 4; i++)
-						{
-							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
-						}
-						/** If last message, log all voltages to SD*/
-						if(vMsgId == 2)
-						{
-#if BMS_LOG_V
-							printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
-									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-#endif
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
-				}
+				switch(msg.header.ExtId & BMS_ID_MASK) {
+				case AMS_StartUp_ID:
+					/** Got AMS Startup, move to precharge and await RTD */
+					fsm_changeState(fsm, &prechargeState, "Moving to precharge by command of CC");
+					break;
+				case BMS_TransmitVoltage_ID:
+					/** BMS_TransmitVoltage with BMSID masked off*/
+					BMS_handleVoltage(fsm, msg);
+					break;
+				case BMS_TransmitTemperature_ID:
+					/** BMS_TransmitTemperatures with BMSID masked off*/
+					BMS_handleTemperature(fsm, msg);
+					break;
 
-				/** BMS_TransmitTemperatures With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
-				{
-					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
-					if(BMSId > BMS_COUNT)
-					{
-						char msg[] = "BMS ID Outside of acceptable range!";
-						AMS_LogErr(msg, strlen(msg));
-						return;
-					}
-					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 6; i++)
-						{
-							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
-						}
-						/** If last message, log all temperatures to SD*/
-						if(tMsgId == 1)
-						{
-#if BMS_LOG_T
-							printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
-									AMS_GlobalState->BMSTemperatures[BMSId][0],
-									AMS_GlobalState->BMSTemperatures[BMSId][1],
-									AMS_GlobalState->BMSTemperatures[BMSId][2],
-									AMS_GlobalState->BMSTemperatures[BMSId][3],
-									AMS_GlobalState->BMSTemperatures[BMSId][4],
-									AMS_GlobalState->BMSTemperatures[BMSId][5],
-									AMS_GlobalState->BMSTemperatures[BMSId][6],
-									AMS_GlobalState->BMSTemperatures[BMSId][7],
-									AMS_GlobalState->BMSTemperatures[BMSId][8],
-									AMS_GlobalState->BMSTemperatures[BMSId][9],
-									AMS_GlobalState->BMSTemperatures[BMSId][10],
-									AMS_GlobalState->BMSTemperatures[BMSId][11]);
-#endif
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
+				case CC_FatalShutdown_ID:
+					fsm_changeState(fsm, &errorState, "Fatal Shutdown received from CC");
+					break;
+
+				case CC_SoftShutdown_ID:
+					fsm_changeState(fsm, &resetState, "Soft Shutdown received from CC");
+					break;
 				}
 
 				BMS_handleBadCellVoltage(fsm, msg);
@@ -251,12 +194,6 @@ void state_idle_iterate(fsm_t *fsm)
 				Sendyne_handleColoumbCount(fsm, msg);
 
 				Sendyne_handleCurrent(fsm, msg);
-
-				/** CC_RTD with no care about BMSID */
-				if((msg.header.ExtId) == Compose_CANId(0x2, 0x16, 0x0, 0x0, 0x0, 0x0))
-				{
-					fsm_changeState(fsm, &prechargeState, "RTD from CC, moving to Precharge");
-				}
 			}
 		}
 	}
@@ -303,45 +240,33 @@ void state_precharge_iterate(fsm_t *fsm)
 			 */
 			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				/** BMS_TransmitVoltages With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
+				switch(msg.header.ExtId & BMS_ID_MASK) {
+				case CC_ReadyToDrive_ID:
 				{
-					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+					if(fabs(fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE) < PRECHARGE_VDIFF)
 					{
-						for(int i = 0; i < 4; i++)
-						{
-							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
-						}
-						/** If last message, log all voltages to SD*/
-						if(vMsgId == 2)
-						{
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
+						char x[80];
+						snprintf(x, 80, "HV Voltage Drop: %f, RTD.", fabs(fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE));
+						fsm_changeState(fsm, &drivingState, x);
 					}
 				}
+				break;
 
-				/** BMS_TransmitTemperatures With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
-				{
-					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
+				case BMS_TransmitVoltage_ID:
+					BMS_handleVoltage(fsm, msg);
+					break;
 
-					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 6; i++)
-						{
-							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
-						}
-						/** If last message, log all temperatures to SD*/
-						if(tMsgId == 1)
-						{
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
+				case BMS_TransmitTemperature_ID:
+					BMS_handleTemperature(fsm, msg);
+					break;
+
+				case CC_FatalShutdown_ID:
+					fsm_changeState(fsm, &errorState, "Fatal Shutdown received from CC");
+					break;
+
+				case CC_SoftShutdown_ID:
+					fsm_changeState(fsm, &resetState, "Soft Shutdown received from CC");
+					break;
 				}
 
 				Sendyne_handleVoltage(fsm, msg);
@@ -357,6 +282,8 @@ void state_precharge_iterate(fsm_t *fsm)
 		}
 	}
 
+	/** Monitor the Precharge Voltage */
+
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
 		float accumulatorVoltage = 0;
@@ -370,10 +297,18 @@ void state_precharge_iterate(fsm_t *fsm)
 
 			if(fabs(fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE) < PRECHARGE_VDIFF)
 			{
-				/** Our voltage is close enough to the battery voltage, precharge done */
-				char x[80];
-				snprintf(x, 80, "HV Voltage Drop: %f, RTD.", fabs(fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE));
-				fsm_changeState(fsm, &drivingState, x);
+				/** Notify CC of the Prechage completion, but dont change into RTD yet */
+				AMS_Ready_t notifyCCofPrechage = Compose_AMS_Ready();
+				CAN_TxHeaderTypeDef header =
+				{
+						.ExtId = notifyCCofPrechage.id,
+						.IDE = CAN_ID_EXT,
+						.RTR = CAN_RTR_DATA,
+						.DLC = 0,
+						.TransmitGlobalTime = DISABLE,
+				};
+
+				HAL_CAN_AddTxMessage(&CANBUS2, &header, NULL, &AMS_GlobalState->CAN2_TxMailbox);
 			}
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
@@ -431,84 +366,23 @@ void state_driving_iterate(fsm_t *fsm)
 
 			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				/** BMS_TransmitVoltages With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
+				switch(msg.header.ExtId & BMS_ID_MASK)
 				{
-					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-					if(BMSId > BMS_COUNT)
-					{
-						char msg[] = "BMS ID Outside of acceptable range!";
-						AMS_LogErr(msg, strlen(msg));
-						return;
-					}
-					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 4; i++)
-						{
-							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
-						}
-						/** If last message, log all voltages to SD*/
-						if(vMsgId == 2)
-						{
-#if BMS_LOG_V
-							printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
-									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-#endif
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
-				}
+				case BMS_TransmitVoltage_ID:
+					BMS_handleVoltage(fsm, msg);
+					break;
 
-				/** BMS_TransmitTemperatures With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
-				{
-					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
-					if(BMSId > BMS_COUNT)
-					{
-						char msg[] = "BMS ID Outside of acceptable range!";
-						AMS_LogErr(msg, strlen(msg));
-						return;
-					}
-					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 6; i++)
-						{
-							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
-						}
-						/** If last message, log all temperatures to SD*/
-						if(tMsgId == 1)
-						{
-#if BMS_LOG_T
-							printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
-									AMS_GlobalState->BMSTemperatures[BMSId][0],
-									AMS_GlobalState->BMSTemperatures[BMSId][1],
-									AMS_GlobalState->BMSTemperatures[BMSId][2],
-									AMS_GlobalState->BMSTemperatures[BMSId][3],
-									AMS_GlobalState->BMSTemperatures[BMSId][4],
-									AMS_GlobalState->BMSTemperatures[BMSId][5],
-									AMS_GlobalState->BMSTemperatures[BMSId][6],
-									AMS_GlobalState->BMSTemperatures[BMSId][7],
-									AMS_GlobalState->BMSTemperatures[BMSId][8],
-									AMS_GlobalState->BMSTemperatures[BMSId][9],
-									AMS_GlobalState->BMSTemperatures[BMSId][10],
-									AMS_GlobalState->BMSTemperatures[BMSId][11]);
-#endif
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
+				case BMS_TransmitTemperature_ID:
+					BMS_handleTemperature(fsm, msg);
+					break;
+
+				case CC_FatalShutdown_ID:
+					fsm_changeState(fsm, &errorState, "Fatal Shutdown received from CC");
+					break;
+
+				case CC_SoftShutdown_ID:
+					fsm_changeState(fsm, &resetState, "Soft Shutdown received from CC");
+					break;
 				}
 			}
 
@@ -519,13 +393,6 @@ void state_driving_iterate(fsm_t *fsm)
 			Sendyne_handleColoumbCount(fsm, msg);
 
 			Sendyne_handleCurrent(fsm, msg);
-
-			/** CC Soft Shutdown */
-			if(msg.header.ExtId == Compose_CANId(0x02, 0x16, 0x0, 0x1, 0x1, 0))
-			{
-				// Return to IdleState
-				fsm_changeState(fsm, &idleState, "Soft Shutdown from CC");
-			}
 		}
 	}
 }
@@ -657,84 +524,23 @@ void state_SoC_iterate(fsm_t *fsm)
 			 */
 			if(msg.header.IDE == CAN_ID_EXT)
 			{
-				/** BMS_TransmitVoltages With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x02, 0x0))
+				switch(msg.header.ExtId & BMS_ID_MASK)
 				{
-					uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
-					Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
-					if(BMSId > BMS_COUNT)
-					{
-						char msg[] = "BMS ID Outside of acceptable range!";
-						AMS_LogErr(msg, strlen(msg));
-						return;
-					}
-					uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 4; i++)
-						{
-							AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
-						}
-						/** If last message, log all voltages to SD*/
-						if(vMsgId == 2)
-						{
-#if BMS_LOG_V
-							printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
-									AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
-									AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
-#endif
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
-				}
+				case BMS_TransmitVoltage_ID:
+					BMS_handleVoltage(fsm, msg);
+					break;
 
-				/** BMS_TransmitTemperatures With BMSID masked off */
-				if((msg.header.ExtId & BMS_ID_MASK) == Compose_CANId(CAN_PRIORITY_NORMAL, CAN_SRC_ID_BMS, 0x0, CAN_TYPE_TRANSMIT, 0x03, 0x0))
-				{
-					uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
-					Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
-					if(BMSId > BMS_COUNT)
-					{
-						char msg[] = "BMS ID Outside of acceptable range!";
-						AMS_LogErr(msg, strlen(msg));
-						return;
-					}
-					uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
-					if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-					{
-						for(int i = 0; i < 6; i++)
-						{
-							AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
-						}
-						/** If last message, log all temperatures to SD*/
-						if(tMsgId == 1)
-						{
-#if BMS_LOG_T
-							printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
-									AMS_GlobalState->BMSTemperatures[BMSId][0],
-									AMS_GlobalState->BMSTemperatures[BMSId][1],
-									AMS_GlobalState->BMSTemperatures[BMSId][2],
-									AMS_GlobalState->BMSTemperatures[BMSId][3],
-									AMS_GlobalState->BMSTemperatures[BMSId][4],
-									AMS_GlobalState->BMSTemperatures[BMSId][5],
-									AMS_GlobalState->BMSTemperatures[BMSId][6],
-									AMS_GlobalState->BMSTemperatures[BMSId][7],
-									AMS_GlobalState->BMSTemperatures[BMSId][8],
-									AMS_GlobalState->BMSTemperatures[BMSId][9],
-									AMS_GlobalState->BMSTemperatures[BMSId][10],
-									AMS_GlobalState->BMSTemperatures[BMSId][11]);
-#endif
-						}
-						osSemaphoreRelease(AMS_GlobalState->sem);
-					}
+				case BMS_TransmitTemperature_ID:
+					BMS_handleTemperature(fsm, msg);
+					break;
+
+				case CC_FatalShutdown_ID:
+					fsm_changeState(fsm, &errorState, "Fatal Shutdown received from CC");
+					break;
+
+				case CC_SoftShutdown_ID:
+					fsm_changeState(fsm, &resetState, "Soft Shutdown received from CC");
+					break;
 				}
 
 				BMS_handleBadCellVoltage(fsm, msg);
@@ -770,6 +576,84 @@ void state_SoC_iterate(fsm_t *fsm)
 void state_SoC_exit(fsm_t *fsm)
 {
 	return;
+}
+
+void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	uint8_t BMSId; uint8_t vMsgId; uint16_t voltages[4];
+	Parse_BMS_TransmitVoltage(msg.header.ExtId, msg.data, &BMSId, &vMsgId, voltages);
+	if(BMSId > BMS_COUNT - 1)
+	{
+		char msg[] = "BMS ID Outside of acceptable range!";
+		AMS_LogErr(msg, strlen(msg));
+		return;
+	}
+	uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		for(int i = 0; i < 4; i++)
+		{
+			AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];
+		}
+		/** If last message, log all voltages to SD*/
+		if(vMsgId == 2)
+		{
+#if BMS_LOG_V
+			printf("[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n", getRuntime(), BMSId,
+					AMS_GlobalState->BMSVoltages[BMSId][0]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][1]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][2]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][3]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][4]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][5]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][6]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][7]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][8]/1000.f,
+					AMS_GlobalState->BMSVoltages[BMSId][9]/1000.f);
+#endif
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	}
+}
+
+void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
+{
+	uint8_t BMSId; uint8_t tMsgId; uint8_t temperatures[6];
+	Parse_BMS_TransmitTemperature(msg.header.ExtId, msg.data, &BMSId, &tMsgId, temperatures);
+	if(BMSId > BMS_COUNT - 1)
+	{
+		char msg[] = "BMS ID Outside of acceptable range!";
+		AMS_LogErr(msg, strlen(msg));
+		return;
+	}
+	uint8_t temperatureIndexStart = tMsgId * 6; // tMsgId : start | 0:0->5, 1:11
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	{
+		for(int i = 0; i < 6; i++)
+		{
+			AMS_GlobalState->BMSTemperatures[BMSId][temperatureIndexStart + i] = temperatures[i];
+		}
+		/** If last message, log all temperatures to SD*/
+		if(tMsgId == 1)
+		{
+#if BMS_LOG_T
+			printf("[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n", getRuntime(), BMSId,
+					AMS_GlobalState->BMSTemperatures[BMSId][0],
+					AMS_GlobalState->BMSTemperatures[BMSId][1],
+					AMS_GlobalState->BMSTemperatures[BMSId][2],
+					AMS_GlobalState->BMSTemperatures[BMSId][3],
+					AMS_GlobalState->BMSTemperatures[BMSId][4],
+					AMS_GlobalState->BMSTemperatures[BMSId][5],
+					AMS_GlobalState->BMSTemperatures[BMSId][6],
+					AMS_GlobalState->BMSTemperatures[BMSId][7],
+					AMS_GlobalState->BMSTemperatures[BMSId][8],
+					AMS_GlobalState->BMSTemperatures[BMSId][9],
+					AMS_GlobalState->BMSTemperatures[BMSId][10],
+					AMS_GlobalState->BMSTemperatures[BMSId][11]);
+#endif
+		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
+	}
 }
 
 void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
@@ -823,11 +707,11 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 		// Notify Chassis we have a bad cell temperature.
 		HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data, &AMS_GlobalState->CAN2_TxMailbox);
 
-//		char x[80];
-//		int len = snprintf(x, 80, "Found Bad Cell Temperature: Cell:%i, Temp: %i", cellNum, temperature);
+		//		char x[80];
+		//		int len = snprintf(x, 80, "Found Bad Cell Temperature: Cell:%i, Temp: %i", cellNum, temperature);
 
 		// Bad BMS cell temperature found, we need to change to errorState
-//		AMS_LogErr(x, len);
+		//		AMS_LogErr(x, len);
 		//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 		{
