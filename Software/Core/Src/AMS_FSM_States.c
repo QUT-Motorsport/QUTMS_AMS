@@ -559,17 +559,20 @@ void state_SoC_iterate(fsm_t *fsm)
 
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
+
+		// ALI Test this
 		int i = 0;
-		float reportingVoltage = 0;
 		while(i < BMS_COUNT)
 		{
-			if(AMS_GlobalState->BMSVoltages[i][0]/1000.0f < BMS_CELL_VMIN)
+			if(AMS_GlobalState->BMSStartupSoc[i])
+			{
+				i++;
+			} else
 			{
 				break;
 			}
-			reportingVoltage += AMS_GlobalState->BMSVoltages[i][0]/1000.0f;
-			i++;
 		}
+
 		if(i == BMS_COUNT)
 		{
 			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
@@ -656,6 +659,7 @@ void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 	uint8_t voltageIndexStart = vMsgId * 4; // vMsgId : start | 0:0->3, 1:4->7, 2:8->9
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
+		AMS_GlobalState->BMSStartupSoc[BMSId] = true;
 		for(int i = 0; i < 4; i++)
 		{
 			AMS_GlobalState->BMSVoltages[BMSId][voltageIndexStart + i] = voltages[i];

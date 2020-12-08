@@ -468,12 +468,13 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	fsm_reset(fsm, &initState);
 
 	/** Wait for BMSs to boot */
-//	HAL_StatusTypeDef err;
-//	do
-//	{
-//		err = HAL_CAN_Start(&CANBUS4);
-//		HAL_Delay(100);
-//	} while(err != HAL_OK);
+	// ALI Test this
+	//	HAL_StatusTypeDef err;
+	//	do
+	//	{
+	//		err = HAL_CAN_Start(&CANBUS4);
+	//		HAL_Delay(100);
+	//	} while(err != HAL_OK);
 	osDelay(2750);
 
 	/** Log above */
