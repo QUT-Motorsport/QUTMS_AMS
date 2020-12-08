@@ -54,15 +54,14 @@ extern "C" {
 #define AMS_CS_PERIOD 1000U // Milliseconds
 #define AMS_CAN_QUEUESIZE 25 //Units
 
-//Voltage
-//#define ACCUMULATOR_VOLTAGE 6.79f
-#define ACCUMULATOR_VOLTAGE 60.0f
-
 // BMS
-//#define BMS_COUNT 12
-#define BMS_COUNT 2
-#define BMS_VOLTAGE_COUNT 10
-#define BMS_TEMPERATURE_COUNT 12
+#define BMS_COUNT 8
+#define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
+#define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
+
+//Voltage
+//#define ACCUMULATOR_VOLTAGE 36.0f * BMS_COUNT
+#define ACCUMULATOR_VOLTAGE 69.0f
 
 // Debug
 #define DEBUG_CB
@@ -75,10 +74,17 @@ extern "C" {
 #define BMS_ID_MASK 0x1FFFFFF0
 
 // Current Sensor CAN Information
+//#define CS_2_EXTID 0xA100201
+//#define CS_1_EXTID 0xA100211
+//#define CS_2_RESPONSE_EXTID 0xA100200
+//#define CS_1_RESPONSE_EXTID 0xA100210
+
+// OG, before Sam Broke the wire
 #define CS_1_EXTID 0xA100201
 #define CS_2_EXTID 0xA100211
 #define CS_1_RESPONSE_EXTID 0xA100200
 #define CS_2_RESPONSE_EXTID 0xA100210
+
 #define CURRENT_SENSOR_REQ_SIZE 1
 #define CURRENT_SENSOR_CC_LOW 0x40
 #define CURRENT_SENSOR_CC_HIGH 0x41
@@ -101,7 +107,7 @@ extern "C" {
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
 #define BMS_LOG_V 1
-#define BMS_LOG_T 1
+#define BMS_LOG_T 0
 
 // General
 /* USER CODE END EC */

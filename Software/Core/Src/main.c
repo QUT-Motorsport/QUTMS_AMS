@@ -56,7 +56,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+bool charge;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,6 +84,7 @@ const osThreadAttr_t fsmThreadAttr = {
 int main(void)
 {
 	/* USER CODE BEGIN 1 */
+	charge = false;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -112,8 +113,20 @@ int main(void)
 	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
+	char magicMsg[] = "PitterPatterLetsGetChargin'\r\n";
+	char dbuf[strlen(magicMsg)];
+
+	HAL_UART_Transmit(&huart1, (uint8_t *)&magicMsg, strlen(magicMsg), HAL_MAX_DELAY);
+	if(HAL_UART_Receive(&huart1, (uint8_t*)&dbuf, strlen(magicMsg), 100) == HAL_OK)
+	{
+		if(strcmp(dbuf,magicMsg)) {
+			charge = true;
+		}
+	}
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
+	if(charge) printf("Entering Charging Mode as indicated by UART loopback\r\n");
+
 
 	/** ALARM Line - Safe is actually logic low */
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
@@ -288,7 +301,7 @@ void heartbeatTimer_cb(void *fsm)
 
 		// Are we RTD?
 		bool initialised = false;
-		if(fsm_getState_t(fsm) == &idleState) {
+		if(fsm_getState_t(fsm) == &idleState || fsm_getState_t(fsm) == &prechargeState) {
 			initialised = true;
 		}
 
@@ -331,18 +344,36 @@ void heartbeatTimerBMS_cb(void *fsm)
 	//	// Take the GlobalState sem, find our values then fire off the packet
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
-		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0, 0, 0, 0, 0, 0, 0, 0);
-
-		CAN_TxHeaderTypeDef header =
+		if(charge)
 		{
-				.ExtId = canPacket.id,
-				.IDE = CAN_ID_EXT,
-				.RTR = CAN_RTR_DATA,
-				.DLC = sizeof(canPacket.data),
-				.TransmitGlobalTime = DISABLE,
-		};
+			/** We are charging, so send BMSs charge enabled based heart beat */
+			BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(0x00);
 
-		HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data, &AMS_GlobalState->CAN4_TxMailbox);
+			CAN_TxHeaderTypeDef header =
+			{
+					.ExtId = canPacket.id,
+					.IDE = CAN_ID_EXT,
+					.RTR = CAN_RTR_DATA,
+					.DLC = 0,
+					.TransmitGlobalTime = DISABLE,
+			};
+
+			HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL, &AMS_GlobalState->CAN4_TxMailbox);
+		} else {
+			/** We are driving, so send BMSs normal heart beat */
+			AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0, 0, 0, 0, 0, 0, 0, 0);
+
+			CAN_TxHeaderTypeDef header =
+			{
+					.ExtId = canPacket.id,
+					.IDE = CAN_ID_EXT,
+					.RTR = CAN_RTR_DATA,
+					.DLC = sizeof(canPacket.data),
+					.TransmitGlobalTime = DISABLE,
+			};
+
+			HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data, &AMS_GlobalState->CAN4_TxMailbox);
+		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	} else
 	{
@@ -437,6 +468,12 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	fsm_reset(fsm, &initState);
 
 	/** Wait for BMSs to boot */
+//	HAL_StatusTypeDef err;
+//	do
+//	{
+//		err = HAL_CAN_Start(&CANBUS4);
+//		HAL_Delay(100);
+//	} while(err != HAL_OK);
 	osDelay(2750);
 
 	/** Log above */
@@ -489,7 +526,13 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	if(fsm_getState_t(fsm) != &errorState)
 	{
 		/** Manually move into SoC now the BMSs have booted */
-		fsm_changeState(fsm, &SoCState, "BMS timeout complete, move to SoC");
+		if(charge)
+		{
+			fsm_changeState(fsm, &chargingState, "Entering Charging as indicated by UART Loop back");
+		} else
+		{
+			fsm_changeState(fsm, &SoCState, "BMS timeout complete, move to SoC");
+		}
 	}
 
 	for(;;)

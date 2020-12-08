@@ -7,8 +7,6 @@
 
 #include <AMS_FSM_States.h>
 
-int globalTimer = 0;
-
 state_t deadState = {&state_dead_enter, &state_dead_iterate, &state_dead_exit, "Dead_s"};
 
 void state_dead_enter(fsm_t *fsm)
@@ -222,7 +220,6 @@ void state_precharge_enter(fsm_t *fsm)
 		char msg[] = "Failed to start Precharge Voltage Request Timer";
 		AMS_LogErr(msg, strlen(msg));
 	}
-	globalTimer = HAL_GetTick();
 }
 
 void state_precharge_iterate(fsm_t *fsm)
@@ -307,8 +304,11 @@ void state_precharge_iterate(fsm_t *fsm)
 						.DLC = 0,
 						.TransmitGlobalTime = DISABLE,
 				};
-
-				HAL_CAN_AddTxMessage(&CANBUS2, &header, NULL, &AMS_GlobalState->CAN2_TxMailbox);
+				if(AMS_GlobalState->readyCount < 5)
+				{
+					HAL_CAN_AddTxMessage(&CANBUS2, &header, NULL, &AMS_GlobalState->CAN2_TxMailbox);
+					AMS_GlobalState->readyCount++;
+				}
 			}
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
@@ -448,6 +448,13 @@ void state_error_enter(fsm_t *fsm)
 		{
 			Error_Handler();
 		}
+		if(osTimerIsRunning(AMS_GlobalState->debugTimer))
+		{
+			if(osTimerDelete(AMS_GlobalState->debugTimer) != osOK)
+			{
+				Error_Handler();
+			}
+		}
 		if(osMessageQueueDelete(AMS_GlobalState->CANQueue) != osOK)
 		{
 			Error_Handler();
@@ -468,7 +475,7 @@ void state_error_iterate(fsm_t *fsm)
 		// Trip Shutdown Alarm Line
 		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 		AMS_LogErr("Stuck in error state", strlen("Stuck in error state"));
-		HAL_Delay(100);
+		HAL_Delay(2000);
 	} while(1);
 }
 
@@ -565,9 +572,7 @@ void state_SoC_iterate(fsm_t *fsm)
 		}
 		if(i == BMS_COUNT)
 		{
-			char x[80];
-			snprintf(x, strlen(x), "All BMSs awake, reporting voltage of %f, moving to idle", reportingVoltage);
-			fsm_changeState(fsm, &idleState, x);
+			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
@@ -575,6 +580,66 @@ void state_SoC_iterate(fsm_t *fsm)
 
 void state_SoC_exit(fsm_t *fsm)
 {
+	return;
+}
+
+state_t chargingState = {&state_charging_enter, &state_charging_iterate, &state_charging_exit, "Charging_s"};
+
+void state_charging_enter(fsm_t *fsm)
+{
+	// Close Connectors
+
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// PROFET Positions AFTER Precharge
+	// HIGH - HVA+, HVA-, HVB+, HVB-
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_SET);
+
+}
+
+void state_charging_iterate(fsm_t *fsm)
+{
+	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
+	{
+		AMS_CAN_Generic_t msg;
+		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U) == osOK)
+		{
+			switch(msg.header.ExtId & BMS_ID_MASK)
+			{
+			case BMS_BadCellVoltage_ID:
+				BMS_handleBadCellVoltage(fsm, msg);
+				break;
+			case BMS_BadCellTemperature_ID:
+				BMS_handleBadCellTemperature(fsm, msg);
+				break;
+			case BMS_TransmitVoltage_ID:
+				BMS_handleVoltage(fsm, msg);
+				break;
+			case BMS_TransmitTemperature_ID:
+				BMS_handleTemperature(fsm, msg);
+				break;
+			}
+		}
+	}
+}
+
+void state_charging_exit(fsm_t *fsm)
+{
+	// Open Contactors
+
+	// LOW - PRECHG
+	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
+
+	// PROFET Positions AFTER Precharge
+	// HIGH - HVA+, HVA-, HVB+, HVB-
+	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
 	return;
 }
 
@@ -719,16 +784,17 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 			{
 				for(int j = 0; j < BMS_TEMPERATURE_COUNT; j++)
 				{
-					if(AMS_GlobalState->BMSTemperatures[i][j] > 55 && AMS_GlobalState->BMSTemperatures[i][j] < 150)
+					if(AMS_GlobalState->BMSTemperatures[i][j] > 55 && AMS_GlobalState->BMSTemperatures[i][j] < 75)
 					{
 						char x[80];
 						int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
 						AMS_LogErr(x, len);
-						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+						//						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 					}
 
 				}
 			}
+			osSemaphoreRelease(AMS_GlobalState->sem);
 		}
 	}
 }
@@ -751,7 +817,7 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
 
 				AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
-				//				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
+//				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
 
 				osSemaphoreRelease(AMS_GlobalState->sem);
 
@@ -772,7 +838,7 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 						.TransmitGlobalTime = DISABLE
 				};
 
-				if(HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+				if(HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 				{
 					char msg[]  = "Failed to send Sendyne Voltage log msg";
 					AMS_LogErr(msg, strlen(msg));
@@ -856,7 +922,7 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg)
 						.TransmitGlobalTime = DISABLE
 				};
 
-				if(HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
+				if(HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data, &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK)
 				{
 					char msg[]  = "Failed to send Sendyne Current log msg";
 					AMS_LogErr(msg, strlen(msg));

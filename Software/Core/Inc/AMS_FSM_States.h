@@ -58,6 +58,7 @@ typedef struct
 	osTimerId_t cTimer;
 	osTimerId_t debugTimer;
 	osSemaphoreId_t sem;
+	int readyCount;
 } AMS_GlobalState_t;
 
 AMS_GlobalState_t *AMS_GlobalState;
@@ -245,6 +246,18 @@ void state_init_exit(fsm_t *fsm);
  * @details Next: errorState (On error), resetState (CAN), SoCState (CAN RTD)
  */
 state_t initState;
+
+void state_charging_enter(fsm_t *fsm);
+
+void state_charging_iterate(fsm_t *fsm);
+
+void state_charging_exit(fsm_t *fsm);
+/**
+ * @brief chargingState ie. charges the bats
+ * @notes Charging State, make sure the BMSs don't go bang
+ * @details Next: errorState (on error)
+ */
+state_t chargingState;
 
 /** Handlers for generic CAN messages that are repeated in multiple states */
 
