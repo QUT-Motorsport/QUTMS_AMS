@@ -32,7 +32,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -106,12 +106,12 @@ extern "C" {
 #define CS_LOG_CC 0
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
-#define BMS_LOG_V 1
-#define BMS_LOG_T 1
+#define BMS_LOG_V 0
+#define BMS_LOG_T 0
 
 // General
 /* USER CODE END EC */
-
+bool charge;
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 

@@ -128,16 +128,17 @@ int main(void)
 				{
 					if(dbuf == 0x6)
 					{
-						charge = true;
-						printf("Time to Charge\r\n");
-						break;
+//						charge = true;
+//						printf("Time to Charge\r\n");
+//						break;
 					}
 				}
 			}
 		}
 	}
 
-	charge = true;
+//	charge = true;
+	charge = false;
 
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
@@ -505,12 +506,12 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
 	{
 		char msg[] = "Failed to CAN_Start CAN4";
-		AMS_LogErr(msg, strlen(msg));
+//		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
 		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU", CANBUS4.ErrorCode);
-		AMS_LogErr(msg2, len);
+//		AMS_LogErr(msg2, len);
 		char msg3[] = "Error likely caused by BMS not powered with isolated side of BMS powered.";
-		AMS_LogErr(msg3, strlen(msg3));
+//		AMS_LogErr(msg3, strlen(msg3));
 	}
 
 	CAN_FilterTypeDef  CAN4FilterConfig;
@@ -548,13 +549,13 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	if(fsm_getState_t(fsm) != &errorState)
 	{
 		/** Manually move into SoC now the BMSs have booted */
-		if(charge)
-		{
-			fsm_changeState(fsm, &chargingState, "Entering Charging as indicated by UART Loop back");
-		} else
-		{
+//		if(charge)
+//		{
+//			fsm_changeState(fsm, &chargingState, "Entering Charging as indicated by UART Loop back");
+//		} else
+//		{
 			fsm_changeState(fsm, &SoCState, "BMS timeout complete, move to SoC");
-		}
+//		}
 	}
 
 	for(;;)
