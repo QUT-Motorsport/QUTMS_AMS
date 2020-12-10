@@ -113,23 +113,38 @@ int main(void)
 	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
-	char magicMsg[] = "PitterPatterLetsGetChargin'\r\n";
-	char dbuf[strlen(magicMsg)];
+	char magicMsg[] = {0x1B, 0x6};
+	char dbuf;
 
-	HAL_UART_Transmit(&huart1, (uint8_t *)&magicMsg, strlen(magicMsg), HAL_MAX_DELAY);
-	if(HAL_UART_Receive(&huart1, (uint8_t*)&dbuf, strlen(magicMsg), 100) == HAL_OK)
+	int startTimer = HAL_GetTick();
+	while(HAL_GetTick() - startTimer < 1000)
 	{
-		if(strcmp(dbuf,magicMsg)) {
-			charge = true;
+		HAL_UART_Transmit(&huart1, (uint8_t *)&magicMsg, 2, HAL_MAX_DELAY);
+		if(HAL_UART_Receive(&huart1, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
+		{
+			if(dbuf == 0x1B)
+			{
+				if(HAL_UART_Receive(&huart1, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
+				{
+					if(dbuf == 0x6)
+					{
+						charge = true;
+						printf("Time to Charge\r\n");
+						break;
+					}
+				}
+			}
 		}
 	}
+
+	charge = true;
+
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
-	if(charge) printf("Entering Charging Mode as indicated by UART loopback\r\n");
 
 
-	/** ALARM Line - Safe is actually logic low */
-	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
+		/** ALARM Line - Safe is actually logic low */
+		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	/** BMS Control - HIGH (Turn on all BMS) */
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
@@ -282,7 +297,7 @@ void IDC_Alarm_cb(void* fsm)
 {
 	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == 0)
 	{
-		fsm_changeState(fsm, &errorState, "BMS Alarm Triggered");
+		//		fsm_changeState(fsm, &errorState, "BMS Alarm Triggered");
 	}
 }
 
@@ -454,6 +469,10 @@ void debugTimer_cb(void *fsm)
 	printf("IC: %f, ", AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
 
 	printf("CC: %f\r\n", AMS_GlobalState->CoulombCount);
+
+//	heatbeatTimer_cb(fsm);
+//	uint8_t *a = &AMS_GlobalState->BMSTemperatures[0][0];
+//	printf("[%li] BMS-0 Temps: {%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i}\r\n", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], *a[10], *a[11]);
 	return;
 }
 
@@ -469,13 +488,15 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 
 	/** Wait for BMSs to boot */
 	// ALI Test this
-	//	HAL_StatusTypeDef err;
-	//	do
-	//	{
-	//		err = HAL_CAN_Start(&CANBUS4);
-	//		HAL_Delay(100);
-	//	} while(err != HAL_OK);
-	osDelay(2750);
+	HAL_StatusTypeDef err;
+	do
+	{
+		MX_CAN1_Init();
+		err = HAL_CAN_Start(&CANBUS4);
+		HAL_Delay(200);
+		printf("Attemping to start CANBUS4\r\n");
+	} while(err != HAL_OK);
+	//	osDelay(5750);
 
 	/** Log above */
 	printf("BMS Wake-up Timeout Complete\r\n");

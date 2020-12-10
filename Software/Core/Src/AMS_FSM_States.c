@@ -557,27 +557,22 @@ void state_SoC_iterate(fsm_t *fsm)
 		}
 	}
 
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
+	// ALI Test this
+	int i = 0;
+	while(i < BMS_COUNT)
 	{
-
-		// ALI Test this
-		int i = 0;
-		while(i < BMS_COUNT)
+		if(AMS_GlobalState->BMSStartupSoc[i])
 		{
-			if(AMS_GlobalState->BMSStartupSoc[i])
-			{
-				i++;
-			} else
-			{
-				break;
-			}
-		}
-
-		if(i == BMS_COUNT)
+			i++;
+		} else
 		{
-			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
+			break;
 		}
-		osSemaphoreRelease(AMS_GlobalState->sem);
+	}
+
+	if(i == BMS_COUNT)
+	{
+		fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
 	}
 }
 
@@ -601,33 +596,34 @@ void state_charging_enter(fsm_t *fsm)
 	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(HVA_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_SET);
-
+	printf("---\r\nEntering Charging\r\n---\r\n");
 }
 
 void state_charging_iterate(fsm_t *fsm)
 {
-	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
-	{
-		AMS_CAN_Generic_t msg;
-		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U) == osOK)
-		{
-			switch(msg.header.ExtId & BMS_ID_MASK)
-			{
-			case BMS_BadCellVoltage_ID:
-				BMS_handleBadCellVoltage(fsm, msg);
-				break;
-			case BMS_BadCellTemperature_ID:
-				BMS_handleBadCellTemperature(fsm, msg);
-				break;
-			case BMS_TransmitVoltage_ID:
-				BMS_handleVoltage(fsm, msg);
-				break;
-			case BMS_TransmitTemperature_ID:
-				BMS_handleTemperature(fsm, msg);
-				break;
-			}
-		}
-	}
+	printf("Charging\r\n");
+//	while(osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1)
+//	{
+//		AMS_CAN_Generic_t msg;
+//		if(osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U) == osOK)
+//		{
+//			switch(msg.header.ExtId & BMS_ID_MASK)
+//			{
+//			case BMS_BadCellVoltage_ID:
+//				BMS_handleBadCellVoltage(fsm, msg);
+//				break;
+//			case BMS_BadCellTemperature_ID:
+//				BMS_handleBadCellTemperature(fsm, msg);
+//				break;
+//			case BMS_TransmitVoltage_ID:
+//				BMS_handleVoltage(fsm, msg);
+//				break;
+//			case BMS_TransmitTemperature_ID:
+//				BMS_handleTemperature(fsm, msg);
+//				break;
+//			}
+//		}
+//	}
 }
 
 void state_charging_exit(fsm_t *fsm)
@@ -821,7 +817,7 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
 
 				AMS_GlobalState->Voltage = (float)(AMS_GlobalState->VoltageuV / 1000000.f);
-//				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
+				//				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
 
 				osSemaphoreRelease(AMS_GlobalState->sem);
 

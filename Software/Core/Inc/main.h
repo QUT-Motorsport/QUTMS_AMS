@@ -55,13 +55,13 @@ extern "C" {
 #define AMS_CAN_QUEUESIZE 25 //Units
 
 // BMS
-#define BMS_COUNT 8
+#define BMS_COUNT 6
 #define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
 #define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
 
 //Voltage
 //#define ACCUMULATOR_VOLTAGE 36.0f * BMS_COUNT
-#define ACCUMULATOR_VOLTAGE 69.0f
+#define ACCUMULATOR_VOLTAGE 59.0f
 
 // Debug
 #define DEBUG_CB
@@ -107,7 +107,7 @@ extern "C" {
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
 #define BMS_LOG_V 1
-#define BMS_LOG_T 0
+#define BMS_LOG_T 1
 
 // General
 /* USER CODE END EC */
