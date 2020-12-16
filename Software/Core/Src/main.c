@@ -93,9 +93,6 @@ int main(void)
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
-	/** Turn one LED 1 on, LED0 off */
-	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
@@ -110,7 +107,7 @@ int main(void)
 	MX_CAN1_Init();
 	MX_TIM4_Init();
 	MX_CAN2_Init();
-	MX_USART1_UART_Init();
+	MX_USART3_UART_Init();
 	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
 	char magicMsg[] = {0x1B, 0x6};
@@ -119,33 +116,33 @@ int main(void)
 	int startTimer = HAL_GetTick();
 	while(HAL_GetTick() - startTimer < 1000)
 	{
-		HAL_UART_Transmit(&huart1, (uint8_t *)&magicMsg, 2, HAL_MAX_DELAY);
-		if(HAL_UART_Receive(&huart1, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
+		HAL_UART_Transmit(&huart3, (uint8_t *)&magicMsg, 2, HAL_MAX_DELAY);
+		if(HAL_UART_Receive(&huart3, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
 		{
 			if(dbuf == 0x1B)
 			{
-				if(HAL_UART_Receive(&huart1, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
+				if(HAL_UART_Receive(&huart3, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
 				{
 					if(dbuf == 0x6)
 					{
-//						charge = true;
-//						printf("Time to Charge\r\n");
-//						break;
+						//						charge = true;
+						//						printf("Time to Charge\r\n");
+						//						break;
 					}
 				}
 			}
 		}
 	}
 
-//	charge = true;
+	//	charge = true;
 	charge = false;
 
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
 
 
-		/** ALARM Line - Safe is actually logic low */
-		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
+	/** ALARM Line - Safe is actually logic low */
+	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	/** BMS Control - HIGH (Turn on all BMS) */
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
@@ -305,6 +302,7 @@ void IDC_Alarm_cb(void* fsm)
 /** Heartbeat Callback */
 void heartbeatTimer_cb(void *fsm)
 {
+	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
@@ -357,6 +355,7 @@ void heartbeatTimer_cb(void *fsm)
 /** BMS Heartbeat Callback (lower 1Hz compared to 13.3Hz as above */
 void heartbeatTimerBMS_cb(void *fsm)
 {
+//	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
 	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 	{
@@ -471,9 +470,9 @@ void debugTimer_cb(void *fsm)
 
 	printf("CC: %f\r\n", AMS_GlobalState->CoulombCount);
 
-//	heatbeatTimer_cb(fsm);
-//	uint8_t *a = &AMS_GlobalState->BMSTemperatures[0][0];
-//	printf("[%li] BMS-0 Temps: {%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i}\r\n", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], *a[10], *a[11]);
+	//	heatbeatTimer_cb(fsm);
+	//	uint8_t *a = &AMS_GlobalState->BMSTemperatures[0][0];
+	//	printf("[%li] BMS-0 Temps: {%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i}\r\n", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], *a[10], *a[11]);
 	return;
 }
 
@@ -497,21 +496,20 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 		HAL_Delay(200);
 		printf("Attemping to start CANBUS4\r\n");
 	} while(err != HAL_OK);
-	//	osDelay(5750);
 
 	/** Log above */
-	printf("BMS Wake-up Timeout Complete\r\n");
+	printf("BMS Wake-up Timeout Complete: err = %i\r\n", err);
 
 	/** Now BMSs have booted, start CAN4 */
 	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
 	{
 		char msg[] = "Failed to CAN_Start CAN4";
-//		AMS_LogErr(msg, strlen(msg));
+		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
 		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU", CANBUS4.ErrorCode);
-//		AMS_LogErr(msg2, len);
+		AMS_LogErr(msg2, len);
 		char msg3[] = "Error likely caused by BMS not powered with isolated side of BMS powered.";
-//		AMS_LogErr(msg3, strlen(msg3));
+		AMS_LogErr(msg3, strlen(msg3));
 	}
 
 	CAN_FilterTypeDef  CAN4FilterConfig;
@@ -549,15 +547,16 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	if(fsm_getState_t(fsm) != &errorState)
 	{
 		/** Manually move into SoC now the BMSs have booted */
-//		if(charge)
-//		{
-//			fsm_changeState(fsm, &chargingState, "Entering Charging as indicated by UART Loop back");
-//		} else
-//		{
-			fsm_changeState(fsm, &SoCState, "BMS timeout complete, move to SoC");
-//		}
+		//		if(charge)
+		//		{
+		//			fsm_changeState(fsm, &chargingState, "Entering Charging as indicated by UART Loop back");
+		//		} else
+		//		{
+		fsm_changeState(fsm, &SoCState, "BMSs awake, move to SoC");
+		//		}
 	}
 
+	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
 	for(;;)
 	{
 		fsm_iterate(fsm);
@@ -575,7 +574,7 @@ void AMS_LogErr(char* error, size_t length)
 	int len = sprintf(errorMsg, "ERROR: %s\r\n", error);
 	if(len == length + 9)
 	{
-		HAL_UART_Transmit(&huart1, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
 	} else
 	{
 		printf("Failed to log error in AMS_LogErr\r\n");
@@ -606,7 +605,7 @@ int _write(int file, char *data, int len)
 	{
 		return -1;
 	}
-	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart1, (uint8_t*)data, len, HAL_MAX_DELAY);
+	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart3, (uint8_t*)data, len, HAL_MAX_DELAY);
 
 	return (s == HAL_OK ? len : 0);
 }
@@ -635,7 +634,7 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
 					.ExtId = msg.header.ExtId,
 					.IDE = CAN_ID_EXT,
 					.RTR = CAN_RTR_DATA,
-					.DLC = sizeof(msg.header.DLC),
+					.DLC = msg.header.DLC,
 					.TransmitGlobalTime = DISABLE,
 			};
 			HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data, &AMS_GlobalState->CAN2_TxMailbox);

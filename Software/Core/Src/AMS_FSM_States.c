@@ -785,22 +785,33 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 		//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 		if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
 		{
+			int bTempCount = 0;
 			for(int i = 0; i < BMS_COUNT; i++)
 			{
 				for(int j = 0; j < BMS_TEMPERATURE_COUNT; j++)
 				{
 					if(AMS_GlobalState->BMSTemperatures[i][j] > 55 && AMS_GlobalState->BMSTemperatures[i][j] < 75)
 					{
-						char x[80];
-						int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
-						AMS_LogErr(x, len);
-						//						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
-					}
+						//							char x[80];
+						//							int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
+						//							AMS_LogErr(x, len);
+						bTempCount++;
 
+					}
+					if(bTempCount > 2)
+					{
+						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+						break;
+					}	char x[80];
 				}
+
 			}
-			osSemaphoreRelease(AMS_GlobalState->sem);
+			if(bTempCount > 2)
+			{
+				fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
+			}
 		}
+		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
 }
 
