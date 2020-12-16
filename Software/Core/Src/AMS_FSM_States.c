@@ -792,13 +792,10 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 				{
 					if(AMS_GlobalState->BMSTemperatures[i][j] > 55 && AMS_GlobalState->BMSTemperatures[i][j] < 75)
 					{
-						if(AMS_GlobalState->BMSTemperatures[i][j] > 55 && AMS_GlobalState->BMSTemperatures[i][j] < 75)
-						{
-							char x[80];
-							int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
-							AMS_LogErr(x, len);
-							bTempCount++;
-						}
+						//							char x[80];
+						//							int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
+						//							AMS_LogErr(x, len);
+						bTempCount++;
 
 					}
 					if(bTempCount > 2)
@@ -806,9 +803,6 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 						break;
 					}	char x[80];
-					int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
-					AMS_LogErr(x, len);
-					bTempCount++;
 				}
 
 			}

@@ -41,7 +41,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+bool charge;
 // Printf to UART
 #define PRINTF_TO_UART
 
@@ -111,7 +111,7 @@ extern "C" {
 
 // General
 /* USER CODE END EC */
-bool charge;
+
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
