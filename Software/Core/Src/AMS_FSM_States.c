@@ -802,7 +802,7 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg)
 					{
 						fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 						break;
-					}	char x[80];
+					}
 				}
 
 			}
