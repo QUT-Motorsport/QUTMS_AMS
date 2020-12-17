@@ -55,7 +55,7 @@ bool charge;
 #define AMS_CAN_QUEUESIZE 25 //Units
 
 // BMS
-#define BMS_COUNT 6
+#define BMS_COUNT 4
 #define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
 #define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
 

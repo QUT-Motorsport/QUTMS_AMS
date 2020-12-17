@@ -70,19 +70,15 @@ void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN 0 */
 /** Create global object required for RTOS */
 osThreadId_t fsmThread;
-const osThreadAttr_t fsmThreadAttr = {
-		.name = "fsmMainThread",
-		.stack_size = 2048,
-		.priority = osPriorityHigh
-};
+const osThreadAttr_t fsmThreadAttr = { .name = "fsmMainThread", .stack_size =
+		2048, .priority = osPriorityHigh };
 /* USER CODE END 0 */
 
 /**
  * @brief  The application entry point.
  * @retval int
  */
-int main(void)
-{
+int main(void) {
 	/* USER CODE BEGIN 1 */
 	charge = false;
 	/* USER CODE END 1 */
@@ -110,21 +106,17 @@ int main(void)
 	MX_USART3_UART_Init();
 	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
-	char magicMsg[] = {0x1B, 0x6};
+	char magicMsg[] = { 0x1B, 0x6 };
 	char dbuf;
 
 	int startTimer = HAL_GetTick();
-	while(HAL_GetTick() - startTimer < 1000)
-	{
-		HAL_UART_Transmit(&huart3, (uint8_t *)&magicMsg, 2, HAL_MAX_DELAY);
-		if(HAL_UART_Receive(&huart3, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
-		{
-			if(dbuf == 0x1B)
-			{
-				if(HAL_UART_Receive(&huart3, (uint8_t*)&dbuf, 1, 1000) == HAL_OK)
-				{
-					if(dbuf == 0x6)
-					{
+	while (HAL_GetTick() - startTimer < 1000) {
+		HAL_UART_Transmit(&huart3, (uint8_t*) &magicMsg, 2, HAL_MAX_DELAY);
+		if (HAL_UART_Receive(&huart3, (uint8_t*) &dbuf, 1, 1000) == HAL_OK) {
+			if (dbuf == 0x1B) {
+				if (HAL_UART_Receive(&huart3, (uint8_t*) &dbuf, 1, 1000)
+						== HAL_OK) {
+					if (dbuf == 0x6) {
 						//						charge = true;
 						//						printf("Time to Charge\r\n");
 						//						break;
@@ -139,7 +131,6 @@ int main(void)
 
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
-
 
 	/** ALARM Line - Safe is actually logic low */
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
@@ -160,18 +151,18 @@ int main(void)
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 
 	/** Start CANBUS2 only */
-	if (HAL_CAN_Start(&CANBUS2) != HAL_OK)
-	{
+	if (HAL_CAN_Start(&CANBUS2) != HAL_OK) {
 		char msg[] = "Failed to CAN_Start CAN2";
 		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
-		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU", CANBUS2.ErrorCode);
+		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU",
+		CANBUS2.ErrorCode);
 		AMS_LogErr(msg2, len);
 	}
 
 	/** Create CAN Filter & Apply it to CANBUS2 */
 
-	CAN_FilterTypeDef  CAN2FilterConfig;
+	CAN_FilterTypeDef CAN2FilterConfig;
 
 	CAN2FilterConfig.FilterBank = 14;
 	CAN2FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
@@ -184,22 +175,21 @@ int main(void)
 	CAN2FilterConfig.FilterActivation = ENABLE;
 	CAN2FilterConfig.SlaveStartFilterBank = 14;
 
-	if (HAL_CAN_ConfigFilter(&CANBUS2, &CAN2FilterConfig) != HAL_OK)
-	{
+	if (HAL_CAN_ConfigFilter(&CANBUS2, &CAN2FilterConfig) != HAL_OK) {
 		/* Filter configuration Error */
 		char msg[] = "Failed to set CAN2 Filter";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
 	/** Active CAN Interrupts for handling incoming messages */
-	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-	{
+	if (HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO0_MSG_PENDING)
+			!= HAL_OK) {
 		char msg[] = "Failed to activate CAN2 notification on RX0";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	if(HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
-	{
+	if (HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO1_MSG_PENDING)
+			!= HAL_OK) {
 		char msg[] = "Failed to activate CAN2 notification on RX1";
 		AMS_LogErr(msg, strlen(msg));
 	}
@@ -212,7 +202,7 @@ int main(void)
 	/* USER CODE END 2 */
 
 	/* Init scheduler */
-	osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+	osKernelInitialize(); /* Call init function for freertos objects (in freertos.c) */
 	MX_FREERTOS_Init();
 	/* Start scheduler */
 	osKernelStart();
@@ -232,10 +222,9 @@ int main(void)
  * @brief System Clock Configuration
  * @retval None
  */
-void SystemClock_Config(void)
-{
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
@@ -248,21 +237,19 @@ void SystemClock_Config(void)
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
 	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
 	RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
 		Error_Handler();
 	}
 	/** Initializes the CPU, AHB and APB buses clocks
 	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-	{
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
 		Error_Handler();
 	}
 	/** Configure the Systick interrupt time
@@ -272,40 +259,30 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 /** Request a voltage from the Sendyne SFP200MOD3 */
-void Sendyne_requestVoltage(int index)
-{
-	CAN_TxHeaderTypeDef header =
-	{
-			.ExtId = CS_1_EXTID,
-			.IDE = CAN_ID_EXT,
-			.RTR = CAN_RTR_DATA,
-			.DLC = 1,
-			.TransmitGlobalTime = DISABLE,
-	};
+void Sendyne_requestVoltage(int index) {
+	CAN_TxHeaderTypeDef header = { .ExtId = CS_1_EXTID, .IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA, .DLC = 1, .TransmitGlobalTime = DISABLE, };
 	uint8_t data = index;
 
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-	{
+	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, &data,
+			&AMS_GlobalState->CAN4_TxMailbox) != HAL_OK) {
 		char msg[] = "Failed to send current sensor voltage packet";
 		AMS_LogErr(msg, strlen(msg));
 	}
 }
 /** BMS Alarm Line Timer Callback */
-void IDC_Alarm_cb(void* fsm)
-{
-	if(HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == 0)
-	{
+void IDC_Alarm_cb(void *fsm) {
+	if (HAL_GPIO_ReadPin(IDC_ALARM_GPIO_Port, IDC_ALARM_Pin) == 0) {
 		//		fsm_changeState(fsm, &errorState, "BMS Alarm Triggered");
 	}
 }
 
 /** Heartbeat Callback */
-void heartbeatTimer_cb(void *fsm)
-{
-	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
+void heartbeatTimer_cb(void *fsm) {
+	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin,
+			!HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-	{
+	if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
 		// Get GPIO States
 		bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
 		bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
@@ -315,15 +292,14 @@ void heartbeatTimer_cb(void *fsm)
 
 		// Are we RTD?
 		bool initialised = false;
-		if(fsm_getState_t(fsm) == &idleState || fsm_getState_t(fsm) == &prechargeState) {
+		if (fsm_getState_t(fsm) == &idleState
+				|| fsm_getState_t(fsm) == &prechargeState) {
 			initialised = true;
 		}
 
 		uint16_t averageVoltage = 0;
-		for(int i = 0; i < BMS_COUNT; i++)
-		{
-			for(int j = 0; j < BMS_VOLTAGE_COUNT; j++)
-			{
+		for (int i = 0; i < BMS_COUNT; i++) {
+			for (int j = 0; j < BMS_VOLTAGE_COUNT; j++) {
 				averageVoltage += AMS_GlobalState->BMSVoltages[i][j]; // Our voltages are already stored here as a 12 bit integer.
 			}
 		}
@@ -332,87 +308,66 @@ void heartbeatTimer_cb(void *fsm)
 
 		uint16_t runtime = getRuntime();
 
-		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(initialised, HVAn_state, HVBn_state, precharge_state, HVAp_state, HVBp_state, averageVoltage, runtime);
-		CAN_TxHeaderTypeDef header =
-		{
-				.ExtId = canPacket.id,
-				.IDE = CAN_ID_EXT,
-				.RTR = CAN_RTR_DATA,
-				.DLC = sizeof(canPacket.data),
-				.TransmitGlobalTime = DISABLE,
-		};
+		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(
+				initialised, HVAn_state, HVBn_state, precharge_state,
+				HVAp_state, HVBp_state, averageVoltage, runtime);
+		CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
+				.TransmitGlobalTime = DISABLE, };
 
-		HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data, &AMS_GlobalState->CAN2_TxMailbox);
+		HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
+				&AMS_GlobalState->CAN2_TxMailbox);
 
 		osSemaphoreRelease(AMS_GlobalState->sem);
-	} else
-	{
+	} else {
 		char msg[] = "Failed to send AMS Heartbeat";
 		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
 /** BMS Heartbeat Callback (lower 1Hz compared to 13.3Hz as above */
-void heartbeatTimerBMS_cb(void *fsm)
-{
+void heartbeatTimerBMS_cb(void *fsm) {
 //	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK)
-	{
-		if(charge)
-		{
+	if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
+		if (charge) {
 			/** We are charging, so send BMSs charge enabled based heart beat */
 			BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(0x00);
 
-			CAN_TxHeaderTypeDef header =
-			{
-					.ExtId = canPacket.id,
-					.IDE = CAN_ID_EXT,
-					.RTR = CAN_RTR_DATA,
-					.DLC = 0,
-					.TransmitGlobalTime = DISABLE,
-			};
+			CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
+			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime =
+					DISABLE, };
 
-			HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL, &AMS_GlobalState->CAN4_TxMailbox);
+			HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
+					&AMS_GlobalState->CAN4_TxMailbox);
 		} else {
 			/** We are driving, so send BMSs normal heart beat */
-			AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0, 0, 0, 0, 0, 0, 0, 0);
+			AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0,
+					0, 0, 0, 0, 0, 0, 0);
 
-			CAN_TxHeaderTypeDef header =
-			{
-					.ExtId = canPacket.id,
-					.IDE = CAN_ID_EXT,
-					.RTR = CAN_RTR_DATA,
-					.DLC = sizeof(canPacket.data),
-					.TransmitGlobalTime = DISABLE,
-			};
+			CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
+			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
+					.TransmitGlobalTime = DISABLE, };
 
-			HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data, &AMS_GlobalState->CAN4_TxMailbox);
+			HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data,
+					&AMS_GlobalState->CAN4_TxMailbox);
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
-	} else
-	{
+	} else {
 		char msg[] = "Failed to send AMS Heartbeat";
 		AMS_LogErr(msg, strlen(msg));
 	}
 }
 
 /** Coulomb Counting Timer Callback */
-void ccTimer_cb(void *fsm)
-{
+void ccTimer_cb(void *fsm) {
 	//	 Request Coloumb Count From CS1
-	CAN_TxHeaderTypeDef header =
-	{
-			.ExtId = CS_1_EXTID,
-			.IDE = CAN_ID_EXT,
-			.RTR = CAN_RTR_DATA,
-			.DLC = 1,
-			.TransmitGlobalTime = DISABLE,
-	};
+	CAN_TxHeaderTypeDef header = { .ExtId = CS_1_EXTID, .IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA, .DLC = 1, .TransmitGlobalTime = DISABLE, };
 
 	uint8_t data = CURRENT_SENSOR_CC_LOW;
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-	{
+	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, &data,
+			&AMS_GlobalState->CAN4_TxMailbox) != HAL_OK) {
 		char msg[] = "Failed to send current sensor packet 1";
 		AMS_LogErr(msg, strlen(msg));
 	}
@@ -420,8 +375,8 @@ void ccTimer_cb(void *fsm)
 	osDelay(1);
 
 	uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-	{
+	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2,
+			&AMS_GlobalState->CAN4_TxMailbox) != HAL_OK) {
 		char msg[] = "Failed to send current sensor packet 2";
 		AMS_LogErr(msg, strlen(msg));
 	}
@@ -429,21 +384,14 @@ void ccTimer_cb(void *fsm)
 }
 
 /** Current Timer Callback */
-void cTimer_cb(void *fsm)
-{
+void cTimer_cb(void *fsm) {
 	// Request Current From Both
-	CAN_TxHeaderTypeDef header =
-	{
-			.ExtId = CS_1_EXTID,
-			.IDE = CAN_ID_EXT,
-			.RTR = CAN_RTR_DATA,
-			.DLC = 1,
-			.TransmitGlobalTime = DISABLE,
-	};
+	CAN_TxHeaderTypeDef header = { .ExtId = CS_1_EXTID, .IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA, .DLC = 1, .TransmitGlobalTime = DISABLE, };
 
 	uint8_t data = CURRENT_SENSOR_CURRENT;
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-	{
+	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, &data,
+			&AMS_GlobalState->CAN4_TxMailbox) != HAL_OK) {
 		char msg[] = "Failed to send current sensor current packet 1";
 		AMS_LogErr(msg, strlen(msg));
 	}
@@ -452,8 +400,8 @@ void cTimer_cb(void *fsm)
 
 	header.ExtId = CS_2_EXTID;
 
-	if(HAL_CAN_AddTxMessage(&CANBUS4, &header, &data, &AMS_GlobalState->CAN4_TxMailbox) != HAL_OK)
-	{
+	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, &data,
+			&AMS_GlobalState->CAN4_TxMailbox) != HAL_OK) {
 		char msg[] = "Failed to send current sensor current packet 1";
 		AMS_LogErr(msg, strlen(msg));
 	}
@@ -461,12 +409,12 @@ void cTimer_cb(void *fsm)
 }
 
 /** Debug Timer Callback (Forces a heartbeat to ensure logging doesnt lead to shutdown) */
-void debugTimer_cb(void *fsm)
-{
+void debugTimer_cb(void *fsm) {
 	heartbeatTimer_cb(fsm);
 	printf("[%li] V: %f, ", getRuntime(), AMS_GlobalState->Voltage);
 
-	printf("IC: %f, ", AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
+	printf("IC: %f, ",
+			AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
 
 	printf("CC: %f\r\n", AMS_GlobalState->CoulombCount);
 
@@ -480,8 +428,7 @@ void debugTimer_cb(void *fsm)
  * @brief FSM thread main loop task for RTOS
  * @param fsm the FSM object passed to the loop
  */
-__NO_RETURN void fsm_thread_mainLoop(void *fsm)
-{
+__NO_RETURN void fsm_thread_mainLoop(void *fsm) {
 	// Reset our FSM in idleState, as we are just starting
 	fsm_setLogFunction(fsm, &printf);
 	fsm_reset(fsm, &initState);
@@ -489,30 +436,30 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	/** Wait for BMSs to boot */
 	// ALI Test this
 	HAL_StatusTypeDef err;
-	do
-	{
+	do {
 		MX_CAN1_Init();
 		err = HAL_CAN_Start(&CANBUS4);
 		HAL_Delay(200);
 		printf("Attemping to start CANBUS4\r\n");
-	} while(err != HAL_OK);
+	} while (err != HAL_OK);
 
 	/** Log above */
 	printf("BMS Wake-up Timeout Complete: err = %i\r\n", err);
 
 	/** Now BMSs have booted, start CAN4 */
-	if (HAL_CAN_Start(&CANBUS4) != HAL_OK)
-	{
+	if (HAL_CAN_Start(&CANBUS4) != HAL_OK) {
 		char msg[] = "Failed to CAN_Start CAN4";
 		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
-		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU", CANBUS4.ErrorCode);
+		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU",
+		CANBUS4.ErrorCode);
 		AMS_LogErr(msg2, len);
-		char msg3[] = "Error likely caused by BMS not powered with isolated side of BMS powered.";
+		char msg3[] =
+				"Error likely caused by BMS not powered with isolated side of BMS powered.";
 		AMS_LogErr(msg3, strlen(msg3));
 	}
 
-	CAN_FilterTypeDef  CAN4FilterConfig;
+	CAN_FilterTypeDef CAN4FilterConfig;
 
 	CAN4FilterConfig.FilterBank = 0;
 	CAN4FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
@@ -525,27 +472,25 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	CAN4FilterConfig.FilterActivation = ENABLE;
 	CAN4FilterConfig.SlaveStartFilterBank = 14;
 
-	if (HAL_CAN_ConfigFilter(&CANBUS4, &CAN4FilterConfig) != HAL_OK)
-	{
+	if (HAL_CAN_ConfigFilter(&CANBUS4, &CAN4FilterConfig) != HAL_OK) {
 		/* Filter configuration Error */
 		char msg[] = "Failed to set CAN4 Filter";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-	{
+	if (HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING)
+			!= HAL_OK) {
 		char msg[] = "Failed to activate CAN4 notification on RX0";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	if(HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
-	{
+	if (HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING)
+			!= HAL_OK) {
 		char msg[] = "Failed to activate CAN4 notification on RX1";
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	if(fsm_getState_t(fsm) != &errorState)
-	{
+	if (fsm_getState_t(fsm) != &errorState) {
 		/** Manually move into SoC now the BMSs have booted */
 		//		if(charge)
 		//		{
@@ -557,8 +502,7 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
 	}
 
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
-	for(;;)
-	{
+	for (;;) {
 		fsm_iterate(fsm);
 	}
 }
@@ -568,76 +512,75 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm)
  * @param msg pointer to msg
  * @param length lenth of msg
  */
-void AMS_LogErr(char* error, size_t length)
-{
-	char* errorMsg = malloc(length + 9);
+void AMS_LogErr(char *error, size_t length) {
+	char *errorMsg = malloc(length + 9);
 	int len = sprintf(errorMsg, "ERROR: %s\r\n", error);
-	if(len == length + 9)
-	{
-		HAL_UART_Transmit(&huart3, (uint8_t *)errorMsg, len, HAL_MAX_DELAY);
-	} else
-	{
+	if (len == length + 9) {
+		HAL_UART_Transmit(&huart3, (uint8_t*) errorMsg, len, HAL_MAX_DELAY);
+	} else {
 		printf("Failed to log error in AMS_LogErr\r\n");
 	}
 	free(errorMsg);
 }
 /** Unused as SD is wired incorrectly */
-void AMS_LogToSD(char* msg, size_t length)
-{
-	for(int i = 0; i < length; i++)
-	{
+void AMS_LogToSD(char *msg, size_t length) {
+	for (int i = 0; i < length; i++) {
 		// Transfer each byte of our message
 		//		bbspi_transferByte(SPI, *(msg + i));
 	}
 }
 
 /** Get the runtime of the FSM in seconds */
-uint32_t getRuntime()
-{
+uint32_t getRuntime() {
 	return floor((HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000.f);
 }
 
 #ifdef PRINTF_TO_UART
 /** Override _write to log to UART */
-int _write(int file, char *data, int len)
-{
-	if((file != STDOUT_FILENO) && (file != STDERR_FILENO))
-	{
+int _write(int file, char *data, int len) {
+	if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
 		return -1;
 	}
-	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart3, (uint8_t*)data, len, HAL_MAX_DELAY);
+	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart3, (uint8_t*) data, len,
+	HAL_MAX_DELAY);
 
 	return (s == HAL_OK ? len : 0);
 }
 #endif
 
 /** CAN Message Management */
-void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
-{
+void handleCAN(CAN_HandleTypeDef *hcan, int fifo) {
 	// Iterate over the CAN FIFO buffer, adding all CAN messages to the CAN Queue.
 	//	printf("Handling Can \r\n");
-	while(HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0)
-	{
+	while (HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0) {
 		AMS_CAN_Generic_t msg;
-		if(HAL_CAN_GetRxMessage(hcan, fifo,  &(msg.header), msg.data) != HAL_OK)
-		{
+		if (HAL_CAN_GetRxMessage(hcan, fifo, &(msg.header), msg.data)
+				!= HAL_OK) {
 			char msg[] = "Failed top read in CAN message";
 			AMS_LogErr(msg, strlen(msg));
 		}
 		osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
 
 		/** Send any CAN4 messages out on CAN2 */
-		if(hcan == &CANBUS4)
-		{
-			CAN_TxHeaderTypeDef header =
-			{
-					.ExtId = msg.header.ExtId,
-					.IDE = CAN_ID_EXT,
-					.RTR = CAN_RTR_DATA,
-					.DLC = msg.header.DLC,
-					.TransmitGlobalTime = DISABLE,
-			};
-			HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data, &AMS_GlobalState->CAN2_TxMailbox);
+		if (hcan == &CANBUS4) {
+			CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
+			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
+					.TransmitGlobalTime = DISABLE, };
+
+			if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
+				printf("waiting for free mailbox \r\n");
+
+				while (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
+
+				}
+
+				printf("found free mailbox\r\n");
+			}
+
+			if (HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data,
+					&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
+
+			}
 		}
 	}
 }
@@ -651,8 +594,7 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo)
  * @param  htim : TIM handle
  * @retval None
  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	/* USER CODE BEGIN Callback 0 */
 
 	/* USER CODE END Callback 0 */
@@ -668,8 +610,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  * @brief  This function is executed in case of error occurrence.
  * @retval None
  */
-void Error_Handler(void)
-{
+void Error_Handler(void) {
 	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	char msg[] = "Error Handler Triggered";
@@ -685,8 +626,7 @@ void Error_Handler(void)
  * @param  line: assert_param error line source number
  * @retval None
  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
+void assert_failed(uint8_t *file, uint32_t line) {
 	/* USER CODE BEGIN 6 */
 	printf("%s: Failed to assert @ [%i, %li]\r\n", "ERROR", *file, line);
 	/* User can add his own implementation to report the file name and line number,
