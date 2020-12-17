@@ -51,6 +51,8 @@ typedef struct
 	float HVBCurrent;
 
 	osMessageQueueId_t CANQueue;
+	osMessageQueueId_t CANForwardQueue;
+
 	osTimerId_t heartbeatTimer;
 	osTimerId_t IDC_AlarmTimer;
 	osTimerId_t heartbeatTimerAMS;

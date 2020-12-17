@@ -503,6 +503,34 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm) {
 
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
 	for (;;) {
+
+		// forward CAN msgs
+		while (osMessageQueueGetCount(AMS_GlobalState->CANForwardQueue) >= 1) {
+			AMS_CAN_Generic_t msg;
+			if (osMessageQueueGet(AMS_GlobalState->CANForwardQueue, &msg, 0U, 0U)
+					== osOK) {
+				CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
+				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
+						.TransmitGlobalTime = DISABLE, };
+
+				if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
+					printf("waiting for free mailbox \r\n");
+
+					while (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
+
+					}
+
+					printf("found free mailbox\r\n");
+				}
+
+				if (HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data,
+						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
+					printf("error forwarding CAN msg\r\n");
+				}
+
+			}
+		}
+
 		fsm_iterate(fsm);
 	}
 }
@@ -563,24 +591,7 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo) {
 
 		/** Send any CAN4 messages out on CAN2 */
 		if (hcan == &CANBUS4) {
-			CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
-			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
-					.TransmitGlobalTime = DISABLE, };
-
-			if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
-				printf("waiting for free mailbox \r\n");
-
-				while (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
-
-				}
-
-				printf("found free mailbox\r\n");
-			}
-
-			if (HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data,
-					&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
-
-			}
+			osMessageQueuePut(AMS_GlobalState->CANForwardQueue, &msg, 0U, 0U);
 		}
 	}
 }
