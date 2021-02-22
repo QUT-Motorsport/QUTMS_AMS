@@ -88,11 +88,11 @@ void state_init_enter(fsm_t *fsm) {
 				AMS_LogErr(msg, strlen(msg));
 			}
 			AMS_GlobalState->CANForwardQueue = osMessageQueueNew(AMS_CAN_QUEUESIZE,
-								sizeof(AMS_CAN_Generic_t), NULL);
-						if (AMS_GlobalState->CANForwardQueue == NULL) {
-							char msg[] = "Failed to make CANForwardQueue";
-							AMS_LogErr(msg, strlen(msg));
-						}
+					sizeof(AMS_CAN_Generic_t), NULL);
+			if (AMS_GlobalState->CANForwardQueue == NULL) {
+				char msg[] = "Failed to make CANForwardQueue";
+				AMS_LogErr(msg, strlen(msg));
+			}
 
 			AMS_GlobalState->startupTicks = HAL_GetTick();
 			osSemaphoreRelease(AMS_GlobalState->sem);
@@ -250,7 +250,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 						fsm_changeState(fsm, &drivingState, x);
 					}
 				}
-					break;
+				break;
 
 				case BMS_TransmitVoltage_ID:
 					BMS_handleVoltage(fsm, msg);
@@ -496,6 +496,13 @@ state_t SoCState = { &state_SoC_enter, &state_SoC_iterate, &state_SoC_exit,
 
 void state_SoC_enter(fsm_t *fsm) {
 	/** We need 1 voltage packet from each BMS */
+	AMS_GlobalState->bmsWakeupTimer = osTimerNew(
+			&wakeupTimerBMS_cb, osTimerOnce, fsm, NULL);
+	if (osTimerStart(AMS_GlobalState->bmsWakeupTimer,
+			BMS_WAKEUP_TIMEOUT) != osOK) {
+		char msg[] = "Failed to create BMS Timeout Timer";
+		AMS_LogErr(msg, strlen(msg));
+	}
 }
 
 void state_SoC_iterate(fsm_t *fsm) {
@@ -537,7 +544,6 @@ void state_SoC_iterate(fsm_t *fsm) {
 		}
 	}
 
-	// ALI Test this
 	int i = 0;
 	while (i < BMS_COUNT) {
 		if (AMS_GlobalState->BMSStartupSoc[i]) {
@@ -557,6 +563,14 @@ void state_SoC_iterate(fsm_t *fsm) {
 }
 
 void state_SoC_exit(fsm_t *fsm) {
+	/** Now we have all BMSs, disable boot pin */
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
+
+	/** Stop and delete the BMS Wakeup Timer */
+	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
+		osTimerStop(AMS_GlobalState->bmsWakeupTimer);
+		osTimerDelete(AMS_GlobalState->bmsWakeupTimer);
+	}
 	return;
 }
 
@@ -817,7 +831,7 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(
 						CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra,
 						BMSId), .IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
-						msg.header.DLC, .TransmitGlobalTime = DISABLE };
+								msg.header.DLC, .TransmitGlobalTime = DISABLE };
 
 				if (HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data,
 						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
@@ -894,7 +908,7 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(
 						CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra,
 						BMSId), .IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
-						msg.header.DLC, .TransmitGlobalTime = DISABLE };
+								msg.header.DLC, .TransmitGlobalTime = DISABLE };
 
 				if (HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data,
 						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {

@@ -56,6 +56,7 @@ typedef struct
 	osTimerId_t heartbeatTimer;
 	osTimerId_t IDC_AlarmTimer;
 	osTimerId_t heartbeatTimerAMS;
+	osTimerId_t bmsWakeupTimer;
 	osTimerId_t ccTimer;
 	osTimerId_t cTimer;
 	osTimerId_t debugTimer;

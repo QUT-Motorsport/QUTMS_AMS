@@ -358,6 +358,11 @@ void heartbeatTimerBMS_cb(void *fsm) {
 		AMS_LogErr(msg, strlen(msg));
 	}
 }
+/** BMS Wakeup Timeout Callback (3 Seconds) */
+void wakeupTimerBMS_cb(void *fsm) {
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
+	fsm_changeState(fsm, &errorState, "BMSs failed to wakeup in time.");
+}
 
 /** Coulomb Counting Timer Callback */
 void ccTimer_cb(void *fsm) {

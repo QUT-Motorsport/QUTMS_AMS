@@ -53,6 +53,7 @@ bool charge;
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
 #define AMS_CAN_QUEUESIZE 25 //Units
+#define BMS_WAKEUP_TIMEOUT 3000U //Milliseconds
 
 // BMS
 #define BMS_COUNT 4
@@ -133,6 +134,7 @@ void IDC_Alarm_cb(void* fsm);
 void Sendyne_requestVoltage(int index);
 void heartbeatTimer_cb(void *fsm);
 void heartbeatTimerBMS_cb(void *fsm);
+void wakeupTimerBMS_cb(void *fsm);
 void ccTimer_cb(void *fsm);
 void cTimer_cb(void *fsm);
 void debugTimer_cb(void *fsm);
