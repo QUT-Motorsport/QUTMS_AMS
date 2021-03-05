@@ -56,7 +56,7 @@ bool charge;
 #define BMS_WAKEUP_TIMEOUT 3000U //Milliseconds
 
 // BMS
-#define BMS_COUNT 4
+#define BMS_COUNT 8
 #define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
 #define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
 
