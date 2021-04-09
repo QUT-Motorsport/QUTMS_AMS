@@ -555,7 +555,7 @@ void state_SoC_iterate(fsm_t *fsm) {
 
 	if (i == BMS_COUNT) {
 		if (charge) {
-			fsm_changeState(fsm, &drivingState, "Charging");
+			fsm_changeState(fsm, &drivingState, "Charging, all BMSs awake");
 		} else {
 			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
 		}

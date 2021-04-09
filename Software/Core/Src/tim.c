@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
   * This software component is licensed by ST under Ultimate Liberty license
@@ -29,9 +29,17 @@ TIM_HandleTypeDef htim4;
 /* TIM4 init function */
 void MX_TIM4_Init(void)
 {
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -56,6 +64,9 @@ void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
 
 }
 
