@@ -6,6 +6,7 @@
  */
 
 #include <AMS_FSM_States.h>
+#include <stdlib.h>
 
 state_t deadState = { &state_dead_enter, &state_dead_iterate, &state_dead_exit,
 		"Dead_s" };
@@ -742,6 +743,8 @@ void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 	}
 }
 
+uint8_t bTempCount[BMS_COUNT][BMS_TEMPERATURE_COUNT];
+
 void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 	/** BMS_BadCellTemperature With BMSID masked off */
 	if ((msg.header.ExtId & BMS_ID_MASK)
@@ -769,18 +772,21 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		//		fsm_changeState(fsm, &errorState, "Found Bad BMS Cell Temperature");
 		if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT)
 				== osOK) {
-			int bTempCount = 0;
+			//memset(bTempCount, 0, BMS_COUNT*BMS_TEMPERATURE_COUNT * sizeof(uint8_t));
 			for (int i = 0; i < BMS_COUNT; i++) {
 				for (int j = 0; j < BMS_TEMPERATURE_COUNT; j++) {
 					if (AMS_GlobalState->BMSTemperatures[i][j] > 55
-							&& AMS_GlobalState->BMSTemperatures[i][j] < 75) {
+							&& AMS_GlobalState->BMSTemperatures[i][j] < 75
+							&& !( i == 0 && j >= 6)) {
 						//							char x[80];
 						//							int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
 						//							AMS_LogErr(x, len);
-						bTempCount++;
+						bTempCount[i][j]++;
 
+					} else {
+						bTempCount[i][j] = 0;
 					}
-					if (bTempCount > 2) {
+					if (bTempCount[i][j] > 5) {
 						fsm_changeState(fsm, &errorState,
 								"Found Bad BMS Cell Temperature");
 						break;
@@ -788,10 +794,13 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				}
 
 			}
-			if (bTempCount > 2) {
-				fsm_changeState(fsm, &errorState,
-						"Found Bad BMS Cell Temperature");
-			}
+
+
+
+			/*if (bTempCount > 2) {
+				//fsm_changeState(fsm, &errorState,
+				//		"Found Bad BMS Cell Temperature");
+			}*/
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
