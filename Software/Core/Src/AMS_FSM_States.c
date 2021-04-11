@@ -612,6 +612,12 @@ void state_charging_iterate(fsm_t *fsm) {
 			case BMS_TransmitTemperature_ID:
 				BMS_handleTemperature(fsm, msg);
 				break;
+			case BMS_TransmitBalancing_ID:
+				uint8_t BMSId;
+				uint16_t balancingVoltage;
+				uint16_t balancingState;
+				Parse_TransmitBalancing(msg.header->ExtId, msg.data, &BMSId, &balancingVoltage, &balancingState);
+				break;
 			}
 		}
 	}
