@@ -579,6 +579,16 @@ state_t chargingState = { &state_charging_enter, &state_charging_iterate,
 		&state_charging_exit, "Charging_s" };
 
 void state_charging_enter(fsm_t *fsm) {
+	printf("Sending BMS Charge Enabled Message to BMSs\r\n");
+	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(0); // Send a BMSId of 0 as it doesnt matter to the BMSs
+
+	CAN_TxHeaderTypeDef header = { .ExtId = p.id, .IDE = CAN_ID_EXT,
+						.RTR = CAN_RTR_DATA, .DLC = 0,
+						.TransmitGlobalTime = DISABLE, };
+
+	// Send charge message
+	HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL, &AMS_GlobalState->CAN4_TxMailbox);
+
 	// Close Connectors
 
 	// LOW - PRECHG
@@ -613,11 +623,14 @@ void state_charging_iterate(fsm_t *fsm) {
 				BMS_handleTemperature(fsm, msg);
 				break;
 			case BMS_TransmitBalancing_ID:
+				{ // Give the label a scope
 				uint8_t BMSId;
 				uint16_t balancingVoltage;
 				uint16_t balancingState;
-				Parse_TransmitBalancing(msg.header->ExtId, msg.data, &BMSId, &balancingVoltage, &balancingState);
+				Parse_TransmitBalancing(msg.header.ExtId, msg.data, &BMSId, &balancingVoltage, &balancingState);
+				printf("{\"BalanceInfo\":{\"RT\": %li, \"BMS\": %i, \"BalanceVoltage\": %i, \"BalanceState\": %i}}\r\n", getRuntime(), BMSId, balancingVoltage, balancingState);
 				break;
+				}
 			}
 		}
 	}
@@ -660,7 +673,7 @@ void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		if (vMsgId == 2) {
 #if BMS_LOG_V
 			printf(
-					"[%li] BMS-%i: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f (V)\r\n",
+					"{\"VoltageInfo\":{\"RT\": %li, \"BMS\": %i, \"Voltages\": [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f]}}\r\n",
 					getRuntime(), BMSId,
 					AMS_GlobalState->BMSVoltages[BMSId][0] / 1000.f,
 					AMS_GlobalState->BMSVoltages[BMSId][1] / 1000.f,
@@ -699,7 +712,7 @@ void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		if (tMsgId == 1) {
 #if BMS_LOG_T
 			printf(
-					"[%li] BMS-%i: %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i (Degrees)\r\n",
+					"{\"TemperatureInfo\":{\"RT\": %li, \"BMS\": %i, \"Temperatures\": [%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i]}}\r\n",
 					getRuntime(), BMSId,
 					AMS_GlobalState->BMSTemperatures[BMSId][0],
 					AMS_GlobalState->BMSTemperatures[BMSId][1],
