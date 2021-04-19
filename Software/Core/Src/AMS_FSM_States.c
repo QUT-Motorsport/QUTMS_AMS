@@ -39,7 +39,7 @@ void state_init_enter(fsm_t *fsm) {
 			AMS_GlobalState->heartbeatTimer = osTimerNew(&heartbeatTimer_cb,
 					osTimerPeriodic, fsm, NULL);
 			if (osTimerStart(AMS_GlobalState->heartbeatTimer,
-					AMS_HEARTBEAT_PERIOD) != osOK) {
+			AMS_HEARTBEAT_PERIOD) != osOK) {
 				char msg[] = "Failed to create Heartbeat Timer";
 				AMS_LogErr(msg, strlen(msg));
 			}
@@ -47,7 +47,7 @@ void state_init_enter(fsm_t *fsm) {
 			AMS_GlobalState->heartbeatTimerAMS = osTimerNew(
 					&heartbeatTimerBMS_cb, osTimerPeriodic, fsm, NULL);
 			if (osTimerStart(AMS_GlobalState->heartbeatTimerAMS,
-					AMS_HEARTBEATBMS_PERIOD) != osOK) {
+			AMS_HEARTBEATBMS_PERIOD) != osOK) {
 				char msg[] = "Failed to create BMS Heartbeat Timer";
 				AMS_LogErr(msg, strlen(msg));
 			}
@@ -88,8 +88,8 @@ void state_init_enter(fsm_t *fsm) {
 				char msg[] = "Failed to make CANQueue";
 				AMS_LogErr(msg, strlen(msg));
 			}
-			AMS_GlobalState->CANForwardQueue = osMessageQueueNew(AMS_CAN_QUEUESIZE,
-					sizeof(AMS_CAN_Generic_t), NULL);
+			AMS_GlobalState->CANForwardQueue = osMessageQueueNew(
+					AMS_CAN_QUEUESIZE, sizeof(AMS_CAN_Generic_t), NULL);
 			if (AMS_GlobalState->CANForwardQueue == NULL) {
 				char msg[] = "Failed to make CANForwardQueue";
 				AMS_LogErr(msg, strlen(msg));
@@ -251,7 +251,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 						fsm_changeState(fsm, &drivingState, x);
 					}
 				}
-				break;
+					break;
 
 				case BMS_TransmitVoltage_ID:
 					BMS_handleVoltage(fsm, msg);
@@ -497,10 +497,10 @@ state_t SoCState = { &state_SoC_enter, &state_SoC_iterate, &state_SoC_exit,
 
 void state_SoC_enter(fsm_t *fsm) {
 	/** We need 1 voltage packet from each BMS */
-	AMS_GlobalState->bmsWakeupTimer = osTimerNew(
-			&wakeupTimerBMS_cb, osTimerOnce, fsm, NULL);
+	AMS_GlobalState->bmsWakeupTimer = osTimerNew(&wakeupTimerBMS_cb,
+			osTimerOnce, fsm, NULL);
 	if (osTimerStart(AMS_GlobalState->bmsWakeupTimer,
-			BMS_WAKEUP_TIMEOUT) != osOK) {
+	BMS_WAKEUP_TIMEOUT) != osOK) {
 		char msg[] = "Failed to create BMS Timeout Timer";
 		AMS_LogErr(msg, strlen(msg));
 	}
@@ -545,21 +545,23 @@ void state_SoC_iterate(fsm_t *fsm) {
 		}
 	}
 
-	int i = 0;
-	while (i < BMS_COUNT) {
+	int bms_count = 0;
+	int bms = 0;
+	for (int i = 0; i < BMS_COUNT; i++) {
 		if (AMS_GlobalState->BMSStartupSoc[i]) {
-			i++;
-		} else {
-			break;
+			bms_count++;
+			bms |= (1<<i);
 		}
 	}
 
-	if (i == BMS_COUNT) {
+	if (bms_count == BMS_COUNT) {
 		if (charge) {
 			fsm_changeState(fsm, &drivingState, "Charging, all BMSs awake");
 		} else {
 			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
 		}
+	} else {
+		printf("bms: %d %x\r\n", bms_count, bms);
 	}
 }
 
@@ -568,7 +570,7 @@ void state_SoC_exit(fsm_t *fsm) {
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
 
 	/** Stop and delete the BMS Wakeup Timer */
-	if(osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
+	if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
 		osTimerStop(AMS_GlobalState->bmsWakeupTimer);
 		osTimerDelete(AMS_GlobalState->bmsWakeupTimer);
 	}
@@ -582,12 +584,12 @@ void state_charging_enter(fsm_t *fsm) {
 	printf("Sending BMS Charge Enabled Message to BMSs\r\n");
 	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(0); // Send a BMSId of 0 as it doesnt matter to the BMSs
 
-	CAN_TxHeaderTypeDef header = { .ExtId = p.id, .IDE = CAN_ID_EXT,
-						.RTR = CAN_RTR_DATA, .DLC = 0,
-						.TransmitGlobalTime = DISABLE, };
+	CAN_TxHeaderTypeDef header = { .ExtId = p.id, .IDE = CAN_ID_EXT, .RTR =
+			CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime = DISABLE, };
 
 	// Send charge message
-	HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL, &AMS_GlobalState->CAN4_TxMailbox);
+	HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
+			&AMS_GlobalState->CAN4_TxMailbox);
 
 	// Close Connectors
 
@@ -622,15 +624,17 @@ void state_charging_iterate(fsm_t *fsm) {
 			case BMS_TransmitTemperature_ID:
 				BMS_handleTemperature(fsm, msg);
 				break;
-			case BMS_TransmitBalancing_ID:
-				{ // Give the label a scope
+			case BMS_TransmitBalancing_ID: { // Give the label a scope
 				uint8_t BMSId;
 				uint16_t balancingVoltage;
 				uint16_t balancingState;
-				Parse_TransmitBalancing(msg.header.ExtId, msg.data, &BMSId, &balancingVoltage, &balancingState);
-				printf("{\"BalanceInfo\":{\"RT\": %li, \"BMS\": %i, \"BalanceVoltage\": %i, \"BalanceState\": %i}}\r\n", getRuntime(), BMSId, balancingVoltage, balancingState);
+				Parse_TransmitBalancing(msg.header.ExtId, msg.data, &BMSId,
+						&balancingVoltage, &balancingState);
+				printf(
+						"{\"BalanceInfo\":{\"RT\": %li, \"BMS\": %i, \"BalanceVoltage\": %i, \"BalanceState\": %i}}\r\n",
+						getRuntime(), BMSId, balancingVoltage, balancingState);
 				break;
-				}
+			}
 			}
 		}
 	}
@@ -796,7 +800,7 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				for (int j = 0; j < BMS_TEMPERATURE_COUNT; j++) {
 					if (AMS_GlobalState->BMSTemperatures[i][j] > 55
 							&& AMS_GlobalState->BMSTemperatures[i][j] < 75
-							&& !( i == 0 && j >= 6)) {
+							&& !(j >= 6)) {
 						//							char x[80];
 						//							int len = snprintf(x, 80, "Found Bad Cell Temperature, BMS-%i, %iC", i, AMS_GlobalState->BMSTemperatures[i][j]);
 						//							AMS_LogErr(x, len);
@@ -814,12 +818,10 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 
 			}
 
-
-
 			/*if (bTempCount > 2) {
-				//fsm_changeState(fsm, &errorState,
-				//		"Found Bad BMS Cell Temperature");
-			}*/
+			 //fsm_changeState(fsm, &errorState,
+			 //		"Found Bad BMS Cell Temperature");
+			 }*/
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
 	}
@@ -859,7 +861,7 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(
 						CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra,
 						BMSId), .IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
-								msg.header.DLC, .TransmitGlobalTime = DISABLE };
+						msg.header.DLC, .TransmitGlobalTime = DISABLE };
 
 				if (HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data,
 						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
@@ -936,7 +938,7 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(
 						CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra,
 						BMSId), .IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
-								msg.header.DLC, .TransmitGlobalTime = DISABLE };
+						msg.header.DLC, .TransmitGlobalTime = DISABLE };
 
 				if (HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data,
 						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
