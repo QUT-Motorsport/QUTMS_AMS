@@ -677,7 +677,7 @@ void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		if (vMsgId == 2) {
 #if BMS_LOG_V
 			printf(
-					"{\"VoltageInfo\":{\"RT\": %li, \"BMS\": %i, \"Voltages\": [%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f]}}\r\n",
+					"{\"VoltageInfo\":{\"RT\": %li, \"BMS\": %i, \"Voltages\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f]}}\r\n",
 					getRuntime(), BMSId,
 					AMS_GlobalState->BMSVoltages[BMSId][0] / 1000.f,
 					AMS_GlobalState->BMSVoltages[BMSId][1] / 1000.f,
@@ -713,10 +713,10 @@ void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 					temperatures[i];
 		}
 		/** If last message, log all temperatures to SD*/
-		if (tMsgId == 1) {
+		if (tMsgId == 2) {
 #if BMS_LOG_T
 			printf(
-					"{\"TemperatureInfo\":{\"RT\": %li, \"BMS\": %i, \"Temperatures\": [%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i]}}\r\n",
+					"{\"TemperatureInfo\":{\"RT\": %li, \"BMS\": %i, \"Temperatures\": [%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i]}}\r\n",
 					getRuntime(), BMSId,
 					AMS_GlobalState->BMSTemperatures[BMSId][0],
 					AMS_GlobalState->BMSTemperatures[BMSId][1],
@@ -729,7 +729,9 @@ void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 					AMS_GlobalState->BMSTemperatures[BMSId][8],
 					AMS_GlobalState->BMSTemperatures[BMSId][9],
 					AMS_GlobalState->BMSTemperatures[BMSId][10],
-					AMS_GlobalState->BMSTemperatures[BMSId][11]);
+					AMS_GlobalState->BMSTemperatures[BMSId][11],
+					AMS_GlobalState->BMSTemperatures[BMSId][12],
+					AMS_GlobalState->BMSTemperatures[BMSId][13]);
 #endif
 		}
 		osSemaphoreRelease(AMS_GlobalState->sem);
