@@ -582,7 +582,7 @@ state_t chargingState = { &state_charging_enter, &state_charging_iterate,
 
 void state_charging_enter(fsm_t *fsm) {
 	printf("Sending BMS Charge Enabled Message to BMSs\r\n");
-	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(0); // Send a BMSId of 0 as it doesnt matter to the BMSs
+	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(BMS_COUNT); // Send a BMSId of 0 as it doesnt matter to the BMSs
 
 	CAN_TxHeaderTypeDef header = { .ExtId = p.id, .IDE = CAN_ID_EXT, .RTR =
 			CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime = DISABLE, };

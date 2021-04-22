@@ -325,7 +325,7 @@ void heartbeatTimerBMS_cb(void *fsm) {
 	if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
 		if (charge) {
 			/** We are charging, so send BMSs charge enabled based heart beat */
-			BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(0x00);
+			BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(BMS_COUNT);
 
 			CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
 			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime =
