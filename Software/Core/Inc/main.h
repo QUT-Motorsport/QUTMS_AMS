@@ -53,7 +53,7 @@ bool charge;
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
 #define AMS_CAN_QUEUESIZE 25 //Units
-#define BMS_WAKEUP_TIMEOUT 3000U //Milliseconds
+#define BMS_WAKEUP_TIMEOUT 10000U //Milliseconds
 
 // BMS
 #define BMS_COUNT 6
@@ -107,8 +107,8 @@ bool charge;
 #define CS_LOG_CC 0
 //#define CAN2_LOG_ON_MSG
 //#define CAN4_LOG_ON_MSG
-#define BMS_LOG_V 1
-#define BMS_LOG_T 1
+#define BMS_LOG_V 0
+#define BMS_LOG_T 0
 
 // General
 /* USER CODE END EC */

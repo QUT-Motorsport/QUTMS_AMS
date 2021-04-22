@@ -275,7 +275,7 @@ void heartbeatTimer_cb(void *fsm) {
 	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin,
 			!HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
-	if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
+	//if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
 		// Get GPIO States
 		bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
 		bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
@@ -311,11 +311,11 @@ void heartbeatTimer_cb(void *fsm) {
 		HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
 				&AMS_GlobalState->CAN2_TxMailbox);
 
-		osSemaphoreRelease(AMS_GlobalState->sem);
+		/*osSemaphoreRelease(AMS_GlobalState->sem);
 	} else {
 		char msg[] = "Failed to send AMS Heartbeat";
 		AMS_LogErr(msg, strlen(msg));
-	}
+	}*/
 }
 
 /** BMS Heartbeat Callback (lower 1Hz compared to 13.3Hz as above */
