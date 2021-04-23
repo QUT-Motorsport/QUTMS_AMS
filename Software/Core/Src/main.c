@@ -118,6 +118,8 @@ int main(void)
 		}
 	}
 
+	//charge = true;
+
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
 
@@ -563,8 +565,8 @@ void AMS_LogToSD(char *msg, size_t length) {
 }
 
 /** Get the runtime of the FSM in seconds */
-uint32_t getRuntime() {
-	return floor((HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000.f);
+float getRuntime() {
+	return (HAL_GetTick() - AMS_GlobalState->startupTicks) / 1000.f;
 }
 
 #ifdef PRINTF_TO_UART

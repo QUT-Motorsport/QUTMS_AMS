@@ -56,7 +56,7 @@ bool charge;
 #define BMS_WAKEUP_TIMEOUT 10000U //Milliseconds
 
 // BMS
-#define BMS_COUNT 6
+#define BMS_COUNT 8
 #define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
 #define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
 
@@ -141,7 +141,7 @@ void debugTimer_cb(void *fsm);
 void AMS_LogErr(char* error, size_t length);
 void AMS_LogToSD(char* msg, size_t length);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-uint32_t getRuntime();
+float getRuntime();
 int _write(int file, char *data, int len);
 void handleCAN(CAN_HandleTypeDef *hcan, int fifo);
 __NO_RETURN void fsm_thread_mainLoop(void* fsm);

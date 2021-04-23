@@ -556,7 +556,7 @@ void state_SoC_iterate(fsm_t *fsm) {
 
 	if (bms_count == BMS_COUNT) {
 		if (charge) {
-			fsm_changeState(fsm, &drivingState, "Charging, all BMSs awake");
+			fsm_changeState(fsm, &chargingState, "Charging, all BMSs awake");
 		} else {
 			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
 		}
@@ -606,7 +606,6 @@ void state_charging_enter(fsm_t *fsm) {
 }
 
 void state_charging_iterate(fsm_t *fsm) {
-	printf("Charging\r\n");
 	while (osMessageQueueGetCount(AMS_GlobalState->CANQueue) >= 1) {
 		AMS_CAN_Generic_t msg;
 		if (osMessageQueueGet(AMS_GlobalState->CANQueue, &msg, 0U, 0U)
@@ -631,7 +630,7 @@ void state_charging_iterate(fsm_t *fsm) {
 				Parse_TransmitBalancing(msg.header.ExtId, msg.data, &BMSId,
 						&balancingVoltage, &balancingState);
 				printf(
-						"{\"BalanceInfo\":{\"RT\": %li, \"BMS\": %i, \"BalanceVoltage\": %i, \"BalanceState\": %i}}\r\n",
+						"{\"BalanceInfo\":{\"RT\": %.3f, \"BMS\": %i, \"BalanceVoltage\": %i, \"BalanceState\": %i}}\r\n",
 						getRuntime(), BMSId, balancingVoltage, balancingState);
 				break;
 			}
@@ -677,7 +676,7 @@ void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		if (vMsgId == 2) {
 #if BMS_LOG_V
 			printf(
-					"{\"VoltageInfo\":{\"RT\": %li, \"BMS\": %i, \"Voltages\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f]}}\r\n",
+					"{\"VoltageInfo\":{\"RT\": %.3f, \"BMS\": %i, \"Voltages\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f]}}\r\n",
 					getRuntime(), BMSId,
 					AMS_GlobalState->BMSVoltages[BMSId][0] / 1000.f,
 					AMS_GlobalState->BMSVoltages[BMSId][1] / 1000.f,
@@ -716,7 +715,7 @@ void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		if (tMsgId == 2) {
 #if BMS_LOG_T
 			printf(
-					"{\"TemperatureInfo\":{\"RT\": %li, \"BMS\": %i, \"Temperatures\": [%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i]}}\r\n",
+					"{\"TemperatureInfo\":{\"RT\": %.3f, \"BMS\": %i, \"Temperatures\": [%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i]}}\r\n",
 					getRuntime(), BMSId,
 					AMS_GlobalState->BMSTemperatures[BMSId][0],
 					AMS_GlobalState->BMSTemperatures[BMSId][1],
