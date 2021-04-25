@@ -63,6 +63,8 @@ typedef struct
 	ms_timer_t debugTimer;
 	ms_timer_t prechargeTimer;
 	int readyCount;
+
+	bool charging;
 } AMS_GlobalState_t;
 
 AMS_GlobalState_t *AMS_GlobalState;
