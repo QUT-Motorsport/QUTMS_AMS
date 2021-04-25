@@ -523,8 +523,8 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 		timer_update(&AMS_GlobalState->cTimer, fsm);
 		timer_update(&AMS_GlobalState->prechargeTimer, fsm);
 		timer_update(&AMS_GlobalState->bmsWakeupTimer, fsm);
-#if DEBUF
-		Timer_update(&AMS_GlobalState->debugTimer, fsm);
+#ifdef DEBUG_CB
+		timer_update(&AMS_GlobalState->debugTimer, fsm);
 #endif
 
 		fsm_iterate(fsm);
