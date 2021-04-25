@@ -11,7 +11,8 @@
 #include "FSM.h"
 #include "main.h"
 #include "tim.h"
-#include "cmsis_os.h"
+#include "Timer.h"
+#include "queue.h"
 #include <memory.h>
 #include <stdbool.h>
 #include <stdbool.h>
@@ -50,17 +51,16 @@ typedef struct
 	int32_t HVBCurrentuA;
 	float HVBCurrent;
 
-	osMessageQueueId_t CANQueue;
-	osMessageQueueId_t CANForwardQueue;
+	message_queue_t CANQueue;
+	message_queue_t CANForwardQueue;
 
-	osTimerId_t heartbeatTimer;
-	osTimerId_t IDC_AlarmTimer;
-	osTimerId_t heartbeatTimerAMS;
-	osTimerId_t bmsWakeupTimer;
-	osTimerId_t ccTimer;
-	osTimerId_t cTimer;
-	osTimerId_t debugTimer;
-	osSemaphoreId_t sem;
+	Timer_t heartbeatTimer;
+	Timer_t IDC_AlarmTimer;
+	Timer_t heartbeatTimerAMS;
+	Timer_t bmsWakeupTimer;
+	Timer_t ccTimer;
+	Timer_t cTimer;
+	Timer_t debugTimer;
 	int readyCount;
 } AMS_GlobalState_t;
 
@@ -152,7 +152,7 @@ state_t prechargeState;
 /**
  * @brief prechargeTimer object
  */
-osTimerId_t prechargeTimer;
+Timer_t prechargeTimer;
 
 /**
  * Driving state enter function. Open the precharge contactor, close the HV contactors.

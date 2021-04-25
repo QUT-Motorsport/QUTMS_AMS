@@ -20,7 +20,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
 #include "can.h"
 #include "tim.h"
 #include "usart.h"
@@ -61,51 +60,46 @@ bool charge;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/** Create global object required for RTOS */
-osThreadId_t fsmThread;
-const osThreadAttr_t fsmThreadAttr = { .name = "fsmMainThread", .stack_size =
-		2048, .priority = osPriorityHigh };
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 	charge = false;
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
-  /* USER CODE END Init */
+	/* USER CODE BEGIN Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_CAN1_Init();
-  MX_TIM4_Init();
-  MX_CAN2_Init();
-  MX_USART3_UART_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_CAN1_Init();
+	MX_TIM4_Init();
+	MX_CAN2_Init();
+	MX_USART3_UART_Init();
+	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
 
 	int startTimer = HAL_GetTick();
@@ -147,7 +141,7 @@ int main(void)
 		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
 		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU",
-		CANBUS2.ErrorCode);
+				CANBUS2.ErrorCode);
 		AMS_LogErr(msg2, len);
 	}
 
@@ -186,70 +180,62 @@ int main(void)
 	}
 
 	/** Create FSM instance */
-	fsm_t *fsm = fsm_new(&deadState);
+	fsm = fsm_new(&deadState);
 
 	/** Create a new thread, where our FSM will run. */
-	osThreadNew(fsm_thread_mainLoop, fsm, &fsmThreadAttr);
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Init scheduler */
-  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
-  MX_FREERTOS_Init();
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1) {
-    /* USER CODE END WHILE */
+		fsm_mainLoop(&fsm);
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-  RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+	RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the Systick interrupt time
-  */
-  __HAL_RCC_PLLI2S_ENABLE();
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Configure the Systick interrupt time
+	 */
+	__HAL_RCC_PLLI2S_ENABLE();
 }
 
 /* USER CODE BEGIN 4 */
@@ -278,42 +264,42 @@ void heartbeatTimer_cb(void *fsm) {
 			!HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
 	//if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
-		// Get GPIO States
-		bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
-		bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
-		bool precharge_state = HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin);
-		bool HVAp_state = HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin);
-		bool HVBp_state = HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin);
+	// Get GPIO States
+	bool HVAn_state = HAL_GPIO_ReadPin(HVA_N_GPIO_Port, HVA_N_Pin);
+	bool HVBn_state = HAL_GPIO_ReadPin(HVB_N_GPIO_Port, HVB_N_Pin);
+	bool precharge_state = HAL_GPIO_ReadPin(PRECHG_GPIO_Port, PRECHG_Pin);
+	bool HVAp_state = HAL_GPIO_ReadPin(HVA_P_GPIO_Port, HVA_P_Pin);
+	bool HVBp_state = HAL_GPIO_ReadPin(HVB_P_GPIO_Port, HVB_P_Pin);
 
-		// Are we RTD?
-		bool initialised = false;
-		if (fsm_getState_t(fsm) == &idleState
-				|| fsm_getState_t(fsm) == &prechargeState) {
-			initialised = true;
+	// Are we RTD?
+	bool initialised = false;
+	if (fsm_getState_t(fsm) == &idleState
+			|| fsm_getState_t(fsm) == &prechargeState) {
+		initialised = true;
+	}
+
+	uint16_t averageVoltage = 0;
+	for (int i = 0; i < BMS_COUNT; i++) {
+		for (int j = 0; j < BMS_VOLTAGE_COUNT; j++) {
+			averageVoltage += AMS_GlobalState->BMSVoltages[i][j]; // Our voltages are already stored here as a 12 bit integer.
 		}
+	}
 
-		uint16_t averageVoltage = 0;
-		for (int i = 0; i < BMS_COUNT; i++) {
-			for (int j = 0; j < BMS_VOLTAGE_COUNT; j++) {
-				averageVoltage += AMS_GlobalState->BMSVoltages[i][j]; // Our voltages are already stored here as a 12 bit integer.
-			}
-		}
+	averageVoltage /= (BMS_COUNT * BMS_VOLTAGE_COUNT); /**< Good to send as already multiplied by 1000 */
 
-		averageVoltage /= (BMS_COUNT * BMS_VOLTAGE_COUNT); /**< Good to send as already multiplied by 1000 */
+	uint16_t runtime = getRuntime();
 
-		uint16_t runtime = getRuntime();
+	AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(
+			initialised, HVAn_state, HVBn_state, precharge_state,
+			HVAp_state, HVBp_state, averageVoltage, runtime);
+	CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE = CAN_ID_EXT,
+			.RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
+			.TransmitGlobalTime = DISABLE, };
 
-		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(
-				initialised, HVAn_state, HVBn_state, precharge_state,
-				HVAp_state, HVBp_state, averageVoltage, runtime);
-		CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE = CAN_ID_EXT,
-				.RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
-				.TransmitGlobalTime = DISABLE, };
+	HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
+			&AMS_GlobalState->CAN2_TxMailbox);
 
-		HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
-				&AMS_GlobalState->CAN2_TxMailbox);
-
-		/*osSemaphoreRelease(AMS_GlobalState->sem);
+	/*osSemaphoreRelease(AMS_GlobalState->sem);
 	} else {
 		char msg[] = "Failed to send AMS Heartbeat";
 		AMS_LogErr(msg, strlen(msg));
@@ -322,35 +308,29 @@ void heartbeatTimer_cb(void *fsm) {
 
 /** BMS Heartbeat Callback (lower 1Hz compared to 13.3Hz as above */
 void heartbeatTimerBMS_cb(void *fsm) {
-//	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
+	//	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
-	if (osSemaphoreAcquire(AMS_GlobalState->sem, SEM_ACQUIRE_TIMEOUT) == osOK) {
-		if (charge) {
-			/** We are charging, so send BMSs charge enabled based heart beat */
-			BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(BMS_COUNT);
+	if (charge) {
+		/** We are charging, so send BMSs charge enabled based heart beat */
+		BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(BMS_COUNT);
 
-			CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
-			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime =
-					DISABLE, };
+		CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
+				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime =
+						DISABLE, };
 
-			HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
-					&AMS_GlobalState->CAN4_TxMailbox);
-		} else {
-			/** We are driving, so send BMSs normal heart beat */
-			AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0,
-					0, 0, 0, 0, 0, 0, 0);
-
-			CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
-			CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
-					.TransmitGlobalTime = DISABLE, };
-
-			HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data,
-					&AMS_GlobalState->CAN4_TxMailbox);
-		}
-		osSemaphoreRelease(AMS_GlobalState->sem);
+		HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
+				&AMS_GlobalState->CAN4_TxMailbox);
 	} else {
-		char msg[] = "Failed to send AMS Heartbeat";
-		AMS_LogErr(msg, strlen(msg));
+		/** We are driving, so send BMSs normal heart beat */
+		AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(0,
+				0, 0, 0, 0, 0, 0, 0);
+
+		CAN_TxHeaderTypeDef header = { .ExtId = canPacket.id, .IDE =
+				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
+				.TransmitGlobalTime = DISABLE, };
+
+		HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data,
+				&AMS_GlobalState->CAN4_TxMailbox);
 	}
 }
 /** BMS Wakeup Timeout Callback (3 Seconds) */
@@ -372,7 +352,7 @@ void ccTimer_cb(void *fsm) {
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	osDelay(1);
+	HAL_Delay(1);
 
 	uint8_t data2 = CURRENT_SENSOR_CC_HIGH;
 	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, &data2,
@@ -396,7 +376,7 @@ void cTimer_cb(void *fsm) {
 		AMS_LogErr(msg, strlen(msg));
 	}
 
-	osDelay(1);
+	HAL_Delay(1);
 
 	header.ExtId = CS_2_EXTID;
 
@@ -411,7 +391,7 @@ void cTimer_cb(void *fsm) {
 /** Debug Timer Callback (Forces a heartbeat to ensure logging doesnt lead to shutdown) */
 void debugTimer_cb(void *fsm) {
 	heartbeatTimer_cb(fsm);
-	printf("[%li] V: %f, ", getRuntime(), AMS_GlobalState->Voltage);
+	printf("[%f] V: %f, ", getRuntime(), AMS_GlobalState->Voltage);
 
 	printf("IC: %f, ",
 			AMS_GlobalState->HVACurrent + AMS_GlobalState->HVBCurrent);
@@ -428,7 +408,7 @@ void debugTimer_cb(void *fsm) {
  * @brief FSM thread main loop task for RTOS
  * @param fsm the FSM object passed to the loop
  */
-__NO_RETURN void fsm_thread_mainLoop(void *fsm) {
+__NO_RETURN void fsm_mainLoop(void *fsm) {
 	// Reset our FSM in idleState, as we are just starting
 	fsm_setLogFunction(fsm, &printf);
 	fsm_reset(fsm, &initState);
@@ -458,7 +438,7 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm) {
 		AMS_LogErr(msg, strlen(msg));
 		char msg2[80];
 		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU",
-		CANBUS4.ErrorCode);
+				CANBUS4.ErrorCode);
 		AMS_LogErr(msg2, len);
 		char msg3[] =
 				"Error likely caused by BMS not powered with isolated side of BMS powered.";
@@ -511,22 +491,21 @@ __NO_RETURN void fsm_thread_mainLoop(void *fsm) {
 	for (;;) {
 
 		// forward CAN msgs
-		while (osMessageQueueGetCount(AMS_GlobalState->CANForwardQueue) >= 1) {
+		while (!queue_empty(&AMS_GlobalState->CANForwardQueue)) {
 			AMS_CAN_Generic_t msg;
-			if (osMessageQueueGet(AMS_GlobalState->CANForwardQueue, &msg, 0U, 0U)
-					== osOK) {
+			if (queue_next(&AMS_GlobalState->CANForwardQueue, &msg)) {
 				CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
-				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
+						CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
 						.TransmitGlobalTime = DISABLE, };
 
 				if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
-//					printf("waiting for free mailbox \r\n");
+					//					printf("waiting for free mailbox \r\n");
 
 					while (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
 
 					}
 
-//					printf("found free mailbox\r\n");
+					//					printf("found free mailbox\r\n");
 				}
 
 				if (HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data,
@@ -576,7 +555,7 @@ int _write(int file, char *data, int len) {
 		return -1;
 	}
 	HAL_StatusTypeDef s = HAL_UART_Transmit(&huart3, (uint8_t*) data, len,
-	HAL_MAX_DELAY);
+			HAL_MAX_DELAY);
 
 	return (s == HAL_OK ? len : 0);
 }
@@ -593,65 +572,65 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo) {
 			char msg[] = "Failed top read in CAN message";
 			AMS_LogErr(msg, strlen(msg));
 		}
-		osMessageQueuePut(AMS_GlobalState->CANQueue, &msg, 0U, 0U);
+		queue_add(&AMS_GlobalState->CANQueue, &msg);
 
 		/** Send any CAN4 messages out on CAN2 */
 		if (hcan == &CANBUS4) {
-			osMessageQueuePut(AMS_GlobalState->CANForwardQueue, &msg, 0U, 0U);
+			queue_add(&AMS_GlobalState->CANForwardQueue, &msg);
 		}
 	}
 }
 /* USER CODE END 4 */
 
- /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
+/**
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM6 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* USER CODE BEGIN Callback 0 */
+	/* USER CODE BEGIN Callback 0 */
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+	/* USER CODE END Callback 0 */
+	if (htim->Instance == TIM6) {
+		HAL_IncTick();
+	}
+	/* USER CODE BEGIN Callback 1 */
 
-  /* USER CODE END Callback 1 */
+	/* USER CODE END Callback 1 */
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	char msg[] = "Error Handler Triggered";
 	AMS_LogErr(msg, strlen(msg));
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
+	/* USER CODE BEGIN 6 */
 	printf("%s: Failed to assert @ [%i, %li]\r\n", "ERROR", *file, line);
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
