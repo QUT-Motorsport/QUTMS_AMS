@@ -516,6 +516,17 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 			}
 		}
 
+		Timer_update(&AMS_GlobalState->heartbeatTimer, fsm);
+		Timer_update(&AMS_GlobalState->heartbeatTimerAMS, fsm);
+		Timer_update(&AMS_GlobalState->IDC_AlarmTimer, fsm);
+		Timer_update(&AMS_GlobalState->ccTimer, fsm);
+		Timer_update(&AMS_GlobalState->cTimer, fsm);
+		Timer_update(&AMS_GlobalState->prechargeTimer, fsm);
+		Timer_update(&AMS_GlobalState->bmsWakeupTimer, fsm);
+#if DEBUF
+		Timer_update(&AMS_GlobalState->debugTimer, fsm);
+#endif
+
 		fsm_iterate(fsm);
 	}
 }

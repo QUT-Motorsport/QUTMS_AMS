@@ -178,8 +178,8 @@ void state_precharge_enter(fsm_t *fsm) {
 
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 
-	prechargeTimer = Timer_init(PRECHARGE_DELAY, true, &prechargeTimer_cb);
-	Timer_start(&prechargeTimer);
+	AMS_GlobalState->prechargeTimer = Timer_init(PRECHARGE_DELAY, true, &prechargeTimer_cb);
+	Timer_start(&AMS_GlobalState->prechargeTimer);
 }
 
 void state_precharge_iterate(fsm_t *fsm) {
@@ -266,7 +266,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 }
 
 void state_precharge_exit(fsm_t *fsm) {
-	Timer_delete(&prechargeTimer);
+	Timer_delete(&AMS_GlobalState->prechargeTimer);
 }
 
 void prechargeTimer_cb(void *fsm) {

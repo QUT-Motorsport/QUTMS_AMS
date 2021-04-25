@@ -61,6 +61,7 @@ typedef struct
 	Timer_t ccTimer;
 	Timer_t cTimer;
 	Timer_t debugTimer;
+	Timer_t prechargeTimer;
 	int readyCount;
 } AMS_GlobalState_t;
 
@@ -149,10 +150,6 @@ void prechargeTimer_cb(void *fsm);
  * @details Next: drivingState (precharge timer done (>300ms), errorState(Error)
  */
 state_t prechargeState;
-/**
- * @brief prechargeTimer object
- */
-Timer_t prechargeTimer;
 
 /**
  * Driving state enter function. Open the precharge contactor, close the HV contactors.
