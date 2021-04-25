@@ -42,6 +42,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+bool charge;
 // Printf to UART
 #define PRINTF_TO_UART
 

@@ -55,6 +55,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+bool charge;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,6 +75,7 @@ void SystemClock_Config(void);
 int main(void)
 {
 	/* USER CODE BEGIN 1 */
+	charge = false;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -99,16 +101,18 @@ int main(void)
 	MX_USART3_UART_Init();
 	/* USER CODE BEGIN 2 */
 	/** Log Boot & HAL Initionalisation */
-	AMS_GlobalState->charging = false;
+
 	int startTimer = HAL_GetTick();
 	while (HAL_GetTick() - startTimer < 1000) {
 		printf("%d\r\n", 0x69FF69FE);
 		char data[10];
 		if(HAL_UART_Receive(&huart3, (uint8_t*)&data, 10, 10) == HAL_OK)
 		{
-			AMS_GlobalState->charging = true;
+			charge = true;
 		}
 	}
+
+	//charge = true;
 
 	printf("PWR_ENABLED\r\n");
 	printf("HAL Initialisation Complete\r\n");
@@ -306,7 +310,7 @@ void heartbeatTimer_cb(void *fsm) {
 void heartbeatTimerBMS_cb(void *fsm) {
 	//	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, !HAL_GPIO_ReadPin(LED1_GPIO_Port, LED1_Pin));
 	//	// Take the GlobalState sem, find our values then fire off the packet
-	if (AMS_GlobalState->charging) {
+	if (charge) {
 		/** We are charging, so send BMSs charge enabled based heart beat */
 		BMS_ChargeEnabled_t canPacket = Compose_BMS_ChargeEnabled(BMS_COUNT);
 
@@ -520,10 +524,7 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 		timer_update(&AMS_GlobalState->prechargeTimer, fsm);
 		timer_update(&AMS_GlobalState->bmsWakeupTimer, fsm);
 #ifdef DEBUG_CB
-		if(!AMS_GlobalState->charging)
-		{
-			timer_update(&AMS_GlobalState->debugTimer, fsm);
-		}
+		timer_update(&AMS_GlobalState->debugTimer, fsm);
 #endif
 
 		fsm_iterate(fsm);
