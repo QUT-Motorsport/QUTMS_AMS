@@ -414,12 +414,12 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 	fsm_reset(fsm, &initState);
 
 	/** Wait for BMSs to boot */
-	// ALI Test this
+
 	HAL_StatusTypeDef err;
 	do {
 		MX_CAN1_Init();
-		err = HAL_CAN_Start(&CANBUS4);
 		HAL_Delay(200);
+		err = HAL_CAN_Start(&CANBUS4);
 		printf("Attemping to start CANBUS4\r\n");
 	} while (err != HAL_OK);
 
@@ -516,13 +516,13 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 			}
 		}
 
-		Timer_update(&AMS_GlobalState->heartbeatTimer, fsm);
-		Timer_update(&AMS_GlobalState->heartbeatTimerAMS, fsm);
-		Timer_update(&AMS_GlobalState->IDC_AlarmTimer, fsm);
-		Timer_update(&AMS_GlobalState->ccTimer, fsm);
-		Timer_update(&AMS_GlobalState->cTimer, fsm);
-		Timer_update(&AMS_GlobalState->prechargeTimer, fsm);
-		Timer_update(&AMS_GlobalState->bmsWakeupTimer, fsm);
+		timer_update(&AMS_GlobalState->heartbeatTimer, fsm);
+		timer_update(&AMS_GlobalState->heartbeatTimerAMS, fsm);
+		timer_update(&AMS_GlobalState->IDC_AlarmTimer, fsm);
+		timer_update(&AMS_GlobalState->ccTimer, fsm);
+		timer_update(&AMS_GlobalState->cTimer, fsm);
+		timer_update(&AMS_GlobalState->prechargeTimer, fsm);
+		timer_update(&AMS_GlobalState->bmsWakeupTimer, fsm);
 #if DEBUF
 		Timer_update(&AMS_GlobalState->debugTimer, fsm);
 #endif

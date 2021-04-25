@@ -32,24 +32,18 @@ void state_init_enter(fsm_t *fsm) {
 		AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
 		memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
 
-		AMS_GlobalState->heartbeatTimer = Timer_init(AMS_HEARTBEAT_PERIOD, true, &heartbeatTimer_cb);
-		Timer_start(&AMS_GlobalState->heartbeatTimer);
+		AMS_GlobalState->heartbeatTimer = timer_init(AMS_HEARTBEAT_PERIOD, true, &heartbeatTimer_cb);
+		timer_start(&AMS_GlobalState->heartbeatTimer);
 
-		AMS_GlobalState->heartbeatTimerAMS = Timer_init(AMS_HEARTBEATBMS_PERIOD, true, &heartbeatTimerBMS_cb);
-		Timer_start(&AMS_GlobalState->heartbeatTimerAMS);
+		AMS_GlobalState->heartbeatTimerAMS = timer_init(AMS_HEARTBEATBMS_PERIOD, true, &heartbeatTimerBMS_cb);
+		timer_start(&AMS_GlobalState->heartbeatTimerAMS);
 
-		AMS_GlobalState->IDC_AlarmTimer = Timer_init(AMS_IDC_PERIOD, true, &IDC_Alarm_cb);
-		Timer_start(&AMS_GlobalState->IDC_AlarmTimer);
+		AMS_GlobalState->IDC_AlarmTimer = timer_init(AMS_IDC_PERIOD, true, &IDC_Alarm_cb);
+		timer_start(&AMS_GlobalState->IDC_AlarmTimer);
 
-		AMS_GlobalState->ccTimer = Timer_init(AMS_CS_PERIOD, true, &ccTimer_cb);
-		Timer_start(&AMS_GlobalState->ccTimer);
-
-		AMS_GlobalState->cTimer = Timer_init(AMS_CS_PERIOD/2, true, &cTimer_cb);
-		Timer_start(&AMS_GlobalState->cTimer);
 #ifdef DEBUG_CB
-
-		AMS_GlobalState->debugTimer = Timer_init(DEBUG_PERIOD, true, &debugTimer_cb);
-		Timer_start(&AMS_GlobalState->debugTimer);
+		AMS_GlobalState->debugTimer = timer_init(DEBUG_PERIOD, true, &debugTimer_cb);
+		timer_start(&AMS_GlobalState->debugTimer);
 #endif
 
 		queue_init(&AMS_GlobalState->CANQueue,
@@ -92,6 +86,13 @@ state_t idleState = { &state_idle_enter, &state_idle_iterate, &state_idle_exit,
 		"Idle_s" };
 
 void state_idle_enter(fsm_t *fsm) {
+
+	// Start requesting Sendyne Currents and Voltages
+	AMS_GlobalState->ccTimer = timer_init(AMS_CS_PERIOD, true, &ccTimer_cb);
+	timer_start(&AMS_GlobalState->ccTimer);
+
+	AMS_GlobalState->cTimer = timer_init(AMS_CS_PERIOD/2, true, &cTimer_cb);
+	timer_start(&AMS_GlobalState->cTimer);
 	/* Set initial pin states */
 	// ALARM Line - HIGH
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
@@ -178,8 +179,8 @@ void state_precharge_enter(fsm_t *fsm) {
 
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 
-	AMS_GlobalState->prechargeTimer = Timer_init(PRECHARGE_DELAY, true, &prechargeTimer_cb);
-	Timer_start(&AMS_GlobalState->prechargeTimer);
+	AMS_GlobalState->prechargeTimer = timer_init(PRECHARGE_DELAY, true, &prechargeTimer_cb);
+	timer_start(&AMS_GlobalState->prechargeTimer);
 }
 
 void state_precharge_iterate(fsm_t *fsm) {
@@ -266,7 +267,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 }
 
 void state_precharge_exit(fsm_t *fsm) {
-	Timer_delete(&AMS_GlobalState->prechargeTimer);
+	timer_delete(&AMS_GlobalState->prechargeTimer);
 }
 
 void prechargeTimer_cb(void *fsm) {
@@ -363,14 +364,14 @@ void state_error_enter(fsm_t *fsm) {
 	// Trip Shutdown Alarm Line
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 
-	Timer_delete(&AMS_GlobalState->IDC_AlarmTimer);
-	Timer_delete(&AMS_GlobalState->heartbeatTimer);
-	Timer_delete(&AMS_GlobalState->heartbeatTimerAMS);
-	Timer_delete(&AMS_GlobalState->ccTimer);
-	Timer_delete(&AMS_GlobalState->cTimer);
+	timer_delete(&AMS_GlobalState->IDC_AlarmTimer);
+	timer_delete(&AMS_GlobalState->heartbeatTimer);
+	timer_delete(&AMS_GlobalState->heartbeatTimerAMS);
+	timer_delete(&AMS_GlobalState->ccTimer);
+	timer_delete(&AMS_GlobalState->cTimer);
 
-	if (Timer_isRunning(&AMS_GlobalState->debugTimer)) {
-		Timer_delete(&AMS_GlobalState->debugTimer);
+	if (timer_isRunning(&AMS_GlobalState->debugTimer)) {
+		timer_delete(&AMS_GlobalState->debugTimer);
 	}
 	queue_delete(&AMS_GlobalState->CANQueue);
 	queue_delete(&AMS_GlobalState->CANForwardQueue);
@@ -423,8 +424,8 @@ state_t SoCState = { &state_SoC_enter, &state_SoC_iterate, &state_SoC_exit,
 
 void state_SoC_enter(fsm_t *fsm) {
 	/** We need 1 voltage packet from each BMS */
-	AMS_GlobalState->bmsWakeupTimer = Timer_init(BMS_WAKEUP_TIMEOUT, false, &wakeupTimerBMS_cb);
-	Timer_start(&AMS_GlobalState->bmsWakeupTimer);
+	AMS_GlobalState->bmsWakeupTimer = timer_init(BMS_WAKEUP_TIMEOUT, false, &wakeupTimerBMS_cb);
+	timer_start(&AMS_GlobalState->bmsWakeupTimer);
 }
 
 void state_SoC_iterate(fsm_t *fsm) {
@@ -491,9 +492,8 @@ void state_SoC_exit(fsm_t *fsm) {
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
 
 	/** Stop and delete the BMS Wakeup Timer */
-
-	Timer_stop(&AMS_GlobalState->bmsWakeupTimer);
-	Timer_delete(&AMS_GlobalState->bmsWakeupTimer);
+	timer_stop(&AMS_GlobalState->bmsWakeupTimer);
+	timer_delete(&AMS_GlobalState->bmsWakeupTimer);
 	return;
 }
 

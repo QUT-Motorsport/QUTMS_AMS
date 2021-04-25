@@ -54,14 +54,14 @@ typedef struct
 	message_queue_t CANQueue;
 	message_queue_t CANForwardQueue;
 
-	Timer_t heartbeatTimer;
-	Timer_t IDC_AlarmTimer;
-	Timer_t heartbeatTimerAMS;
-	Timer_t bmsWakeupTimer;
-	Timer_t ccTimer;
-	Timer_t cTimer;
-	Timer_t debugTimer;
-	Timer_t prechargeTimer;
+	ms_timer_t heartbeatTimer;
+	ms_timer_t IDC_AlarmTimer;
+	ms_timer_t heartbeatTimerAMS;
+	ms_timer_t bmsWakeupTimer;
+	ms_timer_t ccTimer;
+	ms_timer_t cTimer;
+	ms_timer_t debugTimer;
+	ms_timer_t prechargeTimer;
 	int readyCount;
 } AMS_GlobalState_t;
 
