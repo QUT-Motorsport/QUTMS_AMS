@@ -364,15 +364,15 @@ void state_error_enter(fsm_t *fsm) {
 	// Trip Shutdown Alarm Line
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 
-	timer_delete(&AMS_GlobalState->IDC_AlarmTimer);
-	timer_delete(&AMS_GlobalState->heartbeatTimer);
-	timer_delete(&AMS_GlobalState->heartbeatTimerAMS);
-	timer_delete(&AMS_GlobalState->ccTimer);
-	timer_delete(&AMS_GlobalState->cTimer);
+//	timer_delete(&AMS_GlobalState->IDC_AlarmTimer);
+//	timer_delete(&AMS_GlobalState->heartbeatTimer);
+//	timer_delete(&AMS_GlobalState->heartbeatTimerAMS);
+//	timer_delete(&AMS_GlobalState->ccTimer);
+//	timer_delete(&AMS_GlobalState->cTimer);
 
-	if (timer_isRunning(&AMS_GlobalState->debugTimer)) {
-		timer_delete(&AMS_GlobalState->debugTimer);
-	}
+//	if (timer_isRunning(&AMS_GlobalState->debugTimer)) {
+//		timer_delete(&AMS_GlobalState->debugTimer);
+//	}
 	queue_delete(&AMS_GlobalState->CANQueue);
 	queue_delete(&AMS_GlobalState->CANForwardQueue);
 
