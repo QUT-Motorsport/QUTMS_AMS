@@ -32,24 +32,24 @@ void state_init_enter(fsm_t *fsm) {
 		AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
 		memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
 
-		AMS_GlobalState->heartbeatTimer = timer_init(AMS_HEARTBEAT_PERIOD, true, &heartbeatTimer_cb);
+		AMS_GlobalState->heartbeatTimer = timer_init(AMS_HEARTBEAT_PERIOD, true,
+				&heartbeatTimer_cb);
 		timer_start(&AMS_GlobalState->heartbeatTimer);
 
-		AMS_GlobalState->heartbeatTimerAMS = timer_init(AMS_HEARTBEATBMS_PERIOD, true, &heartbeatTimerBMS_cb);
-		timer_start(&AMS_GlobalState->heartbeatTimerAMS);
-
-		AMS_GlobalState->IDC_AlarmTimer = timer_init(AMS_IDC_PERIOD, true, &IDC_Alarm_cb);
+		AMS_GlobalState->IDC_AlarmTimer = timer_init(AMS_IDC_PERIOD, true,
+				&IDC_Alarm_cb);
 		timer_start(&AMS_GlobalState->IDC_AlarmTimer);
 
 #ifdef DEBUG_CB
-		AMS_GlobalState->debugTimer = timer_init(DEBUG_PERIOD, true, &debugTimer_cb);
+		AMS_GlobalState->debugTimer = timer_init(DEBUG_PERIOD, true,
+				&debugTimer_cb);
 		timer_start(&AMS_GlobalState->debugTimer);
 #endif
 
-		queue_init(&AMS_GlobalState->CANQueue,
-				sizeof(AMS_CAN_Generic_t), AMS_CAN_QUEUESIZE);
-		queue_init(&AMS_GlobalState->CANForwardQueue,
-				sizeof(AMS_CAN_Generic_t), AMS_CAN_QUEUESIZE);
+		queue_init(&AMS_GlobalState->CANQueue, sizeof(AMS_CAN_Generic_t),
+				AMS_CAN_QUEUESIZE);
+		queue_init(&AMS_GlobalState->CANForwardQueue, sizeof(AMS_CAN_Generic_t),
+				AMS_CAN_QUEUESIZE);
 
 		AMS_GlobalState->startupTicks = HAL_GetTick();
 	}
@@ -91,7 +91,7 @@ void state_idle_enter(fsm_t *fsm) {
 	AMS_GlobalState->ccTimer = timer_init(AMS_CS_PERIOD, true, &ccTimer_cb);
 	timer_start(&AMS_GlobalState->ccTimer);
 
-	AMS_GlobalState->cTimer = timer_init(AMS_CS_PERIOD/2, true, &cTimer_cb);
+	AMS_GlobalState->cTimer = timer_init(AMS_CS_PERIOD / 2, true, &cTimer_cb);
 	timer_start(&AMS_GlobalState->cTimer);
 	/* Set initial pin states */
 	// ALARM Line - HIGH
@@ -114,7 +114,9 @@ void state_idle_enter(fsm_t *fsm) {
 }
 
 void state_idle_iterate(fsm_t *fsm) {
-	while (!queue_empty(&AMS_GlobalState->CANQueue)) {
+	int i = 0;
+	while ((!queue_empty(&AMS_GlobalState->CANQueue)) && (i < 10)) {
+		i++;
 		AMS_CAN_Generic_t msg;
 		if (queue_next(&AMS_GlobalState->CANQueue, &msg)) {
 			/** Handle the packet */
@@ -125,6 +127,7 @@ void state_idle_iterate(fsm_t *fsm) {
 			 */
 
 			if (msg.header.IDE == CAN_ID_EXT) {
+				//printf("id: %i\r\n", msg.header.ExtId);
 				switch (msg.header.ExtId & BMS_ID_MASK) {
 				case AMS_StartUp_ID:
 					/** Got AMS Startup, move to precharge and await RTD */
@@ -179,7 +182,8 @@ void state_precharge_enter(fsm_t *fsm) {
 
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_SET);
 
-	AMS_GlobalState->prechargeTimer = timer_init(PRECHARGE_DELAY, true, &prechargeTimer_cb);
+	AMS_GlobalState->prechargeTimer = timer_init(PRECHARGE_DELAY, true,
+			&prechargeTimer_cb);
 	timer_start(&AMS_GlobalState->prechargeTimer);
 }
 
@@ -206,7 +210,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 						fsm_changeState(fsm, &drivingState, x);
 					}
 				}
-				break;
+					break;
 
 				case BMS_TransmitVoltage_ID:
 					BMS_handleVoltage(fsm, msg);
@@ -245,8 +249,8 @@ void state_precharge_iterate(fsm_t *fsm) {
 	float accumulatorVoltage = 0;
 	for (int i = 0; i < BMS_COUNT; i++) {
 		for (int j = 0; j < BMS_VOLTAGE_COUNT; j++) {
-			accumulatorVoltage +=
-					(float) (AMS_GlobalState->BMSVoltages[i][j] / 1000.0f);
+			accumulatorVoltage += (float) (AMS_GlobalState->BMSVoltages[i][j]
+					/ 1000.0f);
 		}
 		accumulatorVoltage = ACCUMULATOR_VOLTAGE;
 
@@ -267,7 +271,6 @@ void state_precharge_iterate(fsm_t *fsm) {
 }
 
 void state_precharge_exit(fsm_t *fsm) {
-	timer_delete(&AMS_GlobalState->prechargeTimer);
 }
 
 void prechargeTimer_cb(void *fsm) {
@@ -376,7 +379,6 @@ void state_error_enter(fsm_t *fsm) {
 	queue_delete(&AMS_GlobalState->CANQueue);
 	queue_delete(&AMS_GlobalState->CANForwardQueue);
 
-
 	// Disable CAN Interrupts
 	HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 	HAL_CAN_DeactivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
@@ -423,16 +425,22 @@ state_t SoCState = { &state_SoC_enter, &state_SoC_iterate, &state_SoC_exit,
 		"SoC_s" };
 
 void state_SoC_enter(fsm_t *fsm) {
+
+	// start asking BMS to send stuff
+	AMS_GlobalState->heartbeatTimerAMS = timer_init(AMS_HEARTBEATBMS_PERIOD,
+			true, &heartbeatTimerBMS_cb);
+	timer_start(&AMS_GlobalState->heartbeatTimerAMS);
+
 	/** We need 1 voltage packet from each BMS */
-	AMS_GlobalState->bmsWakeupTimer = timer_init(BMS_WAKEUP_TIMEOUT, false, &wakeupTimerBMS_cb);
+	AMS_GlobalState->bmsWakeupTimer = timer_init(BMS_WAKEUP_TIMEOUT, false,
+			&wakeupTimerBMS_cb);
 	timer_start(&AMS_GlobalState->bmsWakeupTimer);
 }
 
 void state_SoC_iterate(fsm_t *fsm) {
-	while (!queue_empty(&AMS_GlobalState->CANQueue))  {
+	while (!queue_empty(&AMS_GlobalState->CANQueue)) {
 		AMS_CAN_Generic_t msg;
-		if (queue_next(&AMS_GlobalState->CANQueue, &msg))
-		{
+		if (queue_next(&AMS_GlobalState->CANQueue, &msg)) {
 			/** Handle the packet */
 			/**
 			 * @brief Packets driving state is looking for
@@ -472,7 +480,7 @@ void state_SoC_iterate(fsm_t *fsm) {
 	for (int i = 0; i < BMS_COUNT; i++) {
 		if (AMS_GlobalState->BMSStartupSoc[i]) {
 			bms_count++;
-			bms |= (1<<i);
+			bms |= (1 << i);
 		}
 	}
 
@@ -483,7 +491,9 @@ void state_SoC_iterate(fsm_t *fsm) {
 			fsm_changeState(fsm, &idleState, "All BMSs awake, moving to idle");
 		}
 	} else {
-		printf("bms: %d %x\r\n", bms_count, bms);
+		if (bms_count > 0) {
+			printf("bms: %d %x\r\n", bms_count, bms);
+		}
 	}
 }
 
@@ -493,7 +503,6 @@ void state_SoC_exit(fsm_t *fsm) {
 
 	/** Stop and delete the BMS Wakeup Timer */
 	timer_stop(&AMS_GlobalState->bmsWakeupTimer);
-	timer_delete(&AMS_GlobalState->bmsWakeupTimer);
 	return;
 }
 
@@ -505,7 +514,7 @@ void state_charging_enter(fsm_t *fsm) {
 	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(BMS_COUNT); // Send a BMSId of 0 as it doesnt matter to the BMSs
 
 	CAN_TxHeaderTypeDef header = { .ExtId = p.id, .IDE = CAN_ID_EXT, .RTR =
-			CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime = DISABLE, };
+	CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime = DISABLE, };
 
 	// Send charge message
 	HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
@@ -528,8 +537,7 @@ void state_charging_enter(fsm_t *fsm) {
 void state_charging_iterate(fsm_t *fsm) {
 	while (!queue_empty(&AMS_GlobalState->CANQueue)) {
 		AMS_CAN_Generic_t msg;
-		if (queue_next(&AMS_GlobalState->CANQueue, &msg))
-		{
+		if (queue_next(&AMS_GlobalState->CANQueue, &msg)) {
 			switch (msg.header.ExtId & BMS_ID_MASK) {
 			case BMS_BadCellVoltage_ID:
 				BMS_handleBadCellVoltage(fsm, msg);
@@ -732,9 +740,9 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		}
 
 		/*if (bTempCount > 2) {
-			 //fsm_changeState(fsm, &errorState,
-			 //		"Found Bad BMS Cell Temperature");
-			 }*/
+		 //fsm_changeState(fsm, &errorState,
+		 //		"Found Bad BMS Cell Temperature");
+		 }*/
 	}
 }
 
@@ -749,13 +757,11 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 			AMS_GlobalState->VoltageuV |= (int32_t) msg.data[2] << 16;
 			AMS_GlobalState->VoltageuV |= (int32_t) msg.data[3] << 8;
 			AMS_GlobalState->VoltageuV |= (int32_t) msg.data[4] << 0;
-			AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV
-					/ 1000000.0f;
+			AMS_GlobalState->Voltage = AMS_GlobalState->VoltageuV / 1000000.0f;
 
 			AMS_GlobalState->Voltage = (float) (AMS_GlobalState->VoltageuV
 					/ 1000000.f);
 			//				printf("[%li] Voltage: %f\r\n", getRuntime(), AMS_GlobalState->Voltage);
-
 
 			/** Send Voltage Log Msg to CC */
 			uint8_t priority;
@@ -767,9 +773,9 @@ void Sendyne_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 			Parse_CANId(msg.header.ExtId, &priority, &sourceId, &autonomous,
 					&type, &extra, &BMSId);
 
-			CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(
-					CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra,
-					BMSId), .IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
+			CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(CAN_PRIORITY_DEBUG,
+					sourceId, autonomous, type, extra, BMSId),
+					.IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
 							msg.header.DLC, .TransmitGlobalTime = DISABLE };
 
 			if (HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data,
@@ -817,8 +823,8 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 			AMS_GlobalState->HVACurrentuA |= (int64_t) msg.data[3] << 8;
 			AMS_GlobalState->HVACurrentuA |= (int64_t) msg.data[4] << 0;
 
-			AMS_GlobalState->HVACurrent =
-					(float) (AMS_GlobalState->HVACurrentuA / 1000000.f);
+			AMS_GlobalState->HVACurrent = (float) (AMS_GlobalState->HVACurrentuA
+					/ 1000000.f);
 
 			/** Send Voltage Log Msg to CC */
 
@@ -831,9 +837,9 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 			Parse_CANId(msg.header.ExtId, &priority, &sourceId, &autonomous,
 					&type, &extra, &BMSId);
 
-			CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(
-					CAN_PRIORITY_DEBUG, sourceId, autonomous, type, extra,
-					BMSId), .IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
+			CAN_TxHeaderTypeDef h = { .ExtId = Compose_CANId(CAN_PRIORITY_DEBUG,
+					sourceId, autonomous, type, extra, BMSId),
+					.IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC =
 							msg.header.DLC, .TransmitGlobalTime = DISABLE };
 
 			if (HAL_CAN_AddTxMessage(&CANBUS2, &h, msg.data,
@@ -851,8 +857,8 @@ void Sendyne_handleCurrent(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 			AMS_GlobalState->HVBCurrentuA |= (int64_t) msg.data[3] << 8;
 			AMS_GlobalState->HVBCurrentuA |= (int64_t) msg.data[4] << 0;
 
-			AMS_GlobalState->HVBCurrent =
-					(float) (AMS_GlobalState->HVBCurrentuA / 1000000.f);
+			AMS_GlobalState->HVBCurrent = (float) (AMS_GlobalState->HVBCurrentuA
+					/ 1000000.f);
 
 		}
 	}
