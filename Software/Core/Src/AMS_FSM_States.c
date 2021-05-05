@@ -59,7 +59,7 @@ void state_init_enter(fsm_t *fsm) {
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - HIGH (Turn on all BMS)
-	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 
 	//Set Initial PROFET Pin Positions (All Off)
 	// Contactors
@@ -98,7 +98,7 @@ void state_idle_enter(fsm_t *fsm) {
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - HIGH (Turn on all BMS)
-	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 
 	//Set Initial PROFET Pin Positions (All Off)
 	// Contactors

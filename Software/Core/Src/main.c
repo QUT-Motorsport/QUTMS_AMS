@@ -120,6 +120,8 @@ int main(void) {
 
 	// BMS Control - LOW (make sure all BMS off)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
+	HAL_Delay(100);
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
 
 	/** Set Initial PROFET Pin Positions (All Off) */
 	/** Contactors */
