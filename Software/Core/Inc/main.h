@@ -69,7 +69,7 @@ bool charge;
 #define DEBUG_CB
 #define ENABLE_CS
 #define DEBUG_PERIOD 1000U // Milliseconds
-#define PRECHARGE_VDIFF 5.0f
+#define PRECHARGE_VDIFF 6.0f
 #define BMS_CELL_VMIN 2.0f
 
 // Bit Masks

@@ -200,6 +200,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 			if (msg.header.IDE == CAN_ID_EXT) {
 				switch (msg.header.ExtId & BMS_ID_MASK) {
 				case CC_ReadyToDrive_ID: {
+					printf("RTD\r\n");
 					if (fabs(
 							fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE) < PRECHARGE_VDIFF) {
 						char x[80];
@@ -266,6 +267,7 @@ void state_precharge_iterate(fsm_t *fsm) {
 						&AMS_GlobalState->CAN2_TxMailbox);
 				AMS_GlobalState->readyCount++;
 			}
+			printf("precharge done %i\r\n",AMS_GlobalState->readyCount);
 		}
 	}
 }
