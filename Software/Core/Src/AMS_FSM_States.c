@@ -682,7 +682,7 @@ void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 
 		char x[80];
 		int len = snprintf(x, 80,
-				"Found Bad Cell Voltage: Cell:%i, Voltage: %i", cellNum,
+				"Found Bad Cell Voltage: id: %i, Cell:%i, Voltage: %i", BMSId, cellNum,
 				voltage);
 
 		// Bad BMS cell voltage found, we need to change to errorState.
