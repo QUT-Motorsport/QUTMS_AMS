@@ -20,6 +20,7 @@
 #include "BMS_CAN_Messages.h"
 #include "can.h"
 #include <math.h>
+#include <stdlib.h>
 
 /**
  * @brief AMS Global State
