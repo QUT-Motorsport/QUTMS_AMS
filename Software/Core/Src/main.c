@@ -501,7 +501,7 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 				CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
 				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
 						.TransmitGlobalTime = DISABLE, };
-
+/*
 				if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
 					//					printf("waiting for free mailbox \r\n");
 
@@ -516,7 +516,7 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
 					printf("error forwarding CAN msg\r\n");
 				}
-
+*/
 			}
 		}
 
