@@ -69,37 +69,38 @@ void SystemClock_Config(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-  /* USER CODE BEGIN 1 */
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+	/* USER CODE BEGIN 1 */
 	charge = false;
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
-  /* USER CODE END Init */
+	/* USER CODE BEGIN Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
+	/* USER CODE END SysInit */
 
-  /* USER CODE END SysInit */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_TIM4_Init();
+	MX_CAN2_Init();
+	MX_USART3_UART_Init();
+	/* USER CODE BEGIN 2 */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_CAN1_Init();
-  MX_TIM4_Init();
-  MX_CAN2_Init();
-  MX_USART3_UART_Init();
-  /* USER CODE BEGIN 2 */
+	// make sure BMS off
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
+
 	/** Log Boot & HAL Initionalisation */
 
 	int startTimer = HAL_GetTick();
@@ -119,34 +120,43 @@ int main(void)
 	/** ALARM Line - Safe is actually logic low */
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
-	// BMS Control - LOW (make sure all BMS off)
-	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
-	HAL_Delay(100);
-	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
-
 	/** Set Initial PROFET Pin Positions (All Off) */
 	/** Contactors */
 	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVA_P_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
+
 	/** Precharge */
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
 	/** FAN On (Not used as of 2020 QLD Comp */
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
 
-	/** Start CANBUS2 only */
+	HAL_Delay(500);
+
+	char msg2[80];
+	int len;
+
+	// Start CANBUS2
 	if (HAL_CAN_Start(&CANBUS2) != HAL_OK) {
 		char msg[] = "Failed to CAN_Start CAN2";
 		AMS_LogErr(msg, strlen(msg));
-		char msg2[80];
-		int len = snprintf(msg2, 80, "CAN2 Error Code: %liU",
+		len = snprintf(msg2, 80, "CAN2 Error Code: %liU",
 		CANBUS2.ErrorCode);
 		AMS_LogErr(msg2, len);
 	}
 
-	/** Create CAN Filter & Apply it to CANBUS2 */
+	// Start CANBUS4
+	if (HAL_CAN_Start(&CANBUS4) != HAL_OK) {
+		char msg[] = "Failed to CAN_Start CAN4";
+		AMS_LogErr(msg, strlen(msg));
+		len = snprintf(msg2, 80, "CAN4 Error Code: %liU",
+		CANBUS4.ErrorCode);
+		AMS_LogErr(msg2, len);
+	}
+
+	// create CAN filters and apply
 
 	CAN_FilterTypeDef CAN2FilterConfig;
 
@@ -167,6 +177,25 @@ int main(void)
 		AMS_LogErr(msg, strlen(msg));
 	}
 
+	CAN_FilterTypeDef CAN4FilterConfig;
+
+	CAN4FilterConfig.FilterBank = 0;
+	CAN4FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	CAN4FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	CAN4FilterConfig.FilterIdHigh = 0x0000;
+	CAN4FilterConfig.FilterIdLow = 0x0001;
+	CAN4FilterConfig.FilterMaskIdHigh = 0x0000;
+	CAN4FilterConfig.FilterMaskIdLow = 0x0000;
+	CAN4FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+	CAN4FilterConfig.FilterActivation = ENABLE;
+	CAN4FilterConfig.SlaveStartFilterBank = 14;
+
+	if (HAL_CAN_ConfigFilter(&CANBUS4, &CAN4FilterConfig) != HAL_OK) {
+		/* Filter configuration Error */
+		char msg[] = "Failed to set CAN4 Filter";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
 	/** Active CAN Interrupts for handling incoming messages */
 	if (HAL_CAN_ActivateNotification(&CANBUS2, CAN_IT_RX_FIFO0_MSG_PENDING)
 			!= HAL_OK) {
@@ -180,63 +209,72 @@ int main(void)
 		AMS_LogErr(msg, strlen(msg));
 	}
 
+	if (HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING)
+			!= HAL_OK) {
+		char msg[] = "Failed to activate CAN4 notification on RX0";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	if (HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING)
+			!= HAL_OK) {
+		char msg[] = "Failed to activate CAN4 notification on RX1";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
 	/** Create FSM instance */
 	fsm = fsm_new(&deadState);
 
 	/** Create a new thread, where our FSM will run. */
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1) {
 		fsm_mainLoop(&fsm);
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-  RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+	RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL_NONE;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the Systick interrupt time
-  */
-  __HAL_RCC_PLLI2S_ENABLE();
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+		Error_Handler();
+	}
+	/** Configure the Systick interrupt time
+	 */
+	__HAL_RCC_PLLI2S_ENABLE();
 }
 
 /* USER CODE BEGIN 4 */
@@ -297,7 +335,8 @@ void heartbeatTimer_cb(void *fsm) {
 			.RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
 			.TransmitGlobalTime = DISABLE, };
 
-	HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
+	HAL_StatusTypeDef result = 1;
+	result = HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
 			&AMS_GlobalState->CAN2_TxMailbox);
 
 	/*osSemaphoreRelease(AMS_GlobalState->sem);
@@ -415,71 +454,81 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 	fsm_setLogFunction(fsm, &printf);
 	fsm_reset(fsm, &initState);
 
-	/** Wait for BMSs to boot */
+	// CAN4 is initialized, so send shutdown msg to any BMS that is currently active
+	BMS_Shutdown_t bmsShutdownMsg = Compose_BMS_Shutdown();
+	CAN_TxHeaderTypeDef header = { .ExtId = bmsShutdownMsg.id,
+			.IDE = CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 0,
+			.TransmitGlobalTime = DISABLE, };
+
+	// send msg
+	if (HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
+			&AMS_GlobalState->CAN4_TxMailbox) != HAL_OK) {
+		char msg[] = "Failed to send BMS shutdown msg";
+		AMS_LogErr(msg, strlen(msg));
+	}
+
+	// wait for BMS to all shutdown
+	HAL_Delay(300);
+
+	// all BMS should be off now, so now boot all BMS
 
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 
+	// delay to wait for wake up
+	HAL_Delay(250);
+
 	HAL_StatusTypeDef err;
-	do {
-		//MX_CAN1_Init();
+	err = HAL_OK;
 
-		while (HAL_CAN_Init(&hcan1) != HAL_OK) {
-			printf("reinit can4\r\n");
-		}
+	/*
+	 HAL_StatusTypeDef err;
+	 err = HAL_CAN_Init(&hcan1);
 
-		err = HAL_CAN_Start(&CANBUS4);
-		HAL_Delay(200);
-		printf("Attemping to start CANBUS4\r\n");
-	} while (err != HAL_OK);
+	 if (err != HAL_OK) {
+	 printf("unable to init can4\r\n");
+	 }
 
+	 HAL_Delay(250);
+
+	 err = HAL_CAN_Start(&CANBUS4);
+
+	 if (err != HAL_OK) {
+	 printf("unable to start can4\r\n");
+	 }
+
+	 */
+
+	/*
+
+	 do {
+	 //MX_CAN1_Init();
+
+	 while (HAL_CAN_Init(&hcan1) != HAL_OK) {
+	 printf("reinit can4\r\n");
+	 }
+
+	 err = HAL_CAN_Start(&CANBUS4);
+	 HAL_Delay(200);
+	 printf("Attemping to start CANBUS4\r\n");
+	 } while (err != HAL_OK);
+	 */
 	/** Log above */
 	printf("BMS Wake-up Timeout Complete: err = %i\r\n", err);
-
-	/** Now BMSs have booted, start CAN4 */
-	if (HAL_CAN_Start(&CANBUS4) != HAL_OK) {
-		char msg[] = "Failed to CAN_Start CAN4";
-		AMS_LogErr(msg, strlen(msg));
-		char msg2[80];
-		int len = snprintf(msg2, 80, "CAN4 Error Code: %liU",
-		CANBUS4.ErrorCode);
-		AMS_LogErr(msg2, len);
-		char msg3[] =
-				"Error likely caused by BMS not powered with isolated side of BMS powered.";
-		AMS_LogErr(msg3, strlen(msg3));
-	}
-
-	CAN_FilterTypeDef CAN4FilterConfig;
-
-	CAN4FilterConfig.FilterBank = 0;
-	CAN4FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	CAN4FilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	CAN4FilterConfig.FilterIdHigh = 0x0000;
-	CAN4FilterConfig.FilterIdLow = 0x0001;
-	CAN4FilterConfig.FilterMaskIdHigh = 0x0000;
-	CAN4FilterConfig.FilterMaskIdLow = 0x0000;
-	CAN4FilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-	CAN4FilterConfig.FilterActivation = ENABLE;
-	CAN4FilterConfig.SlaveStartFilterBank = 14;
-
-	if (HAL_CAN_ConfigFilter(&CANBUS4, &CAN4FilterConfig) != HAL_OK) {
-		/* Filter configuration Error */
-		char msg[] = "Failed to set CAN4 Filter";
-		AMS_LogErr(msg, strlen(msg));
-	}
-
-	if (HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO0_MSG_PENDING)
-			!= HAL_OK) {
-		char msg[] = "Failed to activate CAN4 notification on RX0";
-		AMS_LogErr(msg, strlen(msg));
-	}
-
-	if (HAL_CAN_ActivateNotification(&CANBUS4, CAN_IT_RX_FIFO1_MSG_PENDING)
-			!= HAL_OK) {
-		char msg[] = "Failed to activate CAN4 notification on RX1";
-		AMS_LogErr(msg, strlen(msg));
-	}
-
+	/*
+	 // Now BMSs have booted, start CAN4
+	 if (err != HAL_OK) {
+	 char msg[] = "Failed to CAN_Start CAN4";
+	 AMS_LogErr(msg, strlen(msg));
+	 char msg2[80];
+	 int len = snprintf(msg2, 80, "CAN4 Error Code: %liU",
+	 CANBUS4.ErrorCode);
+	 AMS_LogErr(msg2, len);
+	 char msg3[] =
+	 "Error likely caused by BMS not powered with isolated side of BMS powered.";
+	 AMS_LogErr(msg3, strlen(msg3));
+	 }
+	 */
 	if (fsm_getState_t(fsm) != &errorState) {
 		/** Manually move into SoC now the BMSs have booted */
 		//		if(charge)
@@ -493,33 +542,32 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 
 	HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
 	for (;;) {
+		/*
+		 // forward CAN msgs
+		 while (!queue_empty(&AMS_GlobalState->CANForwardQueue)) {
+		 AMS_CAN_Generic_t msg;
+		 if (queue_next(&AMS_GlobalState->CANForwardQueue, &msg)) {
+		 CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
+		 CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
+		 .TransmitGlobalTime = DISABLE, };
+		 /*
+		 if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
+		 //					printf("waiting for free mailbox \r\n");
 
-		// forward CAN msgs
-		while (!queue_empty(&AMS_GlobalState->CANForwardQueue)) {
-			AMS_CAN_Generic_t msg;
-			if (queue_next(&AMS_GlobalState->CANForwardQueue, &msg)) {
-				CAN_TxHeaderTypeDef header = { .ExtId = msg.header.ExtId, .IDE =
-				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = msg.header.DLC,
-						.TransmitGlobalTime = DISABLE, };
-/*
-				if (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
-					//					printf("waiting for free mailbox \r\n");
+		 while (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
 
-					while (HAL_CAN_GetTxMailboxesFreeLevel(&CANBUS2) == 0) {
+		 }
 
-					}
+		 //					printf("found free mailbox\r\n");
+		 }
 
-					//					printf("found free mailbox\r\n");
-				}
-
-				if (HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data,
-						&AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
-					printf("error forwarding CAN msg\r\n");
-				}
-*/
-			}
-		}
-
+		 if (HAL_CAN_AddTxMessage(&CANBUS2, &header, msg.data,
+		 &AMS_GlobalState->CAN2_TxMailbox) != HAL_OK) {
+		 printf("error forwarding CAN msg\r\n");
+		 }
+		 */
+		//}
+		//}
 		timer_update(&AMS_GlobalState->heartbeatTimer, fsm);
 		timer_update(&AMS_GlobalState->heartbeatTimerAMS, fsm);
 		timer_update(&AMS_GlobalState->IDC_AlarmTimer, fsm);
@@ -588,7 +636,9 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo) {
 	AMS_CAN_Generic_t msg;
 	//int fill = HAL_CAN_GetRxFifoFillLevel(hcan, fifo);
 
-	while (HAL_CAN_GetRxFifoFillLevel(hcan, fifo) > 0) {
+	int fill = HAL_CAN_GetRxFifoFillLevel(hcan, fifo);
+
+	for (int i = 0; i < fill; i++) {
 		//printf("rx\r\n");
 		if (HAL_CAN_GetRxMessage(hcan, fifo, &(msg.header), msg.data)
 				!= HAL_OK) {
@@ -600,9 +650,9 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo) {
 		queue_add(&AMS_GlobalState->CANQueue, &msg);
 
 		/** Send any CAN4 messages out on CAN2 */
-		if (hcan == &CANBUS4) {
-			queue_add(&AMS_GlobalState->CANForwardQueue, &msg);
-		}
+		/*if (hcan == &CANBUS4) {
+		 queue_add(&AMS_GlobalState->CANForwardQueue, &msg);
+		 }*/
 	}
 
 	// reenable interrupts
@@ -612,55 +662,52 @@ void handleCAN(CAN_HandleTypeDef *hcan, int fifo) {
 }
 /* USER CODE END 4 */
 
- /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
+/**
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM6 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	/* USER CODE BEGIN Callback 0 */
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+	/* USER CODE END Callback 0 */
+	if (htim->Instance == TIM6) {
+		HAL_IncTick();
+	}
+	/* USER CODE BEGIN Callback 1 */
 
-  /* USER CODE END Callback 1 */
+	/* USER CODE END Callback 1 */
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	char msg[] = "Error Handler Triggered";
 	AMS_LogErr(msg, strlen(msg));
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t *file, uint32_t line) {
+	/* USER CODE BEGIN 6 */
 	printf("%s: Failed to assert @ [%i, %li]\r\n", "ERROR", *file, line);
 	/* User can add his own implementation to report the file name and line number,
 	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
