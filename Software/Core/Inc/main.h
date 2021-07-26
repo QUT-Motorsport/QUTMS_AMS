@@ -33,6 +33,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
+#include "fsm.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -52,11 +53,11 @@ bool charge;
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
-#define AMS_CAN_QUEUESIZE 25 //Units
+#define AMS_CAN_QUEUESIZE 50 //Units
 #define BMS_WAKEUP_TIMEOUT 10000U //Milliseconds
 
 // BMS
-#define BMS_COUNT 8
+#define BMS_COUNT 6
 #define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
 #define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
 
@@ -68,7 +69,7 @@ bool charge;
 #define DEBUG_CB
 #define ENABLE_CS
 #define DEBUG_PERIOD 1000U // Milliseconds
-#define PRECHARGE_VDIFF 5.0f
+#define PRECHARGE_VDIFF 6.0f
 #define BMS_CELL_VMIN 2.0f
 
 // Bit Masks
@@ -144,8 +145,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 float getRuntime();
 int _write(int file, char *data, int len);
 void handleCAN(CAN_HandleTypeDef *hcan, int fifo);
-__NO_RETURN void fsm_thread_mainLoop(void* fsm);
+__NO_RETURN void fsm_mainLoop(void* fsm);
 __NO_RETURN void uart_thread_mainLoop(void* fsm);
+
+fsm_t fsm;
 
 /** Temp Function */
 float vToSoC(float voltage);
