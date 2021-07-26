@@ -15,10 +15,10 @@ void state_charging_enter(fsm_t *fsm) {
 	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(BMS_COUNT); // Send a BMSId of 0 as it doesnt matter to the BMSs
 
 	CAN_TxHeaderTypeDef header = { .ExtId = p.id, .IDE = CAN_ID_EXT, .RTR =
-	CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime = DISABLE, };
+	CAN_RTR_DATA, .DLC = 1, .TransmitGlobalTime = DISABLE, };
 
 	// Send charge message
-	HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
+	HAL_CAN_AddTxMessage(&CANBUS4, &header, p.data,
 			&AMS_GlobalState->CAN4_TxMailbox);
 
 	// Close Connectors

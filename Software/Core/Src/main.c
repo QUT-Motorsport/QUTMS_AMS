@@ -317,10 +317,10 @@ void heartbeatTimerBMS_cb(void *fsm) {
 
 		CAN_TxHeaderTypeDef header =
 				{ .ExtId = canPacket.id, .IDE =
-				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 0, .TransmitGlobalTime =
+				CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = 1, .TransmitGlobalTime =
 						DISABLE, };
 
-		HAL_CAN_AddTxMessage(&CANBUS4, &header, NULL,
+		HAL_CAN_AddTxMessage(&CANBUS4, &header, canPacket.data,
 				&AMS_GlobalState->CAN4_TxMailbox);
 	} else {
 		/** We are driving, so send BMSs normal heart beat */
