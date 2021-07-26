@@ -7,6 +7,8 @@
 
 #include <AMS_FSM_States.h>
 
+extern bool charge;
+
 void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 	uint8_t BMSId;
 	uint8_t vMsgId;
@@ -25,7 +27,7 @@ void BMS_handleVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				voltages[i];
 	}
 	/** If last message, log all voltages to SD*/
-	if (vMsgId == 2) {
+	if (vMsgId == 2 && charge) {
 #if BMS_LOG_V
 		printf(
 				"{\"VoltageInfo\":{\"RT\": %.3f, \"BMS\": %i, \"Voltages\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f]}}\r\n",
@@ -61,7 +63,7 @@ void BMS_handleTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				temperatures[i];
 	}
 	/** If last message, log all temperatures to SD*/
-	if (tMsgId == 2) {
+	if (tMsgId == 2 && charge) {
 #if BMS_LOG_T
 		printf(
 				"{\"TemperatureInfo\":{\"RT\": %.3f, \"BMS\": %i, \"Temperatures\": [%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i]}}\r\n",
