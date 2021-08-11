@@ -1,3 +1,6 @@
 [submodule "Software/Core/Common"]
 	path = Software/Core/Common
 	url = https://github.com/QUT-Motorsport/QUTMS_Embedded_Common.git
+[submodule "Software/Core/CANopenNode/Lib"]
+	path = Software/Core/CANopenNode/Lib
+	url = https://github.com/CANopenNode/CANopenNode.git
