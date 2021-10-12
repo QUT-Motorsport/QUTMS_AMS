@@ -12,6 +12,8 @@ state_t errorState = { &state_error_enter, &state_error_iterate,
 
 void state_error_enter(fsm_t *fsm) {
 
+	debugCAN_enterState(AMS_STATE_ID_Error);
+
 	// LOW - PRECHG
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
@@ -52,6 +54,8 @@ void state_error_iterate(fsm_t *fsm) {
 }
 
 void state_error_exit(fsm_t *fsm) {
+	debugCAN_enterState(AMS_STATE_ID_Error);
+
 	Error_Handler();
 	return; // We should never get here.
 }

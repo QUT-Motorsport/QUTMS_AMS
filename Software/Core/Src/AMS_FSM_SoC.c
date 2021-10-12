@@ -11,6 +11,7 @@ state_t SoCState = { &state_SoC_enter, &state_SoC_iterate, &state_SoC_exit,
 		"SoC_s" };
 
 void state_SoC_enter(fsm_t *fsm) {
+	debugCAN_enterState(AMS_STATE_ID_SoC);
 
 	// start asking BMS to send stuff
 	AMS_GlobalState->heartbeatTimerAMS = timer_init(AMS_HEARTBEATBMS_PERIOD,
@@ -84,6 +85,8 @@ void state_SoC_iterate(fsm_t *fsm) {
 }
 
 void state_SoC_exit(fsm_t *fsm) {
+	debugCAN_exitState(AMS_STATE_ID_SoC);
+
 	/** Now we have all BMSs, disable boot pin */
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
 

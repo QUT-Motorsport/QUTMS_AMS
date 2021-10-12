@@ -290,6 +290,7 @@ void heartbeatTimer_cb(void *fsm) {
 
 	uint16_t runtime = getRuntime();
 
+
 	AMS_HeartbeatResponse_t canPacket = Compose_AMS_HeartbeatResponse(
 			initialised, HVAn_state, HVBn_state, precharge_state, HVAp_state,
 			HVBp_state, averageVoltage, runtime);
@@ -297,8 +298,11 @@ void heartbeatTimer_cb(void *fsm) {
 			.RTR = CAN_RTR_DATA, .DLC = sizeof(canPacket.data),
 			.TransmitGlobalTime = DISABLE, };
 
-	HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
+	HAL_StatusTypeDef result = HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
 			&AMS_GlobalState->CAN2_TxMailbox);
+
+	printf("heartbeat: %d\r\n", result);
+
 
 	/*osSemaphoreRelease(AMS_GlobalState->sem);
 	 } else {

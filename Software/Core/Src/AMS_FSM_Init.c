@@ -11,6 +11,9 @@ state_t initState = { &state_init_enter, &state_init_iterate, &state_init_exit,
 		"Init_s" };
 
 void state_init_enter(fsm_t *fsm) {
+
+	debugCAN_enterState(AMS_STATE_ID_Init);
+
 	if (AMS_GlobalState == NULL) {
 		AMS_GlobalState = malloc(sizeof(AMS_GlobalState_t));
 		memset(AMS_GlobalState, 0, sizeof(AMS_GlobalState_t));
@@ -62,5 +65,8 @@ void state_init_iterate(fsm_t *fsm) {
 }
 
 void state_init_exit(fsm_t *fsm) {
+
+	debugCAN_exitState(AMS_STATE_ID_Init);
+
 	return;
 }

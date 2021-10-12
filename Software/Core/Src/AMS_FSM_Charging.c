@@ -11,6 +11,9 @@ state_t chargingState = { &state_charging_enter, &state_charging_iterate,
 		&state_charging_exit, "Charging_s" };
 
 void state_charging_enter(fsm_t *fsm) {
+
+	debugCAN_enterState(AMS_STATE_ID_Charging);
+
 	printf("Sending BMS Charge Enabled Message to BMSs\r\n");
 	BMS_ChargeEnabled_t p = Compose_BMS_ChargeEnabled(BMS_COUNT); // Send a BMSId of 0 as it doesnt matter to the BMSs
 
@@ -69,6 +72,9 @@ void state_charging_iterate(fsm_t *fsm) {
 }
 
 void state_charging_exit(fsm_t *fsm) {
+
+	debugCAN_exitState(AMS_STATE_ID_Charging);
+
 	// Open Contactors
 
 	// LOW - PRECHG

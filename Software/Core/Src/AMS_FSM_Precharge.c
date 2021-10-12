@@ -11,6 +11,8 @@ state_t prechargeState = { &state_precharge_enter, &state_precharge_iterate,
 		&state_precharge_exit, "Precharge_s" };
 
 void state_precharge_enter(fsm_t *fsm) {
+	debugCAN_enterState(AMS_STATE_ID_Precharge);
+
 	// Set Contractors to precharge mode
 	HAL_GPIO_WritePin(HVA_N_GPIO_Port, HVA_N_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(HVB_N_GPIO_Port, HVB_N_Pin, GPIO_PIN_SET);
@@ -38,8 +40,12 @@ void state_precharge_iterate(fsm_t *fsm) {
 				switch (msg.header.ExtId & BMS_ID_MASK) {
 				case CC_ReadyToDrive_ID: {
 					printf("RTD\r\n");
-					if (fabs(
-							fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE) < PRECHARGE_VDIFF) {
+
+					if ((fabs(
+							fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE)
+							< PRECHARGE_VDIFF)
+							|| (fabs(AMS_GlobalState->Voltage)
+									> (ACCUMULATOR_VOLTAGE))) {
 						char x[80];
 						snprintf(x, 80, "HV Voltage Drop: %f, RTD.",
 								fabs(
@@ -92,8 +98,11 @@ void state_precharge_iterate(fsm_t *fsm) {
 		}
 		accumulatorVoltage = ACCUMULATOR_VOLTAGE;
 
-		if (fabs(
-				fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE) < PRECHARGE_VDIFF) {
+		if (((fabs(
+							fabs(AMS_GlobalState->Voltage) - ACCUMULATOR_VOLTAGE)
+							< PRECHARGE_VDIFF)
+							|| (fabs(AMS_GlobalState->Voltage)
+									> (ACCUMULATOR_VOLTAGE)))) {
 			/** Notify CC of the Prechage completion, but dont change into RTD yet */
 			AMS_Ready_t notifyCCofPrechage = Compose_AMS_Ready();
 			CAN_TxHeaderTypeDef header = { .ExtId = notifyCCofPrechage.id,
@@ -104,12 +113,14 @@ void state_precharge_iterate(fsm_t *fsm) {
 						&AMS_GlobalState->CAN2_TxMailbox);
 				AMS_GlobalState->readyCount++;
 			}
-			printf("precharge done %i\r\n",AMS_GlobalState->readyCount);
+			printf("precharge done %i\r\n", AMS_GlobalState->readyCount);
 		}
 	}
 }
 
 void state_precharge_exit(fsm_t *fsm) {
+	debugCAN_exitState(AMS_STATE_ID_Precharge);
+
 }
 
 void prechargeTimer_cb(void *fsm) {

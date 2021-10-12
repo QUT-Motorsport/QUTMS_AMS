@@ -11,6 +11,9 @@ state_t drivingState = { &state_driving_enter, &state_driving_iterate,
 		&state_driving_exit, "Driving_s" };
 
 void state_driving_enter(fsm_t *fsm) {
+
+	debugCAN_enterState(AMS_STATE_ID_Driving);
+
 	// Close Connectors
 
 	// LOW - PRECHG
@@ -70,6 +73,8 @@ void state_driving_iterate(fsm_t *fsm) {
 }
 
 void state_driving_exit(fsm_t *fsm) {
+	debugCAN_exitState(AMS_STATE_ID_Driving);
+
 	// LOW - PRECHG
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 

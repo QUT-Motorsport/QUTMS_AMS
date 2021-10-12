@@ -11,6 +11,7 @@ state_t deadState = { &state_dead_enter, &state_dead_iterate, &state_dead_exit,
 		"Dead_s" };
 
 void state_dead_enter(fsm_t *fsm) {
+	debugCAN_enterState(AMS_STATE_ID_Dead);
 	return;
 }
 
@@ -20,5 +21,6 @@ void state_dead_iterate(fsm_t *fsm) {
 }
 
 void state_dead_exit(fsm_t *fsm) {
+	debugCAN_exitState(AMS_STATE_ID_Dead);
 	return;
 }

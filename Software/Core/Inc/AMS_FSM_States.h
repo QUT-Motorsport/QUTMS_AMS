@@ -22,6 +22,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "debugCAN.h"
+
 /**
  * @brief AMS Global State
  * @note AMS Global State is shared across threads, so use the semaphore to gain control
@@ -67,6 +69,17 @@ typedef struct
 } AMS_GlobalState_t;
 
 AMS_GlobalState_t *AMS_GlobalState;
+
+#define AMS_STATE_ID_Dead 		0x0
+#define AMS_STATE_ID_Reset 		0x1
+#define AMS_STATE_ID_Init 		0x2
+#define AMS_STATE_ID_SoC		0x3
+#define AMS_STATE_ID_Idle 		0x4
+#define AMS_STATE_ID_Precharge 	0x5
+#define AMS_STATE_ID_Driving	0x6
+#define AMS_STATE_ID_Charging	0x7
+#define AMS_STATE_ID_Error 		0x8
+
 
 /**
  * @brief Dead state enter function

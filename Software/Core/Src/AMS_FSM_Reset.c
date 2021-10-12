@@ -11,6 +11,9 @@ state_t resetState = { &state_reset_enter, &state_reset_iterate,
 		&state_reset_exit, "Reset_s" };
 
 void state_reset_enter(fsm_t *fsm) {
+	debugCAN_enterState(AMS_STATE_ID_Reset);
+
+
 	// LOW - PRECHG
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
@@ -26,5 +29,6 @@ void state_reset_iterate(fsm_t *fsm) {
 }
 
 void state_reset_exit(fsm_t *fsm) {
+	debugCAN_exitState(AMS_STATE_ID_Reset);
 	return;
 }

@@ -12,6 +12,7 @@ state_t idleState = { &state_idle_enter, &state_idle_iterate, &state_idle_exit,
 
 void state_idle_enter(fsm_t *fsm) {
 
+
 	// Start requesting Sendyne Currents and Voltages
 	AMS_GlobalState->ccTimer = timer_init(AMS_CS_PERIOD, true, &ccTimer_cb);
 	timer_start(&AMS_GlobalState->ccTimer);
@@ -36,6 +37,8 @@ void state_idle_enter(fsm_t *fsm) {
 
 	// FAN On
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
+
+	debugCAN_enterState(AMS_STATE_ID_Idle);
 }
 
 void state_idle_iterate(fsm_t *fsm) {
@@ -92,5 +95,8 @@ void state_idle_iterate(fsm_t *fsm) {
 }
 
 void state_idle_exit(fsm_t *fsm) {
+
+	debugCAN_exitState(AMS_STATE_ID_Idle);
+
 	return;
 }
