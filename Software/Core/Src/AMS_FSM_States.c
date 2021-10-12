@@ -133,6 +133,8 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				.RTR = CAN_RTR_DATA, .DLC = sizeof(cTS.data),
 				.TransmitGlobalTime = DISABLE, };
 
+		printf("bad temp bms %d cell %d\r\n", BMSId, cellNum);
+
 		// Notify Chassis we have a bad cell temperature.
 		HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data,
 				&AMS_GlobalState->CAN2_TxMailbox);

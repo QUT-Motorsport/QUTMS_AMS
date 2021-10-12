@@ -423,6 +423,8 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 
 	// BMS Control - HIGH (Turn on all BMS)
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
+	//HAL_Delay(100);
+
 
 	HAL_StatusTypeDef err;
 	do {
@@ -430,12 +432,18 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 
 		while (HAL_CAN_Init(&hcan1) != HAL_OK) {
 			printf("reinit can4\r\n");
+			//HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
 		}
 
 		err = HAL_CAN_Start(&CANBUS4);
-		HAL_Delay(200);
+		HAL_Delay(100);
 		printf("Attemping to start CANBUS4\r\n");
+		HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
+		HAL_Delay(100);
 	} while (err != HAL_OK);
+
+
+	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
 
 	/** Log above */
 	printf("BMS Wake-up Timeout Complete: err = %i\r\n", err);
