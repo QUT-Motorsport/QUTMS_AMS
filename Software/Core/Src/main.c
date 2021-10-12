@@ -301,7 +301,7 @@ void heartbeatTimer_cb(void *fsm) {
 	HAL_StatusTypeDef result = HAL_CAN_AddTxMessage(&CANBUS2, &header, canPacket.data,
 			&AMS_GlobalState->CAN2_TxMailbox);
 
-	printf("heartbeat: %d\r\n", result);
+	//printf("heartbeat: %d\r\n", result);
 
 
 	/*osSemaphoreRelease(AMS_GlobalState->sem);
