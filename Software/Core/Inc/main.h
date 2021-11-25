@@ -64,7 +64,7 @@ bool charge;
 
 //Voltage
 //#define ACCUMULATOR_VOLTAGE 36.0f * BMS_COUNT
-#define ACCUMULATOR_VOLTAGE 59.0f
+#define ACCUMULATOR_VOLTAGE 45.0f
 
 // Debug
 #define DEBUG_CB
