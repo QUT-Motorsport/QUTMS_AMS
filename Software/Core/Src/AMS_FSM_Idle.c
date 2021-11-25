@@ -17,7 +17,7 @@ void state_idle_enter(fsm_t *fsm) {
 	AMS_GlobalState->ccTimer = timer_init(AMS_CS_PERIOD, true, &ccTimer_cb);
 	timer_start(&AMS_GlobalState->ccTimer);
 
-	AMS_GlobalState->cTimer = timer_init(AMS_CS_PERIOD / 2, true, &cTimer_cb);
+	AMS_GlobalState->cTimer = timer_init(AMS_CS_PERIOD_FAST, true, &cTimer_cb);
 	timer_start(&AMS_GlobalState->cTimer);
 	/* Set initial pin states */
 	// ALARM Line - HIGH

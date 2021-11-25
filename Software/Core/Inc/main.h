@@ -53,6 +53,7 @@ bool charge;
 #define AMS_HEARTBEAT_PERIOD 75U // Milliseconds
 #define AMS_IDC_PERIOD 250U // Milliseconds
 #define AMS_CS_PERIOD 1000U // Milliseconds
+#define AMS_CS_PERIOD_FAST 10U // Milliseconds
 #define AMS_CAN_QUEUESIZE 50 //Units
 #define BMS_WAKEUP_TIMEOUT 10000U //Milliseconds
 
