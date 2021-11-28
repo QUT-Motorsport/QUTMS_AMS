@@ -102,7 +102,7 @@ void BMS_handleBadCellVoltage(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 				.TransmitGlobalTime = DISABLE, };
 
 		// Notify Chassis we have a bad cell voltage.
-		HAL_CAN_AddTxMessage(&hcan1, &header, cVS.data,
+		HAL_CAN_AddTxMessage(&CANBUS2, &header, cVS.data,
 				&AMS_GlobalState->CAN2_TxMailbox);
 
 		char x[80];
@@ -136,7 +136,7 @@ void BMS_handleBadCellTemperature(fsm_t *fsm, AMS_CAN_Generic_t msg) {
 		printf("bad temp bms %d cell %d\r\n", BMSId, cellNum);
 
 		// Notify Chassis we have a bad cell temperature.
-		HAL_CAN_AddTxMessage(&hcan1, &header, cTS.data,
+		HAL_CAN_AddTxMessage(&CANBUS2, &header, cTS.data,
 				&AMS_GlobalState->CAN2_TxMailbox);
 
 		//		char x[80];

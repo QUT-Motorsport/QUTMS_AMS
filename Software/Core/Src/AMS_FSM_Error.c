@@ -14,6 +14,8 @@ void state_error_enter(fsm_t *fsm) {
 
 	debugCAN_enterState(AMS_STATE_ID_Error);
 
+	AMS_GlobalState->shutdown_state = 0;
+
 	// LOW - PRECHG
 	HAL_GPIO_WritePin(PRECHG_GPIO_Port, PRECHG_Pin, GPIO_PIN_RESET);
 
@@ -24,6 +26,7 @@ void state_error_enter(fsm_t *fsm) {
 	HAL_GPIO_WritePin(HVB_P_GPIO_Port, HVB_P_Pin, GPIO_PIN_RESET);
 
 	// Trip Shutdown Alarm Line
+	AMS_GlobalState->shutdown_state = 0;
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 
 //	timer_delete(&AMS_GlobalState->IDC_AlarmTimer);
@@ -35,22 +38,27 @@ void state_error_enter(fsm_t *fsm) {
 //	if (timer_isRunning(&AMS_GlobalState->debugTimer)) {
 //		timer_delete(&AMS_GlobalState->debugTimer);
 //	}
+	/*
 	queue_delete(&AMS_GlobalState->CANQueue);
 	queue_delete(&AMS_GlobalState->CANForwardQueue);
 
 	// Disable CAN Interrupts
 	HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 	HAL_CAN_DeactivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
+	*/
 }
 
 void state_error_iterate(fsm_t *fsm) {
-	do {
+	// do {
 		// We cannot escape from here. We are forever hitting UART.
 		// Trip Shutdown Alarm Line
+		AMS_GlobalState->shutdown_state = 0;
 		HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_SET);
 		AMS_LogErr("Stuck in error state", strlen("Stuck in error state"));
+	/*
 		HAL_Delay(2000);
 	} while (1);
+	*/
 }
 
 void state_error_exit(fsm_t *fsm) {

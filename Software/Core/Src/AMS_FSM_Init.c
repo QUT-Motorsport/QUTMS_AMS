@@ -38,10 +38,14 @@ void state_init_enter(fsm_t *fsm) {
 				AMS_CAN_QUEUESIZE);
 
 		AMS_GlobalState->startupTicks = HAL_GetTick();
+
+		AMS_GlobalState->shutdownStatusTimer = timer_init(10, true, &shutdownStatusTimer_cb);
+		timer_start(&AMS_GlobalState->shutdownStatusTimer);
 	}
 
 	/* Set initial pin states */
 	// ALARM Line - HIGH
+	AMS_GlobalState->shutdown_state = 1;
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - HIGH (Turn on all BMS)

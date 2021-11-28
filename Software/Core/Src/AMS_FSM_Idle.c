@@ -20,7 +20,9 @@ void state_idle_enter(fsm_t *fsm) {
 	AMS_GlobalState->cTimer = timer_init(AMS_CS_PERIOD_FAST, true, &cTimer_cb);
 	timer_start(&AMS_GlobalState->cTimer);
 	/* Set initial pin states */
+
 	// ALARM Line - HIGH
+	AMS_GlobalState->shutdown_state = 1;
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - HIGH (Turn on all BMS)
@@ -37,6 +39,8 @@ void state_idle_enter(fsm_t *fsm) {
 
 	// FAN On
 	HAL_GPIO_WritePin(FAN_GPIO_Port, FAN_Pin, GPIO_PIN_SET);
+
+
 
 	debugCAN_enterState(AMS_STATE_ID_Idle);
 }

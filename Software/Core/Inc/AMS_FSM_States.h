@@ -57,6 +57,7 @@ typedef struct
 	message_queue_t CANQueue;
 	message_queue_t CANForwardQueue;
 
+	ms_timer_t shutdownStatusTimer;
 	ms_timer_t heartbeatTimer;
 	ms_timer_t IDC_AlarmTimer;
 	ms_timer_t heartbeatTimerAMS;
@@ -66,6 +67,8 @@ typedef struct
 	ms_timer_t debugTimer;
 	ms_timer_t prechargeTimer;
 	int readyCount;
+
+	uint8_t shutdown_state;
 } AMS_GlobalState_t;
 
 AMS_GlobalState_t *AMS_GlobalState;

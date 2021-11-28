@@ -117,6 +117,7 @@ int main(void)
 	printf("HAL Initialisation Complete\r\n");
 
 	/** ALARM Line - Safe is actually logic low */
+
 	HAL_GPIO_WritePin(ALARM_CTRL_GPIO_Port, ALARM_CTRL_Pin, GPIO_PIN_RESET);
 
 	// BMS Control - LOW (make sure all BMS off)
@@ -410,6 +411,14 @@ void debugTimer_cb(void *fsm) {
 	return;
 }
 
+void shutdownStatusTimer_cb(void *fsm) {
+	AMS_ShutdownState_t msg = Compose_AMS_ShutdownState(AMS_GlobalState->shutdown_state);
+	CAN_TxHeaderTypeDef header = { .ExtId = msg.id, .IDE = CAN_ID_EXT,
+				.RTR = CAN_RTR_DATA, .DLC = sizeof(msg.data), .TransmitGlobalTime = DISABLE };
+	HAL_CAN_AddTxMessage(&CANBUS2, &header, &msg.data,
+			&AMS_GlobalState->CAN2_TxMailbox);
+}
+
 /**
  * @brief FSM thread main loop task for RTOS
  * @param fsm the FSM object passed to the loop
@@ -532,6 +541,7 @@ __NO_RETURN void fsm_mainLoop(void *fsm) {
 			}
 		}
 
+		timer_update(&AMS_GlobalState->shutdownStatusTimer, fsm);
 		timer_update(&AMS_GlobalState->heartbeatTimer, fsm);
 		timer_update(&AMS_GlobalState->heartbeatTimerAMS, fsm);
 		timer_update(&AMS_GlobalState->IDC_AlarmTimer, fsm);

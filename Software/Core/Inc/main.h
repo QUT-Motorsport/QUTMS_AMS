@@ -124,6 +124,9 @@ bool charge;
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+
+void shutdownStatusTimer_cb(void *fsm);
+
 /**
  * @brief Callback for the IDC ALARM timer, which will be called every 250 milliseconds.
  * @param fsm A pointer to the FSM object
