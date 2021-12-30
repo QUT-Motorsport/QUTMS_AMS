@@ -44,7 +44,9 @@ extern "C" {
 /* USER CODE BEGIN EC */
 bool charge;
 // Printf to UART
-#define PRINTF_TO_UART
+
+// 300ms
+#define HEARTBEAT_TIMEOUT 300
 
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
@@ -125,37 +127,6 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-void shutdownStatusTimer_cb(void *fsm);
-
-/**
- * @brief Callback for the IDC ALARM timer, which will be called every 250 milliseconds.
- * @param fsm A pointer to the FSM object
- */
-void IDC_Alarm_cb(void* fsm);
-/**
- * @brief Callback for the heartbeat timer, which will be called every 75 milliseconds to send a heartbeat.
- * @param fsm A pointer to the FSM object
- */
-void Sendyne_requestVoltage(int index);
-void heartbeatTimer_cb(void *fsm);
-void heartbeatTimerBMS_cb(void *fsm);
-void wakeupTimerBMS_cb(void *fsm);
-void ccTimer_cb(void *fsm);
-void cTimer_cb(void *fsm);
-void debugTimer_cb(void *fsm);
-void AMS_LogErr(char* error, size_t length);
-void AMS_LogToSD(char* msg, size_t length);
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-float getRuntime();
-int _write(int file, char *data, int len);
-void handleCAN(CAN_HandleTypeDef *hcan, int fifo);
-__NO_RETURN void fsm_mainLoop(void* fsm);
-__NO_RETURN void uart_thread_mainLoop(void* fsm);
-
-fsm_t fsm;
-
-/** Temp Function */
-float vToSoC(float voltage);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -200,5 +171,3 @@ float vToSoC(float voltage);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

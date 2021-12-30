@@ -4,9 +4,8 @@
  *  Created on: Oct 12, 2021
  *      Author: Calvin
  */
-
-#include <DEBUG_CAN_Messages.h>
-
+#include "debugCAN.h"
+#include <CAN_Debug.h>
 #include "can.h"
 
 void debugCAN_enterState(uint8_t stateID) {

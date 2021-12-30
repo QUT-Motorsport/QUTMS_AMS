@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    can.h
@@ -6,16 +7,16 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
+/* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __CAN_H__
 #define __CAN_H__
@@ -28,16 +29,27 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-#include "QUTMS_can.h"
+#include <Timer.h>
+#include <queue.h>
+
 /* USER CODE END Includes */
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
 /* USER CODE BEGIN Private defines */
+#define CAN_QUEUE_SIZE 50
+
+extern message_queue_t queue_CAN2;
+extern message_queue_t queue_CAN4;
+extern message_queue_t queue_CAN_OD;
+
+extern uint32_t txMailbox_CAN2;
+extern uint32_t txMailbox_CAN4;
+
 /**
  * For when you forget
- * @brief CAN2 = Chassis = hcan1, CAN4 = BMS = hcan2
+ * @brief CAN2 = Chassis = hcan2, CAN4 = BMS = hcan1
  */
 #define CANBUS4 hcan1
 #define CANBUS2 hcan2
@@ -48,11 +60,11 @@ void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
-typedef struct AMS_CAN_Generic {
-	CAN_RxHeaderTypeDef header;
-	uint8_t data[8];
-	void *hcan;
-} AMS_CAN_Generic_t;
+bool setup_CAN2();
+bool setup_CAN4();
+
+// called from CAN interrupts, just adds any messages to the CAN queues
+void handle_CAN_interrupt(CAN_HandleTypeDef *hcan, int fifo);
 
 /* USER CODE END Prototypes */
 
@@ -62,4 +74,3 @@ typedef struct AMS_CAN_Generic {
 
 #endif /* __CAN_H__ */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
