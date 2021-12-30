@@ -46,7 +46,10 @@ bool charge;
 // Printf to UART
 
 // 300ms
-#define HEARTBEAT_TIMEOUT 300
+#define HEARTBEAT_TIMEOUT 300U
+
+// 1000ms
+#define UART_TIMEOUT 1000U
 
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds

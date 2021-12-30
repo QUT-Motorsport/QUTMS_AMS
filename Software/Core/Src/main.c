@@ -26,7 +26,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <sys/unistd.h>
+
 #include <FSM.h>
+
+#include "debugCAN.h"
+#include "heartbeat.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,7 +114,8 @@ int main(void) {
 
 	// init fsm
 	fsm.log = &fsm_log_uart;
-	fsm_init(&fsm, &state_start, &fsm_state_enter, &fsm_state_exit);
+	// TODO:
+	//fsm_init(&fsm, &state_start, &fsm_state_enter, &fsm_state_exit);
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */

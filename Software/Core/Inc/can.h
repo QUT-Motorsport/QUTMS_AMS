@@ -60,8 +60,9 @@ void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
-bool setup_CAN2();
-bool setup_CAN4();
+bool setup_CAN();
+bool init_CAN2();
+bool init_CAN4();
 
 // called from CAN interrupts, just adds any messages to the CAN queues
 void handle_CAN_interrupt(CAN_HandleTypeDef *hcan, int fifo);

@@ -8,6 +8,8 @@
 #ifndef INC_DEBUGCAN_H_
 #define INC_DEBUGCAN_H_
 
+#include <stdint.h>
+
 void debugCAN_enterState(uint8_t stateID);
 void debugCAN_exitState(uint8_t stateID);
 
