@@ -24,8 +24,9 @@
 #include <QUTMS_CAN.h>
 #include <stdio.h>
 
-message_queue_t queue_CAN2;
-message_queue_t queue_CAN4;
+message_queue_t queue_CAN;
+message_queue_t queue_CAN_BMS;
+message_queue_t queue_CAN_SENDYNE;
 message_queue_t queue_CAN_OD;
 
 uint32_t txMailbox_CAN2;
@@ -224,8 +225,9 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef *canHandle) {
 /* USER CODE BEGIN 1 */
 bool setup_CAN() {
 	// setup CAN queues
-	queue_init(&queue_CAN2, sizeof(CAN_MSG_Generic_t));
-	queue_init(&queue_CAN4, sizeof(CAN_MSG_Generic_t));
+	queue_init(&queue_CAN, sizeof(CAN_MSG_Generic_t));
+	queue_init(&queue_CAN_BMS, sizeof(CAN_MSG_Generic_t));
+	queue_init(&queue_CAN_SENDYNE, sizeof(CAN_MSG_Generic_t));
 	queue_init(&queue_CAN_OD, sizeof(CAN_MSG_Generic_t));
 
 	return true;
@@ -311,23 +313,25 @@ bool init_CAN4() {
 	return true;
 }
 
-HAL_StatusTypeDef AMS_send_can_msg(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *pHeader, uint8_t aData[]) {
+HAL_StatusTypeDef AMS_send_can_msg(CAN_HandleTypeDef *hcan,
+		CAN_TxHeaderTypeDef *pHeader, uint8_t aData[]) {
 	int can_idx = 0;
 
 	uint32_t *pTxMailbox;
 	if (hcan == &CANBUS2) {
 		pTxMailbox = &txMailbox_CAN2;
 		can_idx = 2;
-	}
-	else if (hcan == &CANBUS4) {
+	} else if (hcan == &CANBUS4) {
 		pTxMailbox = &txMailbox_CAN4;
 		can_idx = 4;
 	}
 
 	// finally send CAN msg
-	HAL_StatusTypeDef result = HAL_CAN_AddTxMessage(hcan, pHeader, aData, pTxMailbox);
+	HAL_StatusTypeDef result = HAL_CAN_AddTxMessage(hcan, pHeader, aData,
+			pTxMailbox);
 	if (result != HAL_OK) {
-		printf("FAILED TO SEND CANBUS%i - e: %lu\r\n", can_idx + 1, hcan->ErrorCode);
+		printf("FAILED TO SEND CANBUS%i - e: %lu\r\n", can_idx + 1,
+				hcan->ErrorCode);
 	}
 
 	return result;
@@ -355,21 +359,26 @@ void handle_CAN_interrupt(CAN_HandleTypeDef *hcan, int fifo) {
 		if (msg.ID == CC_OBJ_DICT_ID) {
 			// object dictionary messages get sent to their own queue for processing
 			queue_add(&queue_CAN_OD, &msg);
-		}
-		else {
-			// add to CAN recieve queue
-			if (hcan == &CANBUS2) {
-				queue_add(&queue_CAN2, &msg);
-			}
-			else if (hcan == &CANBUS4) {
-				queue_add(&queue_CAN4, &msg);
+		} else {
+			if (hcan == &CANBUS4) {
+				if (((msg.ID >> 18) & 0x1FF) == CAN_SRC_ID_BMS) {
+					// BMS messages go to BMS queue for separate handling
+					queue_add(&queue_CAN_BMS, &msg);
+				} else if ((msg.ID == CS_1_RESPONSE_EXTID)
+						|| (msg.ID == CS_2_RESPONSE_EXTID)) {
+					// sendyne messages go to sendyne queue for separate handling
+					queue_add(&queue_CAN_SENDYNE, &msg);
+				} else {
+					// everything else in main queue
+					queue_add(&queue_CAN, &msg);
+				}
+			} else {
+				// everything else in main queue
+				queue_add(&queue_CAN, &msg);
 			}
 		}
 	}
 	__enable_irq();
 }
-
-
-
 
 /* USER CODE END 1 */

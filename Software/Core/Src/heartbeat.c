@@ -39,3 +39,7 @@ void heartbeat_timer_cb(void *args) {
 	AMS_send_can_msg(&CANBUS2, &header, msg.data);
 	AMS_send_can_msg(&CANBUS4, &header, msg.data);
 }
+
+void heartbeat_timeout_reset() {
+
+}

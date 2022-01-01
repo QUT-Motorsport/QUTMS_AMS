@@ -5,25 +5,49 @@
  *      Author: Calvin
  */
 
-
 #include "states.h"
 #include "can_dict.h"
 #include "heartbeat.h"
+#include "profet.h"
+#include "bms.h"
 
 state_t state_start = { &state_start_enter, &state_start_body, AMS_STATE_START };
-state_t state_initPeripherals = { &state_initPeripherals_enter, &state_initPeripherals_body, AMS_STATE_INIT_PERIPHERAL };
-state_t state_initBMS = { &state_initBMS_enter, &state_initBMS_body, AMS_STATE_INIT_BMS };
-state_t state_initCAN4 = { &state_initCAN4_enter, &state_initCAN4_body, AMS_STATE_INIT_CAN4 };
-state_t state_checkBMS = { &state_checkBMS_enter, &state_checkBMS_body, AMS_STATE_CHECK_BMS };
-state_t state_checkSendyne = { &state_checkSendyne_enter, &state_checkSendyne_body, AMS_STATE_CHECK_SENDYNE };
+state_t state_initPeripherals = { &state_initPeripherals_enter,
+		&state_initPeripherals_body, AMS_STATE_INIT_PERIPHERAL };
+state_t state_initBMS = { &state_initBMS_enter, &state_initBMS_body,
+		AMS_STATE_INIT_BMS };
+state_t state_initCAN4 = { &state_initCAN4_enter, &state_initCAN4_body,
+		AMS_STATE_INIT_CAN4 };
+state_t state_checkBMS = { &state_checkBMS_enter, &state_checkBMS_body,
+		AMS_STATE_CHECK_BMS };
+state_t state_checkSendyne = { &state_checkSendyne_enter,
+		&state_checkSendyne_body, AMS_STATE_CHECK_SENDYNE };
 state_t state_error = { &state_error_enter, &state_error_body, AMS_STATE_ERROR };
 
+uint32_t peripheral_retry_start = 0;
+uint32_t peripheral_timeout_start = 0;
+
+int init_bms_count = 0;
+uint32_t bms_boot_start = 0;
 
 void state_start_enter(fsm_t *fsm) {
 	// init object dictionary
 	AMS_OD_init();
 
 	AMS_heartbeatState.flags.rawMem = 0;
+
+	// make sure BMS line is off
+	bms_ctrl_off();
+
+	// open all contactors
+	profet_HVA_N_open();
+	profet_HVB_N_open();
+	profet_HVA_P_open();
+	profet_HVB_P_open();
+	profet_precharge_open();
+
+	// set counters
+	init_bms_count = 0;
 
 	// go to peripheral init
 	fsm_changeState(fsm, &state_initPeripherals, "Init Peripherals");
@@ -35,36 +59,147 @@ void state_start_body(fsm_t *fsm) {
 }
 
 void state_initPeripherals_enter(fsm_t *fsm) {
+	bool success = true;
 
+	// setup CAN message queues
+	setup_CAN();
+
+	if (!init_CAN2()) {
+		AMS_heartbeatState.flags.P_CAN2 = 1;
+		success = false;
+	} else {
+		// CAN2 has started successfully so we're good to start heartbeats
+		setup_heartbeat();
+	}
+
+	if (success) {
+		fsm_changeState(fsm, &state_initBMS, "Peripherals initialized");
+		peripheral_retry_start = 0;
+		peripheral_timeout_start = 0;
+		return;
+	} else {
+		// something failed, so start timers so we can retry
+		peripheral_retry_start = HAL_GetTick();
+		peripheral_timeout_start = HAL_GetTick();
+	}
 }
 
 void state_initPeripherals_body(fsm_t *fsm) {
+	if (peripheral_timeout_start == 0) {
+		// everything is initialized so skip this iteration
+		return;
+	}
 
+	// if we're here, something didn't initialize
+	if ((peripheral_retry_start - HAL_GetTick()) > PERIPHERAL_RETRY) {
+		uint8_t success = 0;
+		if (AMS_heartbeatState.flags.P_CAN2 == 1) {
+			success |= (1 << 0);
+
+			// retry CAN
+			if (init_CAN2()) {
+				success &= ~(1 << 0);
+				AMS_heartbeatState.flags.P_CAN2 = 0;
+
+				// CAN has started successfully so heartbeat machine go brr
+				setup_heartbeat();
+			}
+		}
+
+		if (success == 0) {
+			// everything has initialized correctly
+
+			// disable timeout
+			peripheral_timeout_start = 0;
+
+			fsm_changeState(fsm, &state_initBMS, "Peripherals initialized");
+			return;
+		} else {
+			// something failed, so lets retry again in 100ms
+			peripheral_retry_start = HAL_GetTick();
+		}
+	}
+
+	if ((peripheral_timeout_start - HAL_GetTick()) > PERIPHERAL_TIMEOUT) {
+		// something is clearly broken and hasn't been fixed so go to error state
+		fsm_changeState(fsm, &state_error, "Peripherals failed");
+		return;
+	}
 }
 
-void state_initBMS_enter(fsm_t *fsm) {
 
+
+void state_initBMS_enter(fsm_t *fsm) {
+	if (init_bms_count > MAX_BMS_INIT_TRY) {
+		// BMS initialization not working, go to error state
+		fsm_changeState(fsm, &state_error, "BMS init failed");
+		return;
+	}
+
+	printf("BMS init #%d\r\n", init_bms_count);
+
+	init_bms_count++;
+
+	// turn on BMS
+	bms_ctrl_on();
+
+	// wait 75ms for all BMS to boot and init their CAN
+	bms_boot_start = HAL_GetTick();
+
+	return;
 }
 
 void state_initBMS_body(fsm_t *fsm) {
+	// wait 75ms for all BMS to boot and init their CAN
+	if ((HAL_GetTick() - bms_boot_start) > BMS_BOOT_TIME) {
+		bms_boot_start = 0;
 
+		// turn ctrl line off to not burn out BMS resistors
+		bms_ctrl_off();
+
+		fsm_changeState(fsm, &state_initCAN4, "BMS power on");
+		return;
+	}
 }
 
 void state_initCAN4_enter(fsm_t *fsm) {
-
+	if (!init_CAN4()) {
+		AMS_heartbeatState.flags.P_CAN4 = 1;
+	} else {
+		AMS_heartbeatState.flags.P_CAN4 = 0;
+		fsm_changeState(fsm, &state_checkBMS, "CAN4 initialized");
+		return;
+	}
 }
 
 void state_initCAN4_body(fsm_t *fsm) {
+	// retry init CAN4 until fail
 
+	// if failed 5 times, go back to init BMS
 }
 
 void state_checkBMS_enter(fsm_t *fsm) {
+	// CAN4 is working properly now, so clear failure counter
+	init_bms_count = 0;
+
 
 }
 
 void state_checkBMS_body(fsm_t *fsm) {
 
+	bool BMS_missing = false;
+
+	for (int i = 0; i < BMS_COUNT; i++) {
+		if (!heartbeats.BMS[i]) {
+			BMS_missing = true;
+		}
+	}
+
+	if (!BMS_missing) {
+		fsm_changeState(fsm, &state_checkSendyne, "BMS Present");
+	}
 }
+
 
 void state_checkSendyne_enter(fsm_t *fsm) {
 

@@ -51,6 +51,18 @@ bool charge;
 // 1000ms
 #define UART_TIMEOUT 1000U
 
+// 100ms
+#define PERIPHERAL_RETRY 100
+
+// 1000ms
+#define PERIPHERAL_TIMEOUT 1000
+
+// only try to init BMS 5 times
+#define MAX_BMS_INIT_TRY 5
+
+// 75ms
+#define BMS_BOOT_TIME 75U
+
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
