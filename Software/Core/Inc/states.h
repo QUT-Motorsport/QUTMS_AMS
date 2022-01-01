@@ -31,7 +31,7 @@ void state_checkBMS_body(fsm_t *fsm);
 extern state_t state_checkBMS;
 
 void state_checkSendyne_enter(fsm_t *fsm);
-void state_chekcSendyne_body(fsm_t *fsm);
+void state_checkSendyne_body(fsm_t *fsm);
 extern state_t state_checkSendyne;
 
 void state_ready_enter(fsm_t *fsm);

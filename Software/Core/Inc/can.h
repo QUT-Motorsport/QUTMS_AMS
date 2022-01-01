@@ -64,8 +64,12 @@ bool setup_CAN();
 bool init_CAN2();
 bool init_CAN4();
 
+HAL_StatusTypeDef AMS_send_can_msg(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *pHeader, uint8_t aData[]);
+
 // called from CAN interrupts, just adds any messages to the CAN queues
 void handle_CAN_interrupt(CAN_HandleTypeDef *hcan, int fifo);
+
+
 
 /* USER CODE END Prototypes */
 

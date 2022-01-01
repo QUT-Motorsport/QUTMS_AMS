@@ -30,8 +30,10 @@
 
 #include <FSM.h>
 
+#include "states.h"
 #include "debugCAN.h"
 #include "heartbeat.h"
+#include "can_dict.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -115,7 +117,7 @@ int main(void) {
 	// init fsm
 	fsm.log = &fsm_log_uart;
 	// TODO:
-	//fsm_init(&fsm, &state_start, &fsm_state_enter, &fsm_state_exit);
+	fsm_init(&fsm, &state_start, &fsm_state_enter, &fsm_state_exit);
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
@@ -124,7 +126,8 @@ int main(void) {
 
 		/* USER CODE BEGIN 3 */
 		// update key timers
-
+		timer_update(&timer_heartbeat, NULL);
+		timer_update(&timer_OD, NULL);
 
 		// continue fsm
 		fsm_iterate(&fsm);

@@ -311,6 +311,28 @@ bool init_CAN4() {
 	return true;
 }
 
+HAL_StatusTypeDef AMS_send_can_msg(CAN_HandleTypeDef *hcan, CAN_TxHeaderTypeDef *pHeader, uint8_t aData[]) {
+	int can_idx = 0;
+
+	uint32_t *pTxMailbox;
+	if (hcan == &CANBUS2) {
+		pTxMailbox = &txMailbox_CAN2;
+		can_idx = 2;
+	}
+	else if (hcan == &CANBUS4) {
+		pTxMailbox = &txMailbox_CAN4;
+		can_idx = 4;
+	}
+
+	// finally send CAN msg
+	HAL_StatusTypeDef result = HAL_CAN_AddTxMessage(hcan, pHeader, aData, pTxMailbox);
+	if (result != HAL_OK) {
+		printf("FAILED TO SEND CANBUS%i - e: %lu\r\n", can_idx + 1, hcan->ErrorCode);
+	}
+
+	return result;
+}
+
 void handle_CAN_interrupt(CAN_HandleTypeDef *hcan, int fifo) {
 	__disable_irq();
 	//int fill = HAL_CAN_GetRxFifoFillLevel(hcan, fifo);
@@ -346,4 +368,8 @@ void handle_CAN_interrupt(CAN_HandleTypeDef *hcan, int fifo) {
 	}
 	__enable_irq();
 }
+
+
+
+
 /* USER CODE END 1 */

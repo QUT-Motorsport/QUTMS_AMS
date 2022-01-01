@@ -36,5 +36,6 @@ void heartbeat_timer_cb(void *args) {
 	CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = sizeof(msg.data), .TransmitGlobalTime = DISABLE };
 
 	// send heartbeat on all CAN lines
-	// TODO:
+	AMS_send_can_msg(&CANBUS2, &header, msg.data);
+	AMS_send_can_msg(&CANBUS4, &header, msg.data);
 }
