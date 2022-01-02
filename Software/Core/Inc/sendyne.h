@@ -23,7 +23,9 @@ typedef struct sendyne_state {
 
 } sendyne_state_t;
 
-extern ms_timer_t timer_sendyne;
+extern ms_timer_t timer_sendyne_CAN;
+extern ms_timer_t timer_sendyne_voltage;
+extern ms_timer_t timer_sendyne_current;
 extern sendyne_state_t sendyne;
 
 void sendyne_handleCurrent(CAN_MSG_Generic_t *msg);

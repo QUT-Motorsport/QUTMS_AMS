@@ -21,13 +21,13 @@ typedef struct heartbeat_states {
 
 	bool BMS[BMS_COUNT];
 	bool CC;
-	bool SENDYNE0;
 	bool SENDYNE1;
+	bool SENDYNE2;
 
 	uint32_t hb_BMS_start[BMS_COUNT];
 	uint32_t hb_CC_start;
-	uint32_t hb_SENDYNE0_start;
 	uint32_t hb_SENDYNE1_start;
+	uint32_t hb_SENDYNE2_start;
 
 } heartbeat_states_t;
 

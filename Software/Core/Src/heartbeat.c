@@ -113,17 +113,17 @@ bool check_bms_heartbeat() {
 bool check_sendyne_heartbeat() {
 	bool success = true;
 
-	if ((HAL_GetTick() - heartbeats.hb_SENDYNE0_start)
-			> heartbeats.heartbeat_timeout) {
-		heartbeats.SENDYNE0 = false;
-		AMS_heartbeatState.flags.HB_SENDYNE0 = 1;
-		success = false;
-	}
-
 	if ((HAL_GetTick() - heartbeats.hb_SENDYNE1_start)
 			> heartbeats.heartbeat_timeout) {
 		heartbeats.SENDYNE1 = false;
 		AMS_heartbeatState.flags.HB_SENDYNE1 = 1;
+		success = false;
+	}
+
+	if ((HAL_GetTick() - heartbeats.hb_SENDYNE2_start)
+			> heartbeats.heartbeat_timeout) {
+		heartbeats.SENDYNE2 = false;
+		AMS_heartbeatState.flags.HB_SENDYNE2 = 1;
 		success = false;
 	}
 

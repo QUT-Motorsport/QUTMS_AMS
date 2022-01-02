@@ -236,6 +236,7 @@ void state_checkBMS_body(fsm_t *fsm) {
 
 void state_checkSendyne_enter(fsm_t *fsm) {
 	// start sendyne timers
+	setup_sendyne();
 }
 
 void state_checkSendyne_body(fsm_t *fsm) {
@@ -261,11 +262,11 @@ void state_checkSendyne_body(fsm_t *fsm) {
 
 	bool sendyne_missing = false;
 
-	if (!heartbeats.SENDYNE0) {
+	if (!heartbeats.SENDYNE1) {
 		sendyne_missing = true;
 	}
 
-	if (!heartbeats.SENDYNE1) {
+	if (!heartbeats.SENDYNE2) {
 		sendyne_missing = true;
 	}
 

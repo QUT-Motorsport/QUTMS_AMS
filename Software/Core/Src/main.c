@@ -34,6 +34,7 @@
 #include "debugCAN.h"
 #include "heartbeat.h"
 #include "can_dict.h"
+#include "sendyne.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -128,6 +129,7 @@ int main(void) {
 		// update key timers
 		timer_update(&timer_heartbeat, NULL);
 		timer_update(&timer_OD, NULL);
+		sendyne_timer_update();
 
 		// continue fsm
 		fsm_iterate(&fsm);

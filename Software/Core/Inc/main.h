@@ -63,6 +63,12 @@ bool charge;
 // 75ms
 #define BMS_BOOT_TIME 75U
 
+// uV to V
+#define SENDYNE_VOLTAGE_SCALE 1000000.0f
+
+// uA to A
+#define SENDYNE_CURRENT_SCALE 1000000.0f
+
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
