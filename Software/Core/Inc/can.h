@@ -42,6 +42,7 @@ extern CAN_HandleTypeDef hcan2;
 
 extern message_queue_t queue_CAN;
 extern message_queue_t queue_CAN_BMS;
+extern message_queue_t queue_CAN_SENDYNE;
 extern message_queue_t queue_CAN_OD;
 
 extern uint32_t txMailbox_CAN2;
