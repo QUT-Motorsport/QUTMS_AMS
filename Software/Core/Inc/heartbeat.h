@@ -21,9 +21,14 @@ typedef struct heartbeat_states {
 
 	bool BMS[BMS_COUNT];
 	bool CC;
+	bool SENDYNE0;
+	bool SENDYNE1;
 
 	uint32_t hb_BMS_start[BMS_COUNT];
 	uint32_t hb_CC_start;
+	uint32_t hb_SENDYNE0_start;
+	uint32_t hb_SENDYNE1_start;
+
 } heartbeat_states_t;
 
 extern heartbeat_states_t heartbeats;
@@ -36,6 +41,15 @@ void setup_heartbeat();
 void heartbeat_timer_cb(void *args);
 
 void heartbeat_timeout_reset();
+
+// call every time checking CAN message queue to update heartbeat status of boards
+bool check_heartbeat_msg(CAN_MSG_Generic_t *msg);
+
+// call to update status of heartbeat timeouts and detect potential board loss
+bool check_CAN2_heartbeat();
+
+bool check_bms_heartbeat();
+bool check_sendyne_heartbeat();
 
 
 #endif /* INC_HEARTBEAT_H_ */

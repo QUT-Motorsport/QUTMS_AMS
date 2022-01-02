@@ -127,8 +127,6 @@ void state_initPeripherals_body(fsm_t *fsm) {
 	}
 }
 
-
-
 void state_initBMS_enter(fsm_t *fsm) {
 	if (init_bms_count > MAX_BMS_INIT_TRY) {
 		// BMS initialization not working, go to error state
@@ -150,6 +148,18 @@ void state_initBMS_enter(fsm_t *fsm) {
 }
 
 void state_initBMS_body(fsm_t *fsm) {
+	CAN_MSG_Generic_t msg;
+	while (queue_next(&queue_CAN, &msg)) {
+		// check for heartbeats
+		if (check_heartbeat_msg(&msg)) {
+
+		}
+	}
+
+	// don't care about return value of this until we're in ready mode
+	// could be about to charge where accumulator is not in car
+	check_CAN2_heartbeat();
+
 	// wait 75ms for all BMS to boot and init their CAN
 	if ((HAL_GetTick() - bms_boot_start) > BMS_BOOT_TIME) {
 		bms_boot_start = 0;
@@ -173,6 +183,18 @@ void state_initCAN4_enter(fsm_t *fsm) {
 }
 
 void state_initCAN4_body(fsm_t *fsm) {
+	CAN_MSG_Generic_t msg;
+	while (queue_next(&queue_CAN, &msg)) {
+		// check for heartbeats
+		if (check_heartbeat_msg(&msg)) {
+
+		}
+	}
+
+	// don't care about return value of this until we're in ready mode
+	// could be about to charge where accumulator is not in car
+	check_CAN2_heartbeat();
+
 	// retry init CAN4 until fail
 
 	// if failed 5 times, go back to init BMS
@@ -182,10 +204,22 @@ void state_checkBMS_enter(fsm_t *fsm) {
 	// CAN4 is working properly now, so clear failure counter
 	init_bms_count = 0;
 
-
 }
 
 void state_checkBMS_body(fsm_t *fsm) {
+	CAN_MSG_Generic_t msg;
+	while (queue_next(&queue_CAN, &msg)) {
+		// check for heartbeats
+		if (check_heartbeat_msg(&msg)) {
+
+		}
+	}
+
+	// don't care about return value of this until we're in ready mode
+	// could be about to charge where accumulator is not in car
+	check_CAN2_heartbeat();
+
+	check_bms_heartbeat();
 
 	bool BMS_missing = false;
 
@@ -200,13 +234,45 @@ void state_checkBMS_body(fsm_t *fsm) {
 	}
 }
 
-
 void state_checkSendyne_enter(fsm_t *fsm) {
-
+	// start sendyne timers
 }
 
 void state_checkSendyne_body(fsm_t *fsm) {
 
+	CAN_MSG_Generic_t msg;
+	while (queue_next(&queue_CAN, &msg)) {
+		// check for heartbeats
+		if (check_heartbeat_msg(&msg)) {
+
+		} else if (msg.ID == AMS_StartCharging_ID) {
+			// charge mode has been requested, so switch into charge mode
+			fsm_changeState(fsm, &state_charging, "Starting charging");
+			return;
+		}
+	}
+
+	// don't care about return value of this until we're in ready mode
+	// could be about to charge where accumulator is not in car
+	check_CAN2_heartbeat();
+
+	check_bms_heartbeat();
+	check_sendyne_heartbeat();
+
+	bool sendyne_missing = false;
+
+	if (!heartbeats.SENDYNE0) {
+		sendyne_missing = true;
+	}
+
+	if (!heartbeats.SENDYNE1) {
+		sendyne_missing = true;
+	}
+
+	if (!sendyne_missing) {
+		fsm_changeState(fsm, &state_ready, "Sendyne Present");
+		return;
+	}
 }
 
 void state_error_enter(fsm_t *fsm) {
