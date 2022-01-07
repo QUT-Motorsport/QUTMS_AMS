@@ -9,10 +9,12 @@
 #define INC_BMS_H_
 
 #include <Timer.h>
+#include <QUTMS_CAN.h>
+#include <CAN_BMS.h>
 
 typedef struct bms_status {
-	uint16_t voltages[BMS_COUNT][BMS_VOLTAGE_COUNT];
-	uint8_t temperatures[BMS_COUNT][BMS_TEMPERATURE_COUNT];
+	uint16_t voltages[BMS_COUNT][BMS_VOLT_COUNT];
+	uint8_t temperatures[BMS_COUNT][BMS_TEMP_COUNT];
 
 	uint8_t lastVoltMsgIdx[BMS_COUNT];
 } bms_status_t;

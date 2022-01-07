@@ -63,6 +63,12 @@ bool charge;
 // 75ms
 #define BMS_BOOT_TIME 75U
 
+// only try to init CAN 5 times
+#define MAX_CAN_INIT_TRY 5
+
+// 25ms
+#define CAN_RETRY_TIME 25U
+
 // uV to V
 #define SENDYNE_VOLTAGE_SCALE 1000000.0f
 
@@ -82,8 +88,6 @@ bool charge;
 
 // BMS
 #define BMS_COUNT 8
-#define BMS_VOLTAGE_COUNT 10 /**< Voltages Read Per BMS */
-#define BMS_TEMPERATURE_COUNT 12 /**< Temperatures Read Per BMS */
 
 //Voltage
 //#define ACCUMULATOR_VOLTAGE 36.0f * BMS_COUNT

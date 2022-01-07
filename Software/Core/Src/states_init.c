@@ -10,6 +10,7 @@
 #include "heartbeat.h"
 #include "profet.h"
 #include "bms.h"
+#include "sendyne.h"
 
 state_t state_start = { &state_start_enter, &state_start_body, AMS_STATE_START };
 state_t state_initPeripherals = { &state_initPeripherals_enter,
@@ -29,6 +30,9 @@ uint32_t peripheral_timeout_start = 0;
 
 int init_bms_count = 0;
 uint32_t bms_boot_start = 0;
+
+int init_CAN_count = 0;
+uint32_t CAN_init_start = 0;
 
 void state_start_enter(fsm_t *fsm) {
 	// init object dictionary
@@ -175,6 +179,8 @@ void state_initBMS_body(fsm_t *fsm) {
 void state_initCAN4_enter(fsm_t *fsm) {
 	if (!init_CAN4()) {
 		AMS_heartbeatState.flags.P_CAN4 = 1;
+		CAN_init_start = HAL_GetTick();
+		init_CAN_count = 0;
 	} else {
 		AMS_heartbeatState.flags.P_CAN4 = 0;
 		fsm_changeState(fsm, &state_checkBMS, "CAN4 initialized");
@@ -196,8 +202,28 @@ void state_initCAN4_body(fsm_t *fsm) {
 	check_CAN2_heartbeat();
 
 	// retry init CAN4 until fail
+	if (AMS_heartbeatState.flags.P_CAN4 == 1) {
+		// CAN failed to init
+		if ((HAL_GetTick() - CAN_init_start) > CAN_RETRY_TIME) {
+			printf("CAN init #%d\r\n", init_CAN_count);
+
+			if (!init_CAN4()) {
+				AMS_heartbeatState.flags.P_CAN4 = 1;
+				CAN_init_start = HAL_GetTick();
+				init_CAN_count++;
+			} else {
+				AMS_heartbeatState.flags.P_CAN4 = 0;
+				fsm_changeState(fsm, &state_checkBMS, "CAN4 initialized");
+				return;
+			}
+		}
+	}
 
 	// if failed 5 times, go back to init BMS
+	if (init_CAN_count > MAX_CAN_INIT_TRY) {
+		fsm_changeState(fsm, &state_initBMS, "CAN4 failed to init");
+		return;
+	}
 }
 
 void state_checkBMS_enter(fsm_t *fsm) {

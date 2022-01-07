@@ -7,7 +7,8 @@
 
 #include "bms.h"
 #include "main.h"
-#include "QUTMS_CAN.h"
+#include "can.h"
+#include "heartbeat.h"
 
 ms_timer_t bms_timer;
 bms_status_t bms;
@@ -29,6 +30,10 @@ void bms_CAN_timer_cb(void *args) {
 		if (idx < 1 || idx >= BMS_COUNT) {
 			printf("Invalid BMS ID: %d, MSG: 0x%08X\r\n", idx);
 		} else {
+			// update heartbeat state
+			heartbeats.BMS[idx-1] = true;
+			heartbeats.hb_BMS_start[idx-1] = HAL_GetTick();
+
 			if (masked_id == BMS_TransmitVoltage_ID) {
 				bms_handleVoltageMsg(&msg);
 			} else if (masked_id == BMS_TransmitTemperature_ID) {
@@ -46,11 +51,23 @@ void bms_CAN_timer_cb(void *args) {
 void bms_handleVoltageMsg(CAN_MSG_Generic_t *msg) {
 	uint8_t idx = (msg->ID & 0xF);
 	uint8_t msgId;
-	uint16_t voltages[4];
+	uint16_t voltages[BMS_VOLT_PACK_COUNT];
 
 	Parse_BMS_TransmitVoltage(msg->data, &msgId, voltages);
+
+	for (int i = 0; ((i < BMS_VOLT_PACK_COUNT) && ( ((msgId * BMS_VOLT_PACK_COUNT) + i) < BMS_VOLT_COUNT)); i++) {
+		bms.voltages[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i] = voltages[i];
+	}
 }
 
 void bms_handleTemperatureMsg(CAN_MSG_Generic_t *msg) {
 	uint8_t idx = (msg->ID & 0xF);
+	uint8_t msgId;
+	uint8_t temperatures[BMS_TEMP_PACK_COUNT];
+
+	Parse_BMS_TransmitTemperature(msg->data, &msgId, temperatures);
+
+	for (int i = 0; i < BMS_TEMP_PACK_COUNT; i++) {
+		bms.temperatures[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i] = temperatures[i];
+	}
 }
