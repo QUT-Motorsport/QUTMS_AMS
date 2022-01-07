@@ -49,6 +49,9 @@ bool charge;
 #define HEARTBEAT_TIMEOUT 300U
 
 // 1000ms
+#define HEARTBEAT_PRINT_TIME 250U
+
+// 1000ms
 #define UART_TIMEOUT 1000U
 
 // 100ms
