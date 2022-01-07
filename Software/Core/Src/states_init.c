@@ -44,11 +44,7 @@ void state_start_enter(fsm_t *fsm) {
 	bms_ctrl_off();
 
 	// open all contactors
-	profet_HVA_N_open();
-	profet_HVB_N_open();
-	profet_HVA_P_open();
-	profet_HVB_P_open();
-	profet_precharge_open();
+	profet_open_all();
 
 	// set counters
 	init_bms_count = 0;

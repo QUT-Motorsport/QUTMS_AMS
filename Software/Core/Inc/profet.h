@@ -8,6 +8,10 @@
 #ifndef INC_PROFET_H_
 #define INC_PROFET_H_
 
+void profet_open_all();
+void profet_precharge();
+void profet_TS_active();
+
 void profet_HVA_N_open();
 void profet_HVA_N_close();
 

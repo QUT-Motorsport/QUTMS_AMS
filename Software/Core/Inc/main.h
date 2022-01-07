@@ -55,10 +55,10 @@ bool charge;
 #define UART_TIMEOUT 1000U
 
 // 100ms
-#define PERIPHERAL_RETRY 100
+#define PERIPHERAL_RETRY 100U
 
 // 1000ms
-#define PERIPHERAL_TIMEOUT 1000
+#define PERIPHERAL_TIMEOUT 1000U
 
 // only try to init BMS 5 times
 #define MAX_BMS_INIT_TRY 5
@@ -71,6 +71,12 @@ bool charge;
 
 // 25ms
 #define CAN_RETRY_TIME 25U
+
+// 5000ms
+#define PRECHARGE_TIME_OUT 5000U
+
+#define PRECHARGE_VDIFF 6.0f
+
 
 // uV to V
 #define SENDYNE_VOLTAGE_SCALE 1000000.0f
@@ -100,7 +106,6 @@ bool charge;
 #define DEBUG_CB
 #define ENABLE_CS
 #define DEBUG_PERIOD 1000U // Milliseconds
-#define PRECHARGE_VDIFF 6.0f
 #define BMS_CELL_VMIN 2.0f
 
 // Bit Masks
