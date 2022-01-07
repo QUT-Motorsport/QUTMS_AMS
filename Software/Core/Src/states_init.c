@@ -229,6 +229,7 @@ void state_initCAN4_body(fsm_t *fsm) {
 void state_checkBMS_enter(fsm_t *fsm) {
 	// CAN4 is working properly now, so clear failure counter
 	init_bms_count = 0;
+	bms_setup();
 
 }
 

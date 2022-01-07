@@ -21,18 +21,25 @@ void bms_ctrl_on() {
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_SET);
 }
 
+void bms_setup() {
+	bms_timer = timer_init(5, true, bms_CAN_timer_cb);
+
+	timer_start(&bms_timer);
+}
+
 void bms_CAN_timer_cb(void *args) {
 	CAN_MSG_Generic_t msg;
 	while (queue_next(&queue_CAN_BMS, &msg)) {
 		uint32_t masked_id = (msg.ID & ~0xF);
 		uint8_t idx = (msg.ID & 0xF);
 
-		if (idx < 1 || idx >= BMS_COUNT) {
+		if (idx < 1 || idx > BMS_COUNT) {
 			printf("Invalid BMS ID: %d, MSG: 0x%08X\r\n", idx);
 		} else {
 			// update heartbeat state
 			heartbeats.BMS[idx-1] = true;
 			heartbeats.hb_BMS_start[idx-1] = HAL_GetTick();
+			AMS_heartbeatState.bmsStatus |= 1 << (idx-1);
 
 			if (masked_id == BMS_TransmitVoltage_ID) {
 				bms_handleVoltageMsg(&msg);

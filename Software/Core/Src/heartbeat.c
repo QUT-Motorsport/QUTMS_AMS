@@ -41,7 +41,9 @@ void heartbeat_timer_cb(void *args) {
 
 	// send heartbeat on all CAN lines
 	AMS_send_can_msg(&CANBUS2, &header, msg.data);
-	AMS_send_can_msg(&CANBUS4, &header, msg.data);
+	//if (AMS_heartbeatState.flags.P_CAN4 == 0) {
+		AMS_send_can_msg(&CANBUS4, &header, msg.data);
+	//}
 
 	if ((HAL_GetTick() - ams_heartbeat_timer_start) > HEARTBEAT_PRINT_TIME) {
 		ams_heartbeat_timer_start = HAL_GetTick();
@@ -113,8 +115,13 @@ bool check_bms_heartbeat() {
 				> heartbeats.heartbeat_timeout) {
 			heartbeats.BMS[i] = false;
 			AMS_heartbeatState.flags.HB_BMS = 1;
+			AMS_heartbeatState.bmsStatus &= ~(1 << i);
 			success = false;
 		}
+	}
+
+	if (success) {
+		AMS_heartbeatState.flags.HB_BMS = 0;
 	}
 
 	return success;

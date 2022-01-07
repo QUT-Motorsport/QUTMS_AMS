@@ -25,6 +25,8 @@ extern bms_status_t bms;
 void bms_ctrl_off();
 void bms_ctrl_on();
 
+void bms_setup();
+
 void bms_CAN_timer_cb(void *args);
 
 void bms_handleVoltageMsg(CAN_MSG_Generic_t *msg);

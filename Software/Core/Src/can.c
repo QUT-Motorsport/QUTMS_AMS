@@ -330,7 +330,7 @@ HAL_StatusTypeDef AMS_send_can_msg(CAN_HandleTypeDef *hcan,
 	HAL_StatusTypeDef result = HAL_CAN_AddTxMessage(hcan, pHeader, aData,
 			pTxMailbox);
 	if (result != HAL_OK) {
-		printf("FAILED TO SEND CANBUS%i - e: %lu\r\n", can_idx + 1,
+		printf("FAILED TO SEND CANBUS%i - e: %lu\r\n", can_idx,
 				hcan->ErrorCode);
 	}
 
