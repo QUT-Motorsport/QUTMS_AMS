@@ -20,8 +20,8 @@ sendyne_state_t sendyne;
 
 void setup_sendyne() {
 	timer_sendyne_CAN = timer_init(5, true, sendyne_CAN_timer_cb);
-	timer_sendyne_voltage = timer_init(250, true, sendyne_voltage_timer_cb);
-	timer_sendyne_current = timer_init(250, true, sendyne_current_timer_cb);
+	timer_sendyne_voltage = timer_init(200, true, sendyne_voltage_timer_cb);
+	timer_sendyne_current = timer_init(200, true, sendyne_current_timer_cb);
 
 	timer_start(&timer_sendyne_CAN);
 	timer_start(&timer_sendyne_voltage);
