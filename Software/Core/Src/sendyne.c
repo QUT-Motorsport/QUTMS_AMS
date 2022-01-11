@@ -58,6 +58,7 @@ void sendyne_handleVoltage(CAN_MSG_Generic_t *msg) {
 	sendyne.voltage_uV |= (int32_t)msg->data[4] << 0;
 
 	sendyne.voltage = sendyne.voltage_uV / SENDYNE_VOLTAGE_SCALE;
+	AMS_heartbeatState.voltage = sendyne.voltage;
 }
 
 

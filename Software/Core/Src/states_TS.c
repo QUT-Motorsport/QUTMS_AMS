@@ -15,7 +15,7 @@
 
 state_t state_ready = { &state_ready_enter, &state_ready_body, AMS_STATE_READY };
 state_t state_precharge = { &state_precharge_enter, &state_precharge_body,
-		AMS_STATE_TS_ACTIVE };
+		AMS_STATE_PRECHARGE };
 state_t state_tsActive = { &state_tsActive_enter, &state_tsActive_body,
 		AMS_STATE_TS_ACTIVE };
 state_t state_shutdown = { &state_shutdown_enter, &state_shutdown_body,
@@ -94,14 +94,14 @@ void state_precharge_body(fsm_t *fsm) {
 			brick_voltage += bms.voltages[i][j];
 		}
 		// convert mV to V and average
-		brick_av_voltage += (brick_voltage / (BMS_VOLT_COUNT * 1000.0f));
+		brick_av_voltage += (brick_voltage / (1000.0f));
 	}
 	brick_av_voltage = brick_av_voltage / BMS_COUNT;
 
 	// accumulator is 2s4p, so average brick voltage * 2 should be av accumulator voltage
 	float av_accumulator_voltage = 2 * brick_av_voltage;
 
-	if (fabs((fabs(sendyne.voltage) - av_accumulator_voltage)) < PRECHARGE_VDIFF) {
+	if ((fabs((fabs(sendyne.voltage) - av_accumulator_voltage)) < PRECHARGE_VDIFF) && (fabs(sendyne.voltage) > ACCCUMULATOR_MIN_VOLTAGE) ) {
 		// precharge is complete, go to TS ACTIVE
 		fsm_changeState(fsm, &state_tsActive, "Precharge complete");
 		return;

@@ -24,6 +24,12 @@ void bms_ctrl_on() {
 void bms_setup() {
 	bms_timer = timer_init(5, true, bms_CAN_timer_cb);
 
+	for (int i = 0; i < BMS_COUNT; i++) {
+		for (int j = 0; j < BMS_VOLT_COUNT; j++) {
+			bms.voltages[i][j] = 3300;
+		}
+	}
+
 	timer_start(&bms_timer);
 }
 

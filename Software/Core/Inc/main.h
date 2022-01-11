@@ -46,7 +46,7 @@ bool charge;
 // Printf to UART
 
 // 300ms
-#define HEARTBEAT_TIMEOUT 300U
+#define HEARTBEAT_TIMEOUT 1000U
 
 // 1000ms
 #define HEARTBEAT_PRINT_TIME 1000U
@@ -73,10 +73,12 @@ bool charge;
 #define CAN_RETRY_TIME 25U
 
 // 5000ms
-#define PRECHARGE_TIME_OUT 5000U
+#define PRECHARGE_TIME_OUT 15000U
 
-#define PRECHARGE_VDIFF 6.0f
+#define PRECHARGE_VDIFF 10.0f
 
+// 40V
+#define ACCCUMULATOR_MIN_VOLTAGE 40
 
 // uV to V
 #define SENDYNE_VOLTAGE_SCALE 1000000.0f
