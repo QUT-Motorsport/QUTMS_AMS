@@ -54,6 +54,10 @@ void state_shutdown_enter(fsm_t *fsm);
 void state_shutdown_body(fsm_t *fsm);
 extern state_t state_shutdown;
 
+void state_trig_shutdown_enter(fsm_t *fsm);
+void state_trig_shutdown_body(fsm_t *fsm);
+extern state_t state_trig_shutdown;
+
 void state_error_enter(fsm_t *fsm);
 void state_error_body(fsm_t *fsm);
 extern state_t state_error;

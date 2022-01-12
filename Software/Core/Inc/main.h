@@ -86,6 +86,9 @@ bool charge;
 // uA to A
 #define SENDYNE_CURRENT_SCALE 1000000.0f
 
+// 1000ms
+#define SHUTDOWN_BUFFER_PERIOD 1000U
+
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds

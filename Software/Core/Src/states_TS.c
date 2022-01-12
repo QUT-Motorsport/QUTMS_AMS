@@ -10,6 +10,7 @@
 #include "profet.h"
 #include "bms.h"
 #include "sendyne.h"
+#include "shutdown.h"
 
 #include <math.h>
 
@@ -18,8 +19,6 @@ state_t state_precharge = { &state_precharge_enter, &state_precharge_body,
 		AMS_STATE_PRECHARGE };
 state_t state_tsActive = { &state_tsActive_enter, &state_tsActive_body,
 		AMS_STATE_TS_ACTIVE };
-state_t state_shutdown = { &state_shutdown_enter, &state_shutdown_body,
-		AMS_STATE_SHUTDOWN };
 
 uint32_t precharge_start_time;
 
@@ -29,10 +28,18 @@ void state_ready_enter(fsm_t *fsm) {
 
 void state_ready_body(fsm_t *fsm) {
 	CAN_MSG_Generic_t msg;
+
 	while (queue_next(&queue_CAN, &msg)) {
 		// check for heartbeats
 		if (check_heartbeat_msg(&msg)) {
 
+		}
+
+		else if (check_shutdown_msg(&msg, &shutdown_triggered)) {
+			if (shutdown_triggered) {
+				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
+				return;
+			}
 		}
 
 		// TODO: should you be able to start charging with a sendyne plugged in???
@@ -52,7 +59,10 @@ void state_ready_body(fsm_t *fsm) {
 	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 
-	if (CC_heartbeatState.stateID == CC_STATE_PRECHARGE_REQUEST) {
+	if (CC_heartbeatState.stateID == CC_STATE_SHUTDOWN) {
+		fsm_changeState(fsm, &state_shutdown, "CC in shutdown");
+		return;
+	} else if (CC_heartbeatState.stateID == CC_STATE_PRECHARGE_REQUEST) {
 		// chassis controller has requested precharge, so start precharging
 		fsm_changeState(fsm, &state_precharge, "Precharge requested");
 		return;
@@ -71,10 +81,18 @@ void state_precharge_enter(fsm_t *fsm) {
 
 void state_precharge_body(fsm_t *fsm) {
 	CAN_MSG_Generic_t msg;
+
 	while (queue_next(&queue_CAN, &msg)) {
 		// check for heartbeats
 		if (check_heartbeat_msg(&msg)) {
 
+		}
+
+		else if (check_shutdown_msg(&msg, &shutdown_triggered)) {
+			if (shutdown_triggered) {
+				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
+				return;
+			}
 		}
 	}
 
@@ -101,7 +119,9 @@ void state_precharge_body(fsm_t *fsm) {
 	// accumulator is 2s4p, so average brick voltage * 2 should be av accumulator voltage
 	float av_accumulator_voltage = 2 * brick_av_voltage;
 
-	if ((fabs((fabs(sendyne.voltage) - av_accumulator_voltage)) < PRECHARGE_VDIFF) && (fabs(sendyne.voltage) > ACCCUMULATOR_MIN_VOLTAGE) ) {
+	if ((fabs((fabs(sendyne.voltage) - av_accumulator_voltage))
+			< PRECHARGE_VDIFF)
+			&& (fabs(sendyne.voltage) > ACCCUMULATOR_MIN_VOLTAGE)) {
 		// precharge is complete, go to TS ACTIVE
 		fsm_changeState(fsm, &state_tsActive, "Precharge complete");
 		return;
@@ -122,10 +142,18 @@ void state_tsActive_enter(fsm_t *fsm) {
 
 void state_tsActive_body(fsm_t *fsm) {
 	CAN_MSG_Generic_t msg;
+
 	while (queue_next(&queue_CAN, &msg)) {
 		// check for heartbeats
 		if (check_heartbeat_msg(&msg)) {
 
+		}
+
+		else if (check_shutdown_msg(&msg, &shutdown_triggered)) {
+			if (shutdown_triggered) {
+				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
+				return;
+			}
 		}
 	}
 
@@ -136,10 +164,3 @@ void state_tsActive_body(fsm_t *fsm) {
 	check_sendyne_heartbeat();
 }
 
-void state_shutdown_enter(fsm_t *fsm) {
-
-}
-
-void state_shutdown_body(fsm_t *fsm) {
-
-}
