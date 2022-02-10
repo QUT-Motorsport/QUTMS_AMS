@@ -10,8 +10,8 @@
 
 heartbeat_states_t heartbeats;
 
-AMS_HeartbeatState_t AMS_heartbeatState;
-CC_HeartbeatState_t CC_heartbeatState;
+AMS_HeartbeatState_t AMS_hbState;
+VCU_HeartbeatState_t VCU_CTRL_hbState;
 
 ms_timer_t timer_heartbeat;
 
@@ -34,21 +34,21 @@ void setup_heartbeat() {
 }
 
 void heartbeat_timer_cb(void *args) {
-	AMS_Heartbeat_t msg = Compose_AMS_Heartbeat(&AMS_heartbeatState);
+	AMS_Heartbeat_t msg = Compose_AMS_Heartbeat(&AMS_hbState);
 	CAN_TxHeaderTypeDef header = { .ExtId = msg.id, .IDE =
 	CAN_ID_EXT, .RTR = CAN_RTR_DATA, .DLC = sizeof(msg.data),
 			.TransmitGlobalTime = DISABLE };
 
 	// send heartbeat on all CAN lines
 	AMS_send_can_msg(&CANBUS2, &header, msg.data);
-	//if (AMS_heartbeatState.flags.P_CAN4 == 0) {
+	//if (AMS_hbState.flags.P_CAN4 == 0) {
 		AMS_send_can_msg(&CANBUS4, &header, msg.data);
 	//}
 
 	if ((HAL_GetTick() - ams_heartbeat_timer_start) > HEARTBEAT_PRINT_TIME) {
 		ams_heartbeat_timer_start = HAL_GetTick();
 
-		printf("HB: State: 0x%02X, Flags: 0x%04X, BMS: 0x%04X\r\n", AMS_heartbeatState.stateID, AMS_heartbeatState.flags.rawMem, AMS_heartbeatState.bmsStatus);
+		printf("HB: State: 0x%02X, Flags: 0x%04X, BMS: 0x%04X\r\n", AMS_hbState.stateID, AMS_hbState.flags.rawMem, AMS_hbState.bmsStatus);
 	}
 }
 
@@ -62,16 +62,16 @@ bool check_heartbeat_msg(CAN_MSG_Generic_t *msg) {
 	uint8_t idx = (msg->ID & 0xF);
 	uint32_t masked_id = (msg->ID & ~0xF);
 
-	if (masked_id == CC_Heartbeat_ID) {
+	if ((masked_id == VCU_Heartbeat_ID) && (idx == VCU_ID_CTRL)) {
 		hb_message = true;
 
-		heartbeats.hb_CC_start = HAL_GetTick();
-		heartbeats.CC = true;
+		heartbeats.hb_VCU_CTRL_start = HAL_GetTick();
+		heartbeats.VCU_CTRL = true;
 
 		// have heartbeat so clear error flag if it's set
-		AMS_heartbeatState.flags.HB_CC = 0;
+		AMS_hbState.flags.HB_VCU_CTRL = 0;
 
-		Parse_CC_Heartbeat(msg->data, &CC_heartbeatState);
+		Parse_VCU_Heartbeat(msg->data, &VCU_CTRL_hbState);
 	}
 
 	// check all BMS boards for valid heartbeats
@@ -86,7 +86,7 @@ bool check_heartbeat_msg(CAN_MSG_Generic_t *msg) {
 
 	if (bms_hb_good) {
 		// valid heartbeat for all BMS boards so clear error flag if it's set
-		AMS_heartbeatState.flags.HB_BMS = 0;
+		AMS_hbState.flags.HB_BMS = 0;
 	}
 
 	return hb_message;
@@ -95,11 +95,11 @@ bool check_heartbeat_msg(CAN_MSG_Generic_t *msg) {
 bool check_CAN2_heartbeat() {
 	bool success = true;
 
-	// CC
-	if ((HAL_GetTick() - heartbeats.hb_CC_start)
+	// VCU CTRL
+	if ((HAL_GetTick() - heartbeats.hb_VCU_CTRL_start)
 			> heartbeats.heartbeat_timeout) {
-		heartbeats.CC = false;
-		AMS_heartbeatState.flags.HB_CC = 1;
+		heartbeats.VCU_CTRL = false;
+		AMS_hbState.flags.HB_VCU_CTRL = 1;
 		success = false;
 	}
 
@@ -114,14 +114,14 @@ bool check_bms_heartbeat() {
 		if ((HAL_GetTick() - heartbeats.hb_BMS_start[i])
 				> heartbeats.heartbeat_timeout) {
 			heartbeats.BMS[i] = false;
-			AMS_heartbeatState.flags.HB_BMS = 1;
-			AMS_heartbeatState.bmsStatus &= ~(1 << i);
+			AMS_hbState.flags.HB_BMS = 1;
+			AMS_hbState.bmsStatus &= ~(1 << i);
 			success = false;
 		}
 	}
 
 	if (success) {
-		AMS_heartbeatState.flags.HB_BMS = 0;
+		AMS_hbState.flags.HB_BMS = 0;
 	}
 
 	return success;
@@ -133,14 +133,14 @@ bool check_sendyne_heartbeat() {
 	if ((HAL_GetTick() - heartbeats.hb_SENDYNE1_start)
 			> heartbeats.heartbeat_timeout) {
 		heartbeats.SENDYNE1 = false;
-		AMS_heartbeatState.flags.HB_SENDYNE1 = 1;
+		AMS_hbState.flags.HB_SENDYNE1 = 1;
 		success = false;
 	}
 
 	if ((HAL_GetTick() - heartbeats.hb_SENDYNE2_start)
 			> heartbeats.heartbeat_timeout) {
 		heartbeats.SENDYNE2 = false;
-		AMS_heartbeatState.flags.HB_SENDYNE2 = 1;
+		AMS_hbState.flags.HB_SENDYNE2 = 1;
 		success = false;
 	}
 

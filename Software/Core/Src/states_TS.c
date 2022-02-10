@@ -59,10 +59,10 @@ void state_ready_body(fsm_t *fsm) {
 	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 
-	if (CC_heartbeatState.stateID == CC_STATE_SHUTDOWN) {
-		fsm_changeState(fsm, &state_shutdown, "CC in shutdown");
+	if (VCU_CTRL_hbState.stateID == VCU_STATE_SHUTDOWN) {
+		fsm_changeState(fsm, &state_shutdown, "VCU CTRL in shutdown");
 		return;
-	} else if (CC_heartbeatState.stateID == CC_STATE_PRECHARGE_REQUEST) {
+	} else if (VCU_CTRL_hbState.stateID == VCU_STATE_PRECHARGE_REQUEST) {
 		// chassis controller has requested precharge, so start precharging
 		fsm_changeState(fsm, &state_precharge, "Precharge requested");
 		return;
@@ -76,7 +76,7 @@ void state_precharge_enter(fsm_t *fsm) {
 	precharge_start_time = HAL_GetTick();
 
 	// clear precharge timeout flag as precharge is starting
-	AMS_heartbeatState.flags.PCHRG_TIMEOUT = 0;
+	AMS_hbState.flags.PCHRG_TIMEOUT = 0;
 }
 
 void state_precharge_body(fsm_t *fsm) {
@@ -129,7 +129,7 @@ void state_precharge_body(fsm_t *fsm) {
 
 	// check precharge time out
 	if ((HAL_GetTick() - precharge_start_time) > PRECHARGE_TIME_OUT) {
-		AMS_heartbeatState.flags.PCHRG_TIMEOUT = 1;
+		AMS_hbState.flags.PCHRG_TIMEOUT = 1;
 		fsm_changeState(fsm, &state_ready, "Precharge timed out");
 		return;
 	}

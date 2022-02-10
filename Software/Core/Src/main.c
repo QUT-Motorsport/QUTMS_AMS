@@ -179,7 +179,7 @@ void SystemClock_Config(void) {
 
 /* USER CODE BEGIN 4 */
 void fsm_state_enter(fsm_t *fsm_def) {
-	AMS_heartbeatState.stateID = fsm_def->currentState->stateID;
+	AMS_hbState.stateID = fsm_def->currentState->stateID;
 	debugCAN_enterState(fsm_def->currentState->stateID);
 }
 

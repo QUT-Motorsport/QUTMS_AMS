@@ -45,7 +45,7 @@ void bms_CAN_timer_cb(void *args) {
 			// update heartbeat state
 			heartbeats.BMS[idx-1] = true;
 			heartbeats.hb_BMS_start[idx-1] = HAL_GetTick();
-			AMS_heartbeatState.bmsStatus |= 1 << (idx-1);
+			AMS_hbState.bmsStatus |= 1 << (idx-1);
 
 			if (masked_id == BMS_TransmitVoltage_ID) {
 				bms_handleVoltageMsg(&msg);

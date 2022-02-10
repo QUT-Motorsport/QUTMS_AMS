@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <CAN_AMS.h>
 #include <CAN_BMS.h>
-#include <CAN_CC.h>
+#include <CAN_VCU.h>
 #include <Timer.h>
 
 #include "main.h"
@@ -20,12 +20,12 @@ typedef struct heartbeat_states {
 	uint32_t heartbeat_timeout;
 
 	bool BMS[BMS_COUNT];
-	bool CC;
+	bool VCU_CTRL;
 	bool SENDYNE1;
 	bool SENDYNE2;
 
 	uint32_t hb_BMS_start[BMS_COUNT];
-	uint32_t hb_CC_start;
+	uint32_t hb_VCU_CTRL_start;
 	uint32_t hb_SENDYNE1_start;
 	uint32_t hb_SENDYNE2_start;
 
@@ -34,8 +34,8 @@ typedef struct heartbeat_states {
 extern heartbeat_states_t heartbeats;
 extern ms_timer_t timer_heartbeat;
 
-extern AMS_HeartbeatState_t AMS_heartbeatState;
-extern CC_HeartbeatState_t CC_heartbeatState;
+extern AMS_HeartbeatState_t AMS_hbState;
+extern VCU_HeartbeatState_t VCU_CTRL_hbState;
 
 void setup_heartbeat();
 void heartbeat_timer_cb(void *args);

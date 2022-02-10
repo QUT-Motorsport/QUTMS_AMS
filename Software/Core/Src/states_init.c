@@ -38,7 +38,7 @@ void state_start_enter(fsm_t *fsm) {
 	// init object dictionary
 	AMS_OD_init();
 
-	AMS_heartbeatState.flags.rawMem = 0;
+	AMS_hbState.flags.rawMem = 0;
 
 	// make sure BMS line is off
 	bms_ctrl_off();
@@ -65,7 +65,7 @@ void state_initPeripherals_enter(fsm_t *fsm) {
 	setup_CAN();
 
 	if (!init_CAN2()) {
-		AMS_heartbeatState.flags.P_CAN2 = 1;
+		AMS_hbState.flags.P_CAN2 = 1;
 		success = false;
 	} else {
 		// CAN2 has started successfully so we're good to start heartbeats
@@ -93,13 +93,13 @@ void state_initPeripherals_body(fsm_t *fsm) {
 	// if we're here, something didn't initialize
 	if ((peripheral_retry_start - HAL_GetTick()) > PERIPHERAL_RETRY) {
 		uint8_t success = 0;
-		if (AMS_heartbeatState.flags.P_CAN2 == 1) {
+		if (AMS_hbState.flags.P_CAN2 == 1) {
 			success |= (1 << 0);
 
 			// retry CAN
 			if (init_CAN2()) {
 				success &= ~(1 << 0);
-				AMS_heartbeatState.flags.P_CAN2 = 0;
+				AMS_hbState.flags.P_CAN2 = 0;
 
 				// CAN has started successfully so heartbeat machine go brr
 				setup_heartbeat();
@@ -174,11 +174,11 @@ void state_initBMS_body(fsm_t *fsm) {
 
 void state_initCAN4_enter(fsm_t *fsm) {
 	if (!init_CAN4()) {
-		AMS_heartbeatState.flags.P_CAN4 = 1;
+		AMS_hbState.flags.P_CAN4 = 1;
 		CAN_init_start = HAL_GetTick();
 		init_CAN_count = 0;
 	} else {
-		AMS_heartbeatState.flags.P_CAN4 = 0;
+		AMS_hbState.flags.P_CAN4 = 0;
 		fsm_changeState(fsm, &state_checkBMS, "CAN4 initialized");
 		return;
 	}
@@ -198,17 +198,17 @@ void state_initCAN4_body(fsm_t *fsm) {
 	check_CAN2_heartbeat();
 
 	// retry init CAN4 until fail
-	if (AMS_heartbeatState.flags.P_CAN4 == 1) {
+	if (AMS_hbState.flags.P_CAN4 == 1) {
 		// CAN failed to init
 		if ((HAL_GetTick() - CAN_init_start) > CAN_RETRY_TIME) {
 			printf("CAN init #%d\r\n", init_CAN_count);
 
 			if (!init_CAN4()) {
-				AMS_heartbeatState.flags.P_CAN4 = 1;
+				AMS_hbState.flags.P_CAN4 = 1;
 				CAN_init_start = HAL_GetTick();
 				init_CAN_count++;
 			} else {
-				AMS_heartbeatState.flags.P_CAN4 = 0;
+				AMS_hbState.flags.P_CAN4 = 0;
 				fsm_changeState(fsm, &state_checkBMS, "CAN4 initialized");
 				return;
 			}

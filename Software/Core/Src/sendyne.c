@@ -58,7 +58,7 @@ void sendyne_handleVoltage(CAN_MSG_Generic_t *msg) {
 	sendyne.voltage_uV |= (int32_t)msg->data[4] << 0;
 
 	sendyne.voltage = sendyne.voltage_uV / SENDYNE_VOLTAGE_SCALE;
-	AMS_heartbeatState.voltage = sendyne.voltage;
+	AMS_hbState.voltage = sendyne.voltage;
 }
 
 
@@ -75,7 +75,7 @@ void sendyne_CAN_timer_cb(void *args) {
 		if (msg.ID == CS_1_RESPONSE_EXTID) {
 			heartbeats.hb_SENDYNE1_start = HAL_GetTick();
 			heartbeats.SENDYNE1 = true;
-			AMS_heartbeatState.flags.HB_SENDYNE1 = 0;
+			AMS_hbState.flags.HB_SENDYNE1 = 0;
 
 			if (msg.data[0] == CS_V1) {
 				sendyne_handleVoltage(&msg);
@@ -86,7 +86,7 @@ void sendyne_CAN_timer_cb(void *args) {
 		} else if (msg.ID == CS_2_RESPONSE_EXTID) {
 			heartbeats.hb_SENDYNE2_start = HAL_GetTick();
 			heartbeats.SENDYNE2 = true;
-			AMS_heartbeatState.flags.HB_SENDYNE2 = 0;
+			AMS_hbState.flags.HB_SENDYNE2 = 0;
 
 			if (msg.data[0] == CS_CURRENT) {
 				sendyne_handleCurrent(&msg);
