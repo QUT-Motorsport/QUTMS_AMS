@@ -12,11 +12,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define MAX_FILTER_SIZE 8
+#define BMU_MAX_FILTER_SIZE 8
 
 typedef struct bmu_window_filter {
 	uint32_t current_filtered;
-	uint32_t prev_values[MAX_FILTER_SIZE];
+	uint32_t prev_values[BMU_MAX_FILTER_SIZE];
 	uint32_t running_sum;
 	uint32_t current_idx;
 	bool initialized;

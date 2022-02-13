@@ -5,12 +5,12 @@
  *      Author: Calvin
  */
 
-#include <bmu_window_filter.h>
+#include "bmu_window_filter.h"
 #include <stdlib.h>
 
 void bmu_window_filter_initialize(bmu_window_filter_t *filter, uint32_t initial_value, uint16_t window_size) {
 	filter->current_idx = 0;
-	filter->window_size = (MAX_FILTER_SIZE < window_size) ? MAX_FILTER_SIZE : window_size;
+	filter->window_size = (BMU_MAX_FILTER_SIZE < window_size) ? BMU_MAX_FILTER_SIZE : window_size;
 
 	for (uint16_t i = 0; i < window_size; i++) {
 		filter->prev_values[i] = initial_value;

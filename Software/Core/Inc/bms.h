@@ -11,7 +11,7 @@
 #include <Timer.h>
 #include <QUTMS_CAN.h>
 #include <CAN_BMS.h>
-#include <bmu_window_filter.h>
+#include "bmu_window_filter.h"
 
 #define BMS_VOLT_OVER 3700
 #define BMS_VOLT_UNDER 2000
@@ -32,7 +32,6 @@ typedef struct bms_status {
 
 extern ms_timer_t bms_timer;
 extern bms_status_t bms;
-extern fsm_t fsm;
 
 void bms_ctrl_off();
 void bms_ctrl_on();

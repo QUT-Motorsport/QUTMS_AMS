@@ -38,6 +38,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+extern fsm_t fsm;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

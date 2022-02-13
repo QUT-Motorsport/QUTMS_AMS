@@ -14,7 +14,6 @@
 
 ms_timer_t bms_timer;
 bms_status_t bms;
-fsm_t fsm;
 
 void bms_ctrl_off() {
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
@@ -28,25 +27,18 @@ void bms_setup() {
 	bms_timer = timer_init(5, true, bms_CAN_timer_cb);
 
 	for (int i = 0; i < BMS_COUNT; i++) {
-		for (int j = 0; j < BMS_VOLT_COUNT; j++) {
-			bms.voltages[i][j] = 3300;
-		}
-	}
-
-	// NOTE: pre init or init on update? what should init temp be if pre done?
-
-	/*for (int i = 0; i < BMS_COUNT; i++) {
 		for (int j = 0; j < BMS_VOLT_COUNT || j < BMS_TEMP_COUNT; j++) {
 			if (j < BMS_VOLT_COUNT) {
 				bms.voltages[i][j] = 3300;
-				bmu_window_filter_initialize(bms.voltage_filters[i][j], bms.voltages[i][j], FILTER_SIZE_VOLT);
+				bmu_window_filter_initialize(&bms.voltage_filters[i][j], bms.voltages[i][j], FILTER_SIZE_VOLT);
 			}
 
 			if (j < BMS_TEMP_COUNT) {
-				bmu_window_filter_initialize(bms.temperature_filters[i][j], 0, FILTER_SIZE_TEMP);
+				bms.temperatures[i][j] = 25;
+				bmu_window_filter_initialize(&bms.temperature_filters[i][j], bms.temperatures[i][j], FILTER_SIZE_TEMP);
 			}
 		}
-	}*/
+	}
 
 	timer_start(&bms_timer);
 }
@@ -81,18 +73,19 @@ void bms_CAN_timer_cb(void *args) {
 	for (int i = 0; i < BMS_COUNT; i++) {
 		for (int j = 0; j < BMS_VOLT_COUNT || j < BMS_TEMP_COUNT; j++) {
 			if (j < BMS_VOLT_COUNT) {
-				if (bms.temperature_filters[i][j].initialized) {
-					uint16_t volt_filtered = bms.voltage_filters[i][j].current_filtered;
-					if (volt_filtered > BMS_VOLT_OVER || volt_filtered < BMS_VOLT_UNDER)
-						bad_volt_or_temp = true;
+				uint16_t volt_filtered = bms.voltage_filters[i][j].current_filtered;
+				if (volt_filtered > BMS_VOLT_OVER || volt_filtered < BMS_VOLT_UNDER) {
+					bad_volt_or_temp = true;
+					AMS_hbState.flags.BMS_OVER_VOLT = (volt_filtered > BMS_VOLT_OVER) ? 1 : 0;
+					AMS_hbState.flags.BMS_UNDER_VOLT = (volt_filtered < BMS_VOLT_UNDER) ? 1 : 0;
 				}
 			}
 
 			if (j < BMS_TEMP_COUNT) {
-				if (bms.temperature_filters[i][j].initialized) {
-					uint8_t temp_filtered = bms.temperature_filters[i][j].current_filtered;
-					if (temp_filtered > BMS_TEMP_OVER || temp_filtered < BMS_TEMP_BAD_CUTOFF)
-						bad_volt_or_temp = true;
+				uint8_t temp_filtered = bms.temperature_filters[i][j].current_filtered;
+				if (temp_filtered > BMS_TEMP_OVER && temp_filtered < BMS_TEMP_BAD_CUTOFF) {
+					bad_volt_or_temp = true;
+					AMS_hbState.flags.BMS_BAD_TEMP = 1;
 				}
 			}
 		}
