@@ -9,9 +9,12 @@
 #include "main.h"
 #include "can.h"
 #include "heartbeat.h"
+#include "states.h"
+#include <FSM.h>
 
 ms_timer_t bms_timer;
 bms_status_t bms;
+fsm_t fsm;
 
 void bms_ctrl_off() {
 	HAL_GPIO_WritePin(BMS_CTRL_GPIO_Port, BMS_CTRL_Pin, GPIO_PIN_RESET);
@@ -29,6 +32,21 @@ void bms_setup() {
 			bms.voltages[i][j] = 3300;
 		}
 	}
+
+	// NOTE: pre init or init on update? what should init temp be if pre done?
+
+	/*for (int i = 0; i < BMS_COUNT; i++) {
+		for (int j = 0; j < BMS_VOLT_COUNT || j < BMS_TEMP_COUNT; j++) {
+			if (j < BMS_VOLT_COUNT) {
+				bms.voltages[i][j] = 3300;
+				bmu_window_filter_initialize(bms.voltage_filters[i][j], bms.voltages[i][j], FILTER_SIZE_VOLT);
+			}
+
+			if (j < BMS_TEMP_COUNT) {
+				bmu_window_filter_initialize(bms.temperature_filters[i][j], 0, FILTER_SIZE_TEMP);
+			}
+		}
+	}*/
 
 	timer_start(&bms_timer);
 }
@@ -57,8 +75,31 @@ void bms_CAN_timer_cb(void *args) {
 
 			}
 		}
-
 	}
+
+	bool bad_volt_or_temp = false;
+	for (int i = 0; i < BMS_COUNT; i++) {
+		for (int j = 0; j < BMS_VOLT_COUNT || j < BMS_TEMP_COUNT; j++) {
+			if (j < BMS_VOLT_COUNT) {
+				if (bms.temperature_filters[i][j].initialized) {
+					uint16_t volt_filtered = bms.voltage_filters[i][j].current_filtered;
+					if (volt_filtered > BMS_VOLT_OVER || volt_filtered < BMS_VOLT_UNDER)
+						bad_volt_or_temp = true;
+				}
+			}
+
+			if (j < BMS_TEMP_COUNT) {
+				if (bms.temperature_filters[i][j].initialized) {
+					uint8_t temp_filtered = bms.temperature_filters[i][j].current_filtered;
+					if (temp_filtered > BMS_TEMP_OVER || temp_filtered < BMS_TEMP_BAD_CUTOFF)
+						bad_volt_or_temp = true;
+				}
+			}
+		}
+	}
+
+	if (bad_volt_or_temp)
+		fsm_changeState(&fsm, &state_error, "bad voltage or temperature detected");
 }
 
 void bms_handleVoltageMsg(CAN_MSG_Generic_t *msg) {
@@ -70,6 +111,10 @@ void bms_handleVoltageMsg(CAN_MSG_Generic_t *msg) {
 
 	for (int i = 0; ((i < BMS_VOLT_PACK_COUNT) && ( ((msgId * BMS_VOLT_PACK_COUNT) + i) < BMS_VOLT_COUNT)); i++) {
 		bms.voltages[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i] = voltages[i];
+		bmu_window_filter_update(
+			&bms.voltage_filters[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i],
+			bms.voltages[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i]
+		);
 	}
 }
 
@@ -82,5 +127,9 @@ void bms_handleTemperatureMsg(CAN_MSG_Generic_t *msg) {
 
 	for (int i = 0; i < BMS_TEMP_PACK_COUNT; i++) {
 		bms.temperatures[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i] = temperatures[i];
+		bmu_window_filter_update(
+			&bms.temperature_filters[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i],
+			bms.temperatures[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i]
+		);
 	}
 }
