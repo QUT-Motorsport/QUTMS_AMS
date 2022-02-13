@@ -76,8 +76,11 @@ void bms_CAN_timer_cb(void *args) {
 				uint16_t volt_filtered = bms.voltage_filters[i][j].current_filtered;
 				if (volt_filtered > BMS_VOLT_OVER || volt_filtered < BMS_VOLT_UNDER) {
 					bad_volt_or_temp = true;
-					AMS_hbState.flags.BMS_OVER_VOLT = (volt_filtered > BMS_VOLT_OVER) ? 1 : 0;
-					AMS_hbState.flags.BMS_UNDER_VOLT = (volt_filtered < BMS_VOLT_UNDER) ? 1 : 0;
+
+					if (volt_filtered > BMS_VOLT_OVER)
+						AMS_hbState.flags.BMS_OVER_VOLT = 1;
+					else if (olt_filtered < BMS_VOLT_UNDER)
+						AMS_hbState.flags.BMS_UNDER_VOLT = 1;
 				}
 			}
 
