@@ -79,7 +79,7 @@ void bms_CAN_timer_cb(void *args) {
 
 					if (volt_filtered > BMS_VOLT_OVER)
 						AMS_hbState.flags.BMS_OVER_VOLT = 1;
-					else if (olt_filtered < BMS_VOLT_UNDER)
+					else if (volt_filtered < BMS_VOLT_UNDER)
 						AMS_hbState.flags.BMS_UNDER_VOLT = 1;
 				}
 			}
