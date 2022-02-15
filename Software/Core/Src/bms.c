@@ -51,19 +51,23 @@ void bms_CAN_timer_cb(void *args) {
 
 		if (idx < 1 || idx > BMS_COUNT) {
 			printf("Invalid BMS ID: %d, MSG: 0x%08X\r\n", idx);
-		} else {
+		}
+		else {
 			// update heartbeat state
-			heartbeats.BMS[idx-1] = true;
-			heartbeats.hb_BMS_start[idx-1] = HAL_GetTick();
-			AMS_hbState.bmsStatus |= 1 << (idx-1);
+			heartbeats.BMS[idx - 1] = true;
+			heartbeats.hb_BMS_start[idx - 1] = HAL_GetTick();
+			AMS_hbState.bmsStatus |= 1 << (idx - 1);
 
 			if (masked_id == BMS_TransmitVoltage_ID) {
 				bms_handleVoltageMsg(&msg);
-			} else if (masked_id == BMS_TransmitTemperature_ID) {
+			}
+			else if (masked_id == BMS_TransmitTemperature_ID) {
 				bms_handleTemperatureMsg(&msg);
-			} else if (masked_id == BMS_BadCellVoltage_ID) {
+			}
+			else if (masked_id == BMS_BadCellVoltage_ID) {
 
-			} else if (masked_id == BMS_BadCellTemperature_ID) {
+			}
+			else if (masked_id == BMS_BadCellTemperature_ID) {
 
 			}
 		}
@@ -77,10 +81,14 @@ void bms_CAN_timer_cb(void *args) {
 				if (volt_filtered > BMS_VOLT_OVER || volt_filtered < BMS_VOLT_UNDER) {
 					bad_volt_or_temp = true;
 
-					if (volt_filtered > BMS_VOLT_OVER)
+					if (volt_filtered > BMS_VOLT_OVER) {
 						AMS_hbState.flags.BMS_OVER_VOLT = 1;
-					else if (volt_filtered < BMS_VOLT_UNDER)
+						//printf("Over Volt\r\n");
+					}
+					else if (volt_filtered < BMS_VOLT_UNDER) {
 						AMS_hbState.flags.BMS_UNDER_VOLT = 1;
+						//printf("Under Volt\r\n");
+					}
 				}
 			}
 
@@ -89,13 +97,15 @@ void bms_CAN_timer_cb(void *args) {
 				if (temp_filtered > BMS_TEMP_OVER && temp_filtered < BMS_TEMP_BAD_CUTOFF) {
 					bad_volt_or_temp = true;
 					AMS_hbState.flags.BMS_BAD_TEMP = 1;
+					//printf("Bad Temp\r\n");
 				}
 			}
 		}
 	}
 
-	if (bad_volt_or_temp)
+	if (bad_volt_or_temp) {
 		fsm_changeState(&fsm, &state_error, "bad voltage or temperature detected");
+	}
 }
 
 void bms_handleVoltageMsg(CAN_MSG_Generic_t *msg) {
@@ -105,12 +115,10 @@ void bms_handleVoltageMsg(CAN_MSG_Generic_t *msg) {
 
 	Parse_BMS_TransmitVoltage(msg->data, &msgId, voltages);
 
-	for (int i = 0; ((i < BMS_VOLT_PACK_COUNT) && ( ((msgId * BMS_VOLT_PACK_COUNT) + i) < BMS_VOLT_COUNT)); i++) {
-		bms.voltages[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i] = voltages[i];
-		bmu_window_filter_update(
-			&bms.voltage_filters[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i],
-			bms.voltages[idx-1][(msgId * BMS_VOLT_PACK_COUNT) + i]
-		);
+	for (int i = 0; ((i < BMS_VOLT_PACK_COUNT) && (((msgId * BMS_VOLT_PACK_COUNT) + i) < BMS_VOLT_COUNT)); i++) {
+		bms.voltages[idx - 1][(msgId * BMS_VOLT_PACK_COUNT) + i] = voltages[i];
+		bmu_window_filter_update(&bms.voltage_filters[idx - 1][(msgId * BMS_VOLT_PACK_COUNT) + i],
+				bms.voltages[idx - 1][(msgId * BMS_VOLT_PACK_COUNT) + i]);
 	}
 }
 
@@ -122,10 +130,8 @@ void bms_handleTemperatureMsg(CAN_MSG_Generic_t *msg) {
 	Parse_BMS_TransmitTemperature(msg->data, &msgId, temperatures);
 
 	for (int i = 0; i < BMS_TEMP_PACK_COUNT; i++) {
-		bms.temperatures[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i] = temperatures[i];
-		bmu_window_filter_update(
-			&bms.temperature_filters[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i],
-			bms.temperatures[idx-1][(msgId * BMS_TEMP_PACK_COUNT) + i]
-		);
+		bms.temperatures[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i] = temperatures[i];
+		bmu_window_filter_update(&bms.temperature_filters[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i],
+				bms.temperatures[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i]);
 	}
 }

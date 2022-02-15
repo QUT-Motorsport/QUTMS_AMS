@@ -14,7 +14,7 @@
 #include "bmu_window_filter.h"
 
 #define BMS_VOLT_OVER 3700
-#define BMS_VOLT_UNDER 2000
+#define BMS_VOLT_UNDER 2200
 
 #define BMS_TEMP_OVER 50
 #define BMS_TEMP_BAD_CUTOFF 100
