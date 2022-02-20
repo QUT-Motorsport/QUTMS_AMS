@@ -295,7 +295,7 @@ void state_checkSendyne_body(fsm_t *fsm) {
 		}
 		else if (msg.ID == AMS_StartCharging_ID) {
 			// charge mode has been requested, so switch into charge mode
-			fsm_changeState(fsm, &state_charging, "Starting charging");
+			fsm_changeState(fsm, &state_charging_ready, "Starting charging");
 			return;
 		}
 	}
