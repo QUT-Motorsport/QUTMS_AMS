@@ -102,7 +102,7 @@ bool charge;
 #define BMS_WAKEUP_TIMEOUT 10000U //Milliseconds
 
 // BMS
-#define BMS_COUNT 8
+#define BMS_COUNT 1
 
 //Voltage
 //#define ACCUMULATOR_VOLTAGE 36.0f * BMS_COUNT

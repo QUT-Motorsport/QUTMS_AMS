@@ -8,7 +8,7 @@
 #include "bmu_window_filter.h"
 #include <stdlib.h>
 
-void bmu_window_filter_initialize(bmu_window_filter_t *filter, uint32_t initial_value, uint16_t window_size) {
+void bmu_window_filter_initialize(bmu_window_filter_t *filter, uint16_t initial_value, uint16_t window_size) {
 	filter->current_idx = 0;
 	filter->window_size = (BMU_MAX_FILTER_SIZE < window_size) ? BMU_MAX_FILTER_SIZE : window_size;
 
@@ -20,7 +20,7 @@ void bmu_window_filter_initialize(bmu_window_filter_t *filter, uint32_t initial_
 	filter->initialized = true;
 }
 
-void bmu_window_filter_update(bmu_window_filter_t *filter, uint32_t new_value) {
+void bmu_window_filter_update(bmu_window_filter_t *filter, uint16_t new_value) {
 	// simple window filter
 
 	if (!filter->initialized) {
