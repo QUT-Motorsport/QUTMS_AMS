@@ -34,6 +34,7 @@ void bms_setup() {
 
 		for (int j = 0; j < BMS_TEMP_COUNT; j++) {
 			bms.temperatures[i][j] = 25;
+			bms.temperature_times[i][j] = HAL_GetTick(); // NOTE: or 0?
 			bmu_window_filter_initialize(&bms.temperature_filters[i][j], bms.temperatures[i][j], FILTER_SIZE_TEMP);
 		}
 	}
@@ -147,10 +148,15 @@ void bms_handleTemperatureMsg(CAN_MSG_Generic_t *msg) {
 		bms.temperatures[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i] = temperatures[i];
 
 		if (temperatures[i] < BMS_TEMP_BAD_CUTOFF) {
+			bms.temperature_times[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i] = HAL_GetTick();
 			bmu_window_filter_update(&bms.temperature_filters[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i],
 					bms.temperatures[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i]);
 		} else {
 			printf("invalid temp: %i %i: %i\r\n", idx, (msgId * BMS_TEMP_PACK_COUNT) + i, temperatures[i]);
+			uint32_t last_temp_time = bms.temperature_times[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i];
+			if (HAL_GetTick() - last_temp_time > TEMP_CUTOFF_TIMEOUT) {
+				fsm_changeState(&fsm, &state_shutdown, "bad BMS temperature persistent");
+			}
 		}
 	}
 }

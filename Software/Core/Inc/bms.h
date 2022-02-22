@@ -22,11 +22,14 @@
 #define FILTER_SIZE_VOLT 8
 #define FILTER_SIZE_TEMP 4
 
+#define TEMP_CUTOFF_TIMEOUT 4000
+
 typedef struct bms_status {
 	uint16_t voltages[BMS_COUNT][BMS_VOLT_COUNT];
 	uint8_t temperatures[BMS_COUNT][BMS_TEMP_COUNT];
 	bmu_window_filter_t voltage_filters[BMS_COUNT][BMS_VOLT_COUNT];
 	bmu_window_filter_t temperature_filters[BMS_COUNT][BMS_TEMP_COUNT];
+	uint32_t temperature_times[BMS_COUNT][BMS_TEMP_COUNT];
 	uint8_t lastVoltMsgIdx[BMS_COUNT];
 } bms_status_t;
 
