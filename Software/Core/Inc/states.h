@@ -70,8 +70,4 @@ void state_charging_tsActive_enter(fsm_t *fsm);
 void state_charging_tsActive_body(fsm_t *fsm);
 extern state_t state_charging_tsActive;
 
-void state_charging_shutdown_enter(fsm_t *fsm);
-void state_charging_shutdown_body(fsm_t *fsm);
-extern state_t state_charging_shutdown;
-
 #endif /* INC_STATES_H_ */

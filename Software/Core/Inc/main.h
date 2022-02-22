@@ -90,6 +90,9 @@ bool charge;
 // 1000ms
 #define SHUTDOWN_BUFFER_PERIOD 1000U
 
+// 5000ms
+#define CHARGING_PRECHARGE_TIME 5000U
+
 // Periods
 #define PRECHARGE_DELAY 500U // Milliseconds
 #define SEM_ACQUIRE_TIMEOUT 32U // Milliseconds
