@@ -106,6 +106,12 @@ void bms_CAN_timer_cb(void *args) {
 					AMS_hbState.flags.BMS_BAD_TEMP = 1;
 					//printf("Bad Temp\r\n");
 				}
+
+				uint32_t last_temp_time = bms.temperature_times[i][j];
+				if (HAL_GetTick() - last_temp_time > TEMP_CUTOFF_TIMEOUT) {
+					fsm_changeState(&fsm, &state_shutdown, "bad BMS temperature persistent");
+					return;
+				}
 			}
 		}
 	}
@@ -153,10 +159,6 @@ void bms_handleTemperatureMsg(CAN_MSG_Generic_t *msg) {
 					bms.temperatures[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i]);
 		} else {
 			printf("invalid temp: %i %i: %i\r\n", idx, (msgId * BMS_TEMP_PACK_COUNT) + i, temperatures[i]);
-			uint32_t last_temp_time = bms.temperature_times[idx - 1][(msgId * BMS_TEMP_PACK_COUNT) + i];
-			if (HAL_GetTick() - last_temp_time > TEMP_CUTOFF_TIMEOUT) {
-				fsm_changeState(&fsm, &state_shutdown, "bad BMS temperature persistent");
-			}
 		}
 	}
 }
