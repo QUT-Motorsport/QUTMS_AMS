@@ -11,6 +11,7 @@
 #include "bms.h"
 #include "sendyne.h"
 #include "shutdown.h"
+#include "vesc_inc.h"
 
 #include <math.h>
 
@@ -93,6 +94,8 @@ void state_precharge_body(fsm_t *fsm) {
 				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
 				return;
 			}
+		} else if (check_vesc_msg(&msg)) {
+
 		}
 	}
 
@@ -119,6 +122,23 @@ void state_precharge_body(fsm_t *fsm) {
 	// accumulator is 2s4p, so average brick voltage * 2 should be av accumulator voltage
 	float av_accumulator_voltage = 2 * brick_av_voltage;
 
+	// check all vescs are reading the correct voltage levle
+	bool success = true;
+
+
+	for (int i = 0; i < NUM_VESC; i++) {
+		if ((fabs(vesc_inv.voltage[i] - av_accumulator_voltage) > PRECHARGE_VDIFF) || (vesc_inv.voltage[i] < ACCCUMULATOR_MIN_VOLTAGE) ){
+			success = false;
+		}
+	}
+
+	if (success) {
+		// precharge is complete, go to TS ACTIVE
+		fsm_changeState(fsm, &state_tsActive, "Precharge complete");
+		return;
+	}
+
+	/*
 	if ((fabs((fabs(sendyne.voltage) - av_accumulator_voltage))
 			< PRECHARGE_VDIFF)
 			&& (fabs(sendyne.voltage) > ACCCUMULATOR_MIN_VOLTAGE)) {
@@ -126,6 +146,7 @@ void state_precharge_body(fsm_t *fsm) {
 		fsm_changeState(fsm, &state_tsActive, "Precharge complete");
 		return;
 	}
+	*/
 
 	// check precharge time out
 	if ((HAL_GetTick() - precharge_start_time) > PRECHARGE_TIME_OUT) {
