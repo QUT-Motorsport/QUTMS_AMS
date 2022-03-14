@@ -10,6 +10,7 @@
 
 heartbeat_states_t heartbeats;
 
+CHRGCTRL_HeartbeatState_t CHRG_CTRL_hbState;
 AMS_HeartbeatState_t AMS_hbState;
 VCU_HeartbeatState_t VCU_CTRL_hbState;
 
@@ -74,6 +75,17 @@ bool check_heartbeat_msg(CAN_MSG_Generic_t *msg) {
 		Parse_VCU_Heartbeat(msg->data, &VCU_CTRL_hbState);
 	}
 
+	if (masked_id == CHRGCTRL_Heartbeat_ID) {
+		hb_message = true;
+		heartbeats.hb_CHRG_CTRL_start = HAL_GetTick();
+		heartbeats.CHRG_CTRL = true;
+
+		// have heartbeat so clear error flag if its set
+		AMS_hbState.flags.HB_CHRG_CTRL = 0;
+
+		Parse_CHRG_CTRL_Hearbeat(msg->data, &CHRG_CTRL_hbState);
+	}
+
 	// check all BMS boards for valid heartbeats
 	bool bms_hb_good = true;
 
@@ -90,6 +102,18 @@ bool check_heartbeat_msg(CAN_MSG_Generic_t *msg) {
 	}
 
 	return hb_message;
+}
+
+bool check_CHRG_heartbeat() {
+	bool success = true;
+
+	if ((HAL_GetTick() - heartbeats.hb_CHRG_CTRL_start) > heartbeats.heartbeat_timeout) {
+		heartbeats.CHRG_CTRL = false;
+		AMS_hbState.flags.HB_CHRG_CTRL = 1;
+		success = false;
+	}
+
+	return success;
 }
 
 bool check_CAN2_heartbeat() {

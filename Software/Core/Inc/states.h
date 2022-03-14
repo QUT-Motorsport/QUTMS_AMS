@@ -38,10 +38,6 @@ void state_ready_enter(fsm_t *fsm);
 void state_ready_body(fsm_t *fsm);
 extern state_t state_ready;
 
-void state_charging_enter(fsm_t *fsm);
-void state_charging_body(fsm_t *fsm);
-extern state_t state_charging;
-
 void state_precharge_enter(fsm_t *fsm);
 void state_precharge_body(fsm_t *fsm);
 extern state_t state_precharge;
@@ -61,5 +57,17 @@ extern state_t state_trig_shutdown;
 void state_error_enter(fsm_t *fsm);
 void state_error_body(fsm_t *fsm);
 extern state_t state_error;
+
+void state_charging_ready_enter(fsm_t *fsm);
+void state_charging_ready_body(fsm_t *fsm);
+extern state_t state_charging_ready;
+
+void state_charging_precharge_enter(fsm_t *fsm);
+void state_charging_precharge_body(fsm_t *fsm);
+extern state_t state_charging_precharge;
+
+void state_charging_tsActive_enter(fsm_t *fsm);
+void state_charging_tsActive_body(fsm_t *fsm);
+extern state_t state_charging_tsActive;
 
 #endif /* INC_STATES_H_ */

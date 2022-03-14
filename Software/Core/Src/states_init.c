@@ -292,11 +292,7 @@ void state_checkSendyne_body(fsm_t *fsm) {
 		// check for heartbeats
 		if (check_heartbeat_msg(&msg)) {
 
-		}
-		else if (msg.ID == AMS_StartCharging_ID) {
-			// charge mode has been requested, so switch into charge mode
-			fsm_changeState(fsm, &state_charging, "Starting charging");
-			return;
+			// TODO: check this via heartbeat flag?
 		}
 	}
 
@@ -320,6 +316,14 @@ void state_checkSendyne_body(fsm_t *fsm) {
 	if (!sendyne_missing) {
 		fsm_changeState(fsm, &state_ready, "Sendyne Present");
 		return;
+	}
+
+	if (check_CHRG_heartbeat()) {
+		if (CHRG_CTRL_hbState.stateID == CHRGCTRL_STATE_IDLE) {
+			// charge controller is present and waiting, so switch to charging mode
+			fsm_changeState(fsm, &state_charging_ready, "Starting charging");
+			return;
+		}
 	}
 }
 

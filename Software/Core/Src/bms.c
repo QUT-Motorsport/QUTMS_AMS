@@ -51,7 +51,7 @@ void bms_CAN_timer_cb(void *args) {
 		uint8_t idx = (msg.ID & 0xF);
 
 		if (idx < 1 || idx > BMS_COUNT) {
-			printf("Invalid BMS ID: %d, MSG: 0x%08X\r\n", idx);
+			printf("Invalid BMS ID: %d, MSG: 0x%08luX\r\n", idx, masked_id);
 		} else {
 			// update heartbeat state
 			heartbeats.BMS[idx - 1] = true;
