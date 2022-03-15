@@ -16,10 +16,8 @@
 #include <math.h>
 
 state_t state_ready = { &state_ready_enter, &state_ready_body, AMS_STATE_READY };
-state_t state_precharge = { &state_precharge_enter, &state_precharge_body,
-		AMS_STATE_PRECHARGE };
-state_t state_tsActive = { &state_tsActive_enter, &state_tsActive_body,
-		AMS_STATE_TS_ACTIVE };
+state_t state_precharge = { &state_precharge_enter, &state_precharge_body, AMS_STATE_PRECHARGE };
+state_t state_tsActive = { &state_tsActive_enter, &state_tsActive_body, AMS_STATE_TS_ACTIVE };
 
 uint32_t precharge_start_time;
 
@@ -36,8 +34,8 @@ void state_ready_body(fsm_t *fsm) {
 
 		}
 
-		else if (check_shutdown_msg(&msg, &shutdown_triggered)) {
-			if (shutdown_triggered) {
+		else if (check_shutdown_msg(&msg, &shutdown_status)) {
+			if (!shutdown_status) {
 				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
 				return;
 			}
@@ -63,7 +61,8 @@ void state_ready_body(fsm_t *fsm) {
 	if (VCU_CTRL_hbState.stateID == VCU_STATE_SHUTDOWN) {
 		fsm_changeState(fsm, &state_shutdown, "VCU CTRL in shutdown");
 		return;
-	} else if (VCU_CTRL_hbState.stateID == VCU_STATE_PRECHARGE_REQUEST) {
+	}
+	else if (VCU_CTRL_hbState.stateID == VCU_STATE_PRECHARGE_REQUEST) {
 		// chassis controller has requested precharge, so start precharging
 		fsm_changeState(fsm, &state_precharge, "Precharge requested");
 		return;
@@ -89,12 +88,13 @@ void state_precharge_body(fsm_t *fsm) {
 
 		}
 
-		else if (check_shutdown_msg(&msg, &shutdown_triggered)) {
-			if (shutdown_triggered) {
+		else if (check_shutdown_msg(&msg, &shutdown_status)) {
+			if (!shutdown_status) {
 				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
 				return;
 			}
-		} else if (check_vesc_msg(&msg)) {
+		}
+		else if (check_vesc_msg(&msg)) {
 
 		}
 	}
@@ -125,9 +125,9 @@ void state_precharge_body(fsm_t *fsm) {
 	// check all vescs are reading the correct voltage levle
 	bool success = true;
 
-
 	for (int i = 0; i < NUM_VESC; i++) {
-		if ((fabs(vesc_inv.voltage[i] - av_accumulator_voltage) > PRECHARGE_VDIFF) || (vesc_inv.voltage[i] < ACCCUMULATOR_MIN_VOLTAGE) ){
+		if ((fabs(vesc_inv.voltage[i] - av_accumulator_voltage) > PRECHARGE_VDIFF)
+				|| (vesc_inv.voltage[i] < ACCCUMULATOR_MIN_VOLTAGE)) {
 			success = false;
 		}
 	}
@@ -139,14 +139,14 @@ void state_precharge_body(fsm_t *fsm) {
 	}
 
 	/*
-	if ((fabs((fabs(sendyne.voltage) - av_accumulator_voltage))
-			< PRECHARGE_VDIFF)
-			&& (fabs(sendyne.voltage) > ACCCUMULATOR_MIN_VOLTAGE)) {
-		// precharge is complete, go to TS ACTIVE
-		fsm_changeState(fsm, &state_tsActive, "Precharge complete");
-		return;
-	}
-	*/
+	 if ((fabs((fabs(sendyne.voltage) - av_accumulator_voltage))
+	 < PRECHARGE_VDIFF)
+	 && (fabs(sendyne.voltage) > ACCCUMULATOR_MIN_VOLTAGE)) {
+	 // precharge is complete, go to TS ACTIVE
+	 fsm_changeState(fsm, &state_tsActive, "Precharge complete");
+	 return;
+	 }
+	 */
 
 	// check precharge time out
 	if ((HAL_GetTick() - precharge_start_time) > PRECHARGE_TIME_OUT) {
@@ -170,8 +170,8 @@ void state_tsActive_body(fsm_t *fsm) {
 
 		}
 
-		else if (check_shutdown_msg(&msg, &shutdown_triggered)) {
-			if (shutdown_triggered) {
+		else if (check_shutdown_msg(&msg, &shutdown_status)) {
+			if (!shutdown_status) {
 				fsm_changeState(fsm, &state_shutdown, "Shutdown triggered");
 				return;
 			}

@@ -106,7 +106,9 @@ void bms_CAN_timer_cb(void *args) {
 
 			uint32_t last_temp_time = bms.temperature_times[i][j];
 			if (HAL_GetTick() - last_temp_time > TEMP_CUTOFF_TIMEOUT) {
-				fsm_changeState(&fsm, &state_shutdown,
+				AMS_hbState.flags.BMS_BAD_TEMP = 1;
+
+				fsm_changeState(&fsm, &state_trig_shutdown,
 						"bad BMS temperature persistent");
 				return;
 			}
@@ -117,14 +119,15 @@ void bms_CAN_timer_cb(void *args) {
 	if (bad_volt) {
 		printf("bad volt %i %i: %i\r\n", bad_i, bad_j,
 				bms.voltage_filters[bad_i][bad_j].current_filtered);
-		fsm_changeState(&fsm, &state_error, "bad voltage detected");
+		fsm_changeState(&fsm, &state_trig_shutdown, "bad voltage detected");
 		return;
 	}
 
 	if (bad_temp) {
 		printf("bad temp %i %i: %i\r\n", bad_i, bad_j,
 				bms.temperature_filters[bad_i][bad_j].current_filtered);
-		fsm_changeState(&fsm, &state_error, "bad temperature detected");
+
+		fsm_changeState(&fsm, &state_trig_shutdown, "bad temperature detected");
 		return;
 	}
 }

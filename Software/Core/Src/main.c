@@ -116,11 +116,6 @@ int main(void) {
 
 	/* USER CODE END 2 */
 
-	// init fsm
-	fsm.log = &fsm_log_uart;
-	// TODO:
-	fsm_init(&fsm, &state_start, &fsm_state_enter, &fsm_state_exit);
-
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
@@ -189,7 +184,7 @@ void fsm_state_exit(fsm_t *fsm_def) {
 
 void fsm_log_uart(const char *data, size_t len) {
 	HAL_UART_Transmit(&huart3, (uint8_t*) data, len,
-		UART_TIMEOUT);
+	UART_TIMEOUT);
 }
 /* USER CODE END 4 */
 
