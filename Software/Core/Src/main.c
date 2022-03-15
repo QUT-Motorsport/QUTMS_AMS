@@ -114,6 +114,9 @@ int main(void) {
 	MX_USART3_UART_Init();
 	/* USER CODE BEGIN 2 */
 
+	fsm.log = &fsm_log_uart;
+	fsm_init(&fsm, &state_start, &fsm_state_enter, &fsm_state_exit);
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
