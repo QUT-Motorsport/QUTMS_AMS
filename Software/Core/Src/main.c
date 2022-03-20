@@ -129,6 +129,7 @@ int main(void) {
 		timer_update(&timer_heartbeat, NULL);
 		timer_update(&timer_OD, NULL);
 		timer_update(&bms_timer, NULL);
+		timer_update(&bms_reboot_timer, NULL);
 		sendyne_timer_update();
 
 		// continue fsm

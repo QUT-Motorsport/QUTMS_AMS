@@ -55,7 +55,6 @@ void state_ready_body(fsm_t *fsm) {
 	// TODO: check dis?
 	check_CAN2_heartbeat();
 
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 
 	if (VCU_CTRL_hbState.stateID == VCU_STATE_SHUTDOWN) {
@@ -102,7 +101,6 @@ void state_precharge_body(fsm_t *fsm) {
 	// TODO: check dis?
 	check_CAN2_heartbeat();
 
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 
 	// check voltage level
@@ -181,7 +179,6 @@ void state_tsActive_body(fsm_t *fsm) {
 	// TODO: check dis?
 	check_CAN2_heartbeat();
 
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 }
 

@@ -62,7 +62,6 @@ void state_shutdown_body(fsm_t *fsm) {
 
 	check_CAN2_heartbeat();
 
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 
 	if (shdn_update && shdn_stat) {

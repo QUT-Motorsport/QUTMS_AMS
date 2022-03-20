@@ -13,6 +13,7 @@
 #include <FSM.h>
 
 ms_timer_t bms_timer;
+ms_timer_t bms_reboot_timer;
 bms_status_t bms;
 
 void bms_ctrl_off() {
@@ -25,6 +26,7 @@ void bms_ctrl_on() {
 
 void bms_setup() {
 	bms_timer = timer_init(5, true, bms_CAN_timer_cb);
+	bms_reboot_timer = timer_init(BMS_BOOT_TIME, false, bms_reboot_timer_cb);
 
 	for (int i = 0; i < BMS_COUNT; i++) {
 		for (int j = 0; j < BMS_VOLT_COUNT; j++) {
@@ -42,6 +44,11 @@ void bms_setup() {
 	}
 
 	timer_start(&bms_timer);
+}
+
+void bms_reboot_timer_cb(void *args) {
+	// its been 75ms, so turn ctrl line off
+	bms_ctrl_off();
 }
 
 void bms_CAN_timer_cb(void *args) {
@@ -67,6 +74,14 @@ void bms_CAN_timer_cb(void *args) {
 			} else if (masked_id == BMS_BadCellTemperature_ID) {
 
 			}
+		}
+	}
+
+	if (!check_bms_heartbeat()) {
+		if (!bms_reboot_timer.isRunning) {
+			// bms has dropped out, so turn the ctrl line on to reboot any dead ones
+			bms_ctrl_on();
+			timer_start(&bms_reboot_timer);
 		}
 	}
 

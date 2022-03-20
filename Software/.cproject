@@ -48,6 +48,7 @@
 									<listOptionValue builtIn="false" value="PRINTF_TO_UART"/>
 									<listOptionValue builtIn="false" value="QUTMS_CAN_SHDN"/>
 									<listOptionValue builtIn="false" value="QUTMS_VCU"/>
+									<listOptionValue builtIn="false" value="QUTMS_CAN_VESC"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1881354935" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>

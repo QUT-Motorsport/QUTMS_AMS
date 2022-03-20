@@ -265,8 +265,6 @@ void state_checkBMS_body(fsm_t *fsm) {
 	// could be about to charge where accumulator is not in car
 	check_CAN2_heartbeat();
 
-	check_bms_heartbeat();
-
 	bool BMS_missing = false;
 
 	for (int i = 0; i < BMS_COUNT; i++) {
@@ -300,7 +298,6 @@ void state_checkSendyne_body(fsm_t *fsm) {
 	// could be about to charge where accumulator is not in car
 	check_CAN2_heartbeat();
 
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 
 	bool sendyne_missing = false;

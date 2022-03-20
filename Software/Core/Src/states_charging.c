@@ -42,7 +42,6 @@ void state_charging_ready_body(fsm_t *fsm) {
 	}
 
 	check_CAN2_heartbeat();
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 	check_CHRG_heartbeat();
 
@@ -74,7 +73,6 @@ void state_charging_precharge_body(fsm_t *fsm) {
 	}
 
 	check_CAN2_heartbeat();
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 	check_CHRG_heartbeat();
 
@@ -101,7 +99,6 @@ void state_charging_tsActive_body(fsm_t *fsm) {
 	}
 
 	check_CAN2_heartbeat();
-	check_bms_heartbeat();
 	check_sendyne_heartbeat();
 	check_CHRG_heartbeat();
 
