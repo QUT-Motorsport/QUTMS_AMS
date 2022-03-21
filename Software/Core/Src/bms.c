@@ -109,6 +109,9 @@ void bms_CAN_timer_cb(void *args) {
 		}
 
 		for (int j = 0; j < BMS_TEMP_COUNT; j++) {
+			if ((i == (6-1)) && (j >= 10)) {
+				continue;
+			}
 			uint8_t temp_filtered =
 					bms.temperature_filters[i][j].current_filtered;
 			if (temp_filtered > BMS_TEMP_OVER) {
@@ -131,7 +134,7 @@ void bms_CAN_timer_cb(void *args) {
 		}
 	}
 
-	if (bad_volt) {
+	 	 if (bad_volt) {
 		printf("bad volt %i %i: %i\r\n", bad_i, bad_j,
 				bms.voltage_filters[bad_i][bad_j].current_filtered);
 		fsm_changeState(&fsm, &state_trig_shutdown, "bad voltage detected");

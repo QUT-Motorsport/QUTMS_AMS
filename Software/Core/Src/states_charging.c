@@ -18,12 +18,11 @@
 
 #include <math.h>
 
-state_t state_charging_ready = { &state_charging_ready_enter,
-		&state_charging_ready_body, AMS_STATE_CHARGING_READY };
-state_t state_charging_precharge = { &state_charging_precharge_enter,
-		&state_charging_precharge_body, AMS_STATE_CHARGING_PRECHARGE };
-state_t state_charging_tsActive = { &state_charging_tsActive_enter,
-		&state_charging_tsActive_body, AMS_STATE_CHARGING_TS_ACTIVE };
+state_t state_charging_ready = { &state_charging_ready_enter, &state_charging_ready_body, AMS_STATE_CHARGING_READY };
+state_t state_charging_precharge = { &state_charging_precharge_enter, &state_charging_precharge_body,
+		AMS_STATE_CHARGING_PRECHARGE };
+state_t state_charging_tsActive = { &state_charging_tsActive_enter, &state_charging_tsActive_body,
+		AMS_STATE_CHARGING_TS_ACTIVE };
 
 uint32_t precharge_start_time; // NOTE: will this override?
 
@@ -76,11 +75,18 @@ void state_charging_precharge_body(fsm_t *fsm) {
 	check_sendyne_heartbeat();
 	check_CHRG_heartbeat();
 
+	if (CHRG_CTRL_hbState.stateID == CHRGCTRL_STATE_STOP_CHARGE) {
+		// charge controller says finished charging
+		fsm_changeState(fsm, &state_charging_ready, "Charging finished");
+		return;
+	}
+
 	if ((HAL_GetTick() - precharge_start_time) > CHARGING_PRECHARGE_TIME) {
 		// precharge has completed
 		fsm_changeState(fsm, &state_charging_tsActive, "Precharge complete");
 		return;
 	}
+
 }
 
 void state_charging_tsActive_enter(fsm_t *fsm) {
