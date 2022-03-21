@@ -22,7 +22,7 @@
 #define FILTER_SIZE_VOLT 8
 #define FILTER_SIZE_TEMP 4
 
-#define TEMP_CUTOFF_TIMEOUT 4000
+#define TEMP_CUTOFF_TIMEOUT 15000
 
 typedef struct bms_status {
 	uint16_t voltages[BMS_COUNT][BMS_VOLT_COUNT];
