@@ -112,7 +112,7 @@ void bms_CAN_timer_cb(void *args) {
 		}
 
 		for (int j = 0; j < BMS_TEMP_COUNT; j++) {
-			if ((i == (6 - 1)) && (j >= 7)) {
+			if (((i == (6 - 1)) && (j >= 7)) || ((i == 7) && ((j == 4) || (j == 5) || (j == 8)))) {
 				continue;
 			}
 			uint8_t temp_filtered = bms.temperature_filters[i][j].current_filtered;
