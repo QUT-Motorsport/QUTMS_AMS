@@ -21,6 +21,11 @@ typedef struct sendyne_state {
 	int32_t HVBCurrent_uA;
 	float HVBCurrent;
 
+	int64_t HVACoulomb_μC;
+	float HVACoulomb;
+
+	int64_t HVBCoulomb_μC;
+	float HVBCoulomb;
 } sendyne_state_t;
 
 extern ms_timer_t timer_sendyne_CAN;
