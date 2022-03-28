@@ -87,6 +87,9 @@ bool charge;
 // uA to A
 #define SENDYNE_CURRENT_SCALE 1000000.0f
 
+// uC to C
+#define SENDYNE_COULOMB_SCALE 1000000.0f
+
 // 1000ms
 #define SHUTDOWN_BUFFER_PERIOD 1000U
 
